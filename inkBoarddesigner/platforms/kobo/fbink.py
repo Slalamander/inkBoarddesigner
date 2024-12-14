@@ -313,9 +313,6 @@ class API:
         "Inverts the screen using software inversion"
         FBInk.fbink_invert_screen(cls._fbfd, cls._fbink_cfg)
 
-    # @classmethod
-    # def fbink_wait_for_complete(cls):
-    #     FBInk.fbink_wait_for_complete(cls._fbfd)
     #endregion
 
     @classmethod

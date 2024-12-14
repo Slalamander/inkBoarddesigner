@@ -238,15 +238,6 @@ class InputQueue(asyncio.Queue):
             pass
 
         ##Currently works, though it's rather finicky with slight movements causing a release
-        # if pressure:
-        #     touch_val = TOUCH_PRESSED
-        #     # touch_val = TOUCH_PRESSED if pressure else TOUCH_RELEASED
-        # elif touch != None:
-        #     touch_val = TOUCH_PRESSED if touch else TOUCH_RELEASED
-        # elif pressure != None:
-        #     touch_val = TOUCH_RELEASED
-        # else:
-        #     touch_val = None
 
         if touch != None:
             touch_val = TOUCH_PRESSED if touch else TOUCH_RELEASED
@@ -281,7 +272,6 @@ class InputQueue(asyncio.Queue):
                 else:
                     pressure = False
                 self.__eventdict["pressure"] = pressure
-        # print(f"Touch events gathered: {self.__eventdict}")
 
     def _is_complete_event(self) -> bool:
         return not bool({"x","y","touch-true", "touch-false"} - set(self.__eventdict.keys()))

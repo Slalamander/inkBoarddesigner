@@ -1,3 +1,6 @@
+"""Kobo device for working with only PSSM (not inkBoard)
+"""
+
 #!/usr/bin/env python
 import sys
 import os
@@ -88,8 +91,6 @@ class Device(basedevice.PSSMdevice):
 		self._backlight = Backlight(self)
 		self._network = Network()
 
-		# print(f"Device w,h is {FBInk.screen_width}, {FBInk.screen_height}")
-		# print(f"Current device rotation is {FBInk.current_rota}")
 		super().__init__(features, 
 				FBInk.screen_width, FBInk.screen_height, FBInk.view_width, FBInk.view_height,
 				"RGBA", "RGBA", "white",
@@ -373,7 +374,6 @@ class Backlight(basedevice.Backlight):
 			self._transitionTask.cancel()
 
 		if self.state:
-			# self.turn_off(transition)
 			await self.turn_off_async(transition)
 			return
 		else:
@@ -439,7 +439,6 @@ class Network(basedevice.Network):
 	Properties: IP, wifiOn, connected, SSID
 	'''
 	def __init__(self):
-		#asyncio.set_event_loop()
 		self._isWifiOn = True
 		self._update_network_properties()
 

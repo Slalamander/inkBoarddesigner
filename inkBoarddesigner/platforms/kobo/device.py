@@ -16,9 +16,6 @@ from time import sleep
 from math import pi, ceil
 from contextlib import suppress
 # Load the wrapper module, it's linked against FBInk, so the dynamic loader will take care of pulling in the actual FBInk library
-#import _fbink
-# print(_fbink.__file__)
-# sys.exit()
 
 #Fbink functions etc. can best be checked here: https://github.com/NiLuJe/FBInk/blob/master/fbink.h
 #But this is all in C, so some translating may be needed -> yawk has an fbink mock
@@ -184,7 +181,6 @@ class ConnectionNetwork(pssm_device.BaseNetwork, BaseConnectionNetwork):
 
 	def get_network_properties(self):
 		##Add function to get network name
-		#await self.__async_wifiUp()
 
 		if s := self._iface.status() == pywifi.const.IFACE_INACTIVE:
 			self._isWifiOn = False
