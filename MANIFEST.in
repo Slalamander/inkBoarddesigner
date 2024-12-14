@@ -1,5 +1,7 @@
-graft ./inkBoard/files
+graft ./inkBoarddesigner/files
+graft ./inkBoarddesigner/platforms
+graft ./inkBoard/integrations
+
+prune ./inkBoarddesigner/files/settings.ini
 
 prune ./inkBoard/files/icons/meteocons
-prune ./inkBoard/platforms/*/
-prune ./inkBoard/integrations/*/
