@@ -16,7 +16,7 @@ import tkinter as tk
 from PIL import Image, ImageTk
 import ttkbootstrap as ttk
 
-from inkBoard_designer.platforms.desktop import device
+from inkBoarddesigner.platforms.desktop import device
 from inkBoard.platforms.basedevice import InkboardDeviceFeatures, FEATURES
 
 from PythonScreenStackManager.devices import PSSMdevice, windowed
@@ -174,10 +174,10 @@ class Device(device.Device):
                 emulator_conf = json.load(f)
 
         if emulated_platform != "emulator" and config.designer.platform_validation:
-            if (platform_folder / "platform.json").exists():
+            if emulator_conf:
                 validate_platform_config(emulator_conf, config)
             else:
-                _LOGGER.warning(f"Cannot validate config for platform {emulated_platform}, no platform.json file")
+                _LOGGER.warning(f"Cannot validate config for platform {emulated_platform}, no emulator.json file")
 
         self._canvasLock = asyncio.Lock()
 
@@ -202,7 +202,6 @@ class Device(device.Device):
 
         self.refresh_rate = device_map["refresh_rate"]
 
-        # screenMode = False
         if "screen_mode" in device_map:
             screenMode = device_map["screenmode"]
         elif "screen_type" in device_map:
@@ -240,7 +239,6 @@ class Device(device.Device):
         self._screenImage = Image.new(screenMode,(self.screenWidth,self.screenHeight),
                                     None)
         self.last_printed_PIL = self._screenImage.copy()
-        # self._canvasImageTk =  ImageTk.PhotoImage(self.last_printed_PIL)
         ImageTk.PhotoImage(self.last_printed_PIL)
         self._canvasImageTk = self.window.call_in_main_thread(
                 ImageTk.PhotoImage, self.last_printed_PIL)

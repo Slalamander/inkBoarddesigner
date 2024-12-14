@@ -26,7 +26,7 @@ from ..util import iidType
 
 if TYPE_CHECKING:
     from PythonScreenStackManager.elements import Element
-    from inkBoard_designer.emulator.device import Device
+    from inkBoarddesigner.emulator.device import Device
     from inkBoard import core
 
 _LOGGER = logging.getLogger(__name__)

@@ -64,7 +64,7 @@ def run_designer(args):
 
 def _add_parser(parser: "argparse._SubParsersAction", name: str):
     designer_parser: "argparse.ArgumentParser" = parser.add_parser(name, 
-                    description="Run inkBoard in designer mode, meant for desktop environments. Allows for designing dashboards without being limited by the platform it will run on, but with emulation capabilities to make performance as close as possible to what it will be on device. Requires inkBoard_designer to be installed",
+                    description="Run inkBoard in designer mode, meant for desktop environments. Allows for designing dashboards without being limited by the platform it will run on, but with emulation capabilities to make performance as close as possible to what it will be on device. Requires inkBoarddesigner to be installed",
                     help="Runs inkBoard in designer mode", add_help=True)
     
     designer_parser.add_argument(const.ARGUMENT_CONFIG, nargs="?",
