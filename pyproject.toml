@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[project]
+name = "inkBoarddesigner"
+authors = [
+    { name="Slalamander" }
+]
+description = "inkBoard designer bridges the gaps between designing an inkBoard dashboard and deploying it to a platform, without being tied down by the platform's limitations."
+readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["gui", "pixels", "interface", "MaterialDesignIcon", "mdi icons", "dashboards", "dashboarding",]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "inkBoard", "ttkbootstrap"
+]
+dynamic = ["version"]
+
+[tool.setuptools.dynamic]
+version = {attr = "inkBoarddesigner.__version__"}
+
+[project.urls]
+Homepage = "https://github.com/Slalamander/inkBoard"

@@ -1,0 +1,16 @@
+{
+    "requirements": [],
+    "emulator":
+        {
+            "refresh_rate": 20,
+            "screen_type": "LED",
+            "models":
+                {
+                "my_model": 
+                    {
+                        "width": 500,
+                        "height": 200
+                    }
+                }
+        }
+}

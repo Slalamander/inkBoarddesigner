@@ -1,0 +1,10 @@
+{
+    "version": "0.0.1",
+    "requirements": [],
+    "optional_requirements": {
+        "connection": ["pywifi"],
+        "battery": ["plyer"]
+    },
+    "inkboard_requirements": {},
+    "description": "Platform for usage on desktop devices. Can work without additional dependencies depending on features."
+}

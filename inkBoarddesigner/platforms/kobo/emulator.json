@@ -1,0 +1,13 @@
+{
+    "features": ["network", "battery", "backlight", "interactive"],
+    "refresh_rate": 15,
+    "screen_type": "E-ink",
+    "models":
+        {
+        "Kobo Glo HD": 
+            {
+                "width": 1072,
+                "height": 1448
+            }
+        }
+}

@@ -1,0 +1,8 @@
+{
+    "version": "0.1.0",
+    "requirements": [],
+    "optional_requirements": {
+        "connection": ["pywifi"]
+    },
+    "inkboard_requirements": {}
+}

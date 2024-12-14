@@ -1,0 +1,5 @@
+graft ./inkBoard/files
+
+prune ./inkBoard/files/icons/meteocons
+prune ./inkBoard/platforms/*/
+prune ./inkBoard/integrations/*/
