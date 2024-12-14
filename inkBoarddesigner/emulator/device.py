@@ -26,6 +26,8 @@ from PythonScreenStackManager import constants as pssmconst
 from . import const, pssm_functions
 
 from ..tkinter import window
+from ..tkinter.windows import DesignerWindow
+from ..tkinter.widgets import PSSMCanvas
 from .. import const as des_const
 
 if TYPE_CHECKING:
@@ -164,8 +166,8 @@ class Device(device.Device):
         name = config.device.get("name", None)
         if not name: name = "inkBoard Emulator"
 
-        self.window = window
-        self._canvas = self.window.screenCanvas
+        # self.window = window
+        # self._canvas = self.window.screenCanvas
         self.window.title(f"inkBoard Designer - {self._model}")
 
         emulator_conf = {}
@@ -214,10 +216,12 @@ class Device(device.Device):
 
         imgMode = device_map.get("img_mode", f"{screenMode}A")
 
+        defaultColor = device_map.get("defaultColor",None)#"white")
+
         #Cannot use BaseDevice for this, since that would actually call the wrong super() when initialising
         PSSMdevice.__init__(self,features,
                             width,height,width,height,
-                            screenMode, imgMode, None, name = name)
+                            screenMode, imgMode, defaultColor, name = name)
 
         if self.has_feature(FEATURES.FEATURE_BATTERY):
             self._battery = Battery(self)
@@ -259,9 +263,14 @@ class Device(device.Device):
         return self.__emulated_platform_folder
 
     @property
-    def canvas(self) -> tk.Canvas:
+    def window(self) -> DesignerWindow:
+        "The full designer window"
+        return window
+
+    @property
+    def canvas(self) -> PSSMCanvas:
         "The tkinter canvas widget that displays the PSSM screen image."
-        return self._canvas
+        return window.screenCanvas
 
     @property
     def screenImage(self) -> Image.Image:

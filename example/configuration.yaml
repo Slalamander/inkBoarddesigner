@@ -30,6 +30,7 @@ layouts:
       - type: Button
         id: test1-button
         text: We've had one button yes.
+        # font_color: green
         multiline: true
       - type: GridLayout
         inner_margins: 0

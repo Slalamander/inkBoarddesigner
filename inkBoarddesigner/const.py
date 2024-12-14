@@ -4,6 +4,7 @@ from pathlib import Path
 import ttkbootstrap as ttk
 
 from inkBoard.constants import INKBOARD_COLORS, ARGUMENT_CONFIG
+from PythonScreenStackManager.devices.const import CANVASNAME
 
 PSSM_FOLDER = Path(pkgutil.get_loader("PythonScreenStackManager").get_filename()).parent
 INKBOARD_FOLDER = Path(pkgutil.get_loader("inkBoard").get_filename()).parent
@@ -38,7 +39,7 @@ LIST_VAR_NAME = "treeview-list-variable" ##Maybe this one not but will have to s
 ELEMENT_TREE_OPTION = "Elements"
 NO_TREE_OPTION = "None"
 
-CANVAS_NAME = "screen-canvas"
+CANVAS_NAME = CANVASNAME
 SCREEN_TAG = "pssm-screen"
 UI_FRAME_NAME = "designer-ui-frame"
 TREE_FRAME_NAME = "treeview-frame"
