@@ -63,7 +63,6 @@ class IntegrationLoader(loaders.IntegrationLoader):
             
             if c := manifest.get("config_entry",False):
                 #Will require config_keys, similar to esphome, which can be left empty if needed.
-                # cls.add_integration_config_key(c, int_dir)    ##Not saving the folders, can get those from the module itself (from sys.modules)
                 name = f"{base_module}.{int_dir.name}"
                                         
 
@@ -106,7 +105,6 @@ class IntegrationLoader(loaders.IntegrationLoader):
                 _LOGGER.warning(f"Unable to successfully import integration {integration} from {name}")
             else:
                 cls._imported_modules[integration] = module
-                # core.imported_integrations[integration] = module
 
         return
         ##See code in hass core: https://github.com/home-assistant/core/blob/ab5ddb8edfb72d5f5915574f642eba93afc5abdc/homeassistant/loader.py#L1669

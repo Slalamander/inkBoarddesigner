@@ -11,6 +11,8 @@ import asyncio
 import threading
 import sys
 
+from . import const
+
 if TYPE_CHECKING:
     import argparse
 

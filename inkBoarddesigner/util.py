@@ -18,10 +18,9 @@ window: "DesignerWindow"
 
 iidType = TypeVar("iid", bound=str)
 
-def threading_except_hook(*excepthooksargs): #(exce_type, exce_value, exce_traceback, thread):
+def threading_except_hook(*excepthooksargs):
     if not excepthooksargs: return
     args: ExceptHookArgs = excepthooksargs[0]
-    # (exce_type, exce_value, exce_traceback, thread) = ()
     if args.thread == window._inkBoard_thread:
         if window._inkBoard_lock.locked():
             window._inkBoard_lock.release()

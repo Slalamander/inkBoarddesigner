@@ -79,7 +79,6 @@ async def async_unload_inkBoard():
 
     window._inkBoard_clean = True
     window._inkBoard_lock.release()
-    # window.set_progress_bar(value=-1)
     return
 
 def unload_inkBoard():
@@ -87,7 +86,6 @@ def unload_inkBoard():
     return t
 
 async def reload_config(config):
-    # await CORE.screen.mainLoop.create_task(async_unload_inkBoard()) ##Should do this in a thread since it is io heavy.
     await unload_inkBoard()
     window.set_progress_bar(value=-1)
     window._mainLoop.create_task(run_inkboard_config(config))
@@ -210,7 +208,6 @@ async def run_inkboard_thread(config_file):
         window.set_progress_bar(value=ttk.DANGER, text=f"Error in config file {config_file}: {exce}")
     except DeviceError as exce:
         msg = f"Error setting up inkBoard device: {exce}"
-        # _LOGGER.error(f"{msg}: {exce}")
         _LOGGER.error(msg, exc_info=None)
         _LOGGER.debug(f"{type(exce)} info:", exc_info=exce)
         window.set_inkboard_state("ERROR")
@@ -218,7 +215,6 @@ async def run_inkboard_thread(config_file):
     except ScreenError as exce:
         msg = "Error setting up pssm screen"
         _LOGGER.error(f"{msg}: {exce}")
-        # _LOGGER.error(exce)
         _LOGGER.debug(msg = f"{type(exce)} info:", exc_info=exce)
         window.set_inkboard_state("ERROR")
         window.set_progress_bar(value=ttk.DANGER, text=msg)
@@ -230,7 +226,6 @@ async def run_inkboard_thread(config_file):
 
 async def run_inkboard_config(configuration, **kwargs):
     if window._inkBoard_thread:
-        ##Should check how badly this blocks the event loop -> not
         stop_emulator(exce=QuitInkboard("Loading new config"),new_state=ttk.DISABLED)
         await asyncio.sleep(0)
         await asyncio.to_thread(window._inkBoard_thread.join)
