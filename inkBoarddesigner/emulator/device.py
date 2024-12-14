@@ -71,9 +71,6 @@ def validate_platform_config(emulator_config: dict, config: "config"):
         Raised when a check fails. Either when the config contains superfluous arguments (aside from platform and name, which are filtered out), or an argument's value does not match the provided type hint.
     """
 
-    # with open(platform_folder / "emulator.json") as f:
-    #     platform_conf: dict = json.load(f)
-
     platform_conf = emulator_config
 
     if "__init__" not in platform_conf:
@@ -86,14 +83,14 @@ def validate_platform_config(emulator_config: dict, config: "config"):
         return
 
     device_conf = dict(config.device)
-    device_conf.pop("platform")
+    platform_name = device_conf.pop("platform")
     device_conf.pop("name") ##name and platform will be standard. Any platform should accept the name parameter.
 
     err = False
 
     for entry in device_conf:
         if entry not in init["required"] and entry not in init["optional"]:
-            _LOGGER.error(f"Device config entry {entry} is not a valid argument for platform {platform_folder.name}")
+            _LOGGER.error(f"Device config entry {entry} is not a valid argument for platform {platform_name}")
             err = True
 
     for arg, arg_dict in init["required"].items():
@@ -201,8 +198,6 @@ class Device(device.Device):
         else:
             height = device_map["height"]
 
-        
-
         features = InkboardDeviceFeatures(**device_map["features"])
 
         self.refresh_rate = device_map["refresh_rate"]
@@ -298,7 +293,6 @@ class Device(device.Device):
     #endregion
 
     def setup_emulator(self, config): 
-                       #features, screenWidth, screenHeight, viewWidth, viewHeight, screenMode, imgMode, defaultColor, model = None, name = None, **kwargs):
         ##Meant to setup a session to rougly emulate the platform that inkBoard will run on
         ##The emulator will setup most things itself via the device manifest, however an additional function will be made/checked for to set up additional stuff.
         ##However in that case do not forget to somehow clear those when reloading the config
@@ -459,7 +453,6 @@ class Battery(device.BaseBattery):
         return self.update_battery_state()
     
     def update_battery_state(self):
-        # state = plyer.battery.get_state()
 
         if self._randomise:
             self._batteryCharge = rnd.randint(0,100)
@@ -582,8 +575,6 @@ class Backlight(windowed.Backlight):
         if self.brightness == brightness:
             return
 
-        # min_wait = 0.05 ##Chose this value timing using timeit
-        #min_wait = 0.006 ##The approximate time it takes to set the background image
         min_wait = 0.05
         wait = transition/(abs(self.brightness-brightness))
         step = -1 if self.brightness > brightness else 1

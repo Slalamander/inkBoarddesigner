@@ -31,10 +31,8 @@ from ..tkinter.widgets import Treeview
 
 if TYPE_CHECKING:
     from PythonScreenStackManager.pssm.screen import PSSMScreen
-    from inkBoard.integrations.HomeAssistantClient.client import HAclient
 
 _LOGGER = inkBoard.getLogger(__name__)
-
 
 
 ##Just call unbind first them
@@ -64,14 +62,6 @@ def build_tk_icon(icon: str) -> ImageTk.PhotoImage:
     "Builds icon for the treeview in the correct thread"
     
     return tk_functions.build_tree_icon(icon)
-    # icon = window.call_in_main_thread(ttk_mdi.MDIIcon, icon, const.TREEVIEW_ICON_SIZE)
-    # if icon in MDI_TREE_ICONS:
-    #     return MDI_TREE_ICONS[icon]
-    
-    # mdi_icon = icon
-    # icon = ttk_mdi.MDIIcon(icon, const.TREEVIEW_ICON_SIZE)
-    # MDI_TREE_ICONS[mdi_icon] = icon
-    return icon
 
 ELEMENT_ICONS_TK["default"] = build_tk_icon(const.DEFAULT_ELEMENT_ICON)
 ENTITY_ICONS_TK["default"] = build_tk_icon("mdi:one-up")
@@ -87,7 +77,6 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
 
     eltStack = screen.stack
 
-    # treeview = tree_frame.get_current_tree()
     treeview = tree_frame.get_tree("Elements")
 
     open_init = open_items
@@ -112,7 +101,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                     add_element_icon(elt)
                     _LOGGER.verbose(f"Made new icon for {elt}")
                 icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
-                iid = elt.id #f"{eltname}_{elt.id}"
+                iid = elt.id
                 entity = getattr(elt,"entity","None")
                 if not treeview.exists(iid):
                     treeview.insert(
@@ -130,7 +119,6 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                         pass
                     else:
                         treeview.reattach(iid, parentiid, tk.END)
-                # _LOGGER.debug(f"Made treeview item for element {elt}")
             else:
                 iid = parentiid
 
@@ -249,7 +237,6 @@ def element_tree_selected(tree: Treeview, event, iid):
     if not EM_SETTINGS.getboolean(const.HIGHLIGHT_VAR_NAME):
         return
     
-    # tree = tree_frame.tree
     eltList = []
     for iid in tree.selection():
         eltList.append(_ELEMENT_DICT[iid])
@@ -274,9 +261,6 @@ def tree_click(event: tk.Event):
 
 def tree_double_click(tree, event: tk.Event, iid):
 
-    # tree = event.widget
-
-    # iid = tree.identify_row(event.y)
     elt = get_element(iid)
     if elt:
         ElementWindow(elt)
@@ -298,7 +282,6 @@ def tree_leave(event):
 def highlight_element(*element_list : "elements.Element"):
     "Pass items to draw a square around. Removes currently drawn squares first."
     _LOGGER.trace(f"Removing {len(_INDICATOR_RECTANGLES)} rectangles.")
-    # for rect in _INDICATOR_RECTANGLES:
     for rect in canvas.find_above(const.SCREEN_TAG):
         ##If this throws errors after clearing: either use find_above and just delete them from there
         ##Just need to know the tag of the screen image itself.
@@ -316,9 +299,7 @@ def highlight_element(*element_list : "elements.Element"):
         [(x,y),(w,h)] = elt.area
         rect = canvas.create_rectangle(x,y,x+w,y+h, outline="red",
                                     dash=(5,2),width=5)
-        _INDICATOR_RECTANGLES.append(rect)    
-    
-    # canvas.update()
+        _INDICATOR_RECTANGLES.append(rect)
 
 def show_element_tip(tree: Treeview, event, element_id):
     
@@ -345,7 +326,6 @@ def highlight_setting(var_name, var_index, mode):
 
 def __tree_list_setting(var_name, var_index, mode):
     if mode == 'write':
-        # tk_functions.trace_setting(var_name, var_index, mode)
         window.trace_variable(var_name,var_index,mode)
 
     var_val = window.tree_list_variable.get()
