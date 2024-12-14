@@ -79,15 +79,12 @@ class DesignerWindow(ttk.Window):
 
         self._tree_list_variable = ttk.StringVar(self, name=const.LIST_VAR_NAME, 
                                                 value=const.NO_TREE_OPTION)
-                                                # value=EM_SETTINGS.get(const.LIST_VAR_NAME))
 
         self._window_update_task : asyncio.Task = None
         self._resizeTask: asyncio.Task = util.DummyTask()
         
         self._screenCanvas = PSSMCanvas(self, name=const.CANVAS_NAME, cursor="target")
         self._screenCanvas.pack(fill=tk.BOTH, side=tk.LEFT)
-
-        # self._screenCanvas.place(x=0, y=0)
 
         self._background_Tk_idx = None
 
@@ -212,14 +209,6 @@ class DesignerWindow(ttk.Window):
 
         return util.call_in_main_thread(func, args, kwargs)
 
-        # if asyncio._get_running_loop() != self._mainLoop != None:
-        #     fut = asyncio.run_coroutine_threadsafe( #@IgnoreExceptions
-        #         self.__call_in_main_thread(func, *args, **kwargs),
-        #         self._mainLoop)
-        #     return fut.result()
-        # else:
-        #     return func(*args, **kwargs)  # @IgnoreExceptions (Doesn't seem to work f)
-
     def _configure(self, event : tk.Event):
         if event.widget != self:
             return
@@ -332,8 +321,6 @@ class DesignerWindow(ttk.Window):
     
     def set_inkboard_state(self, state: Literal[ttk.ACTIVE, ttk.DISABLED, ttk.DANGER, "ERROR"]):
         "Sets the state of the inkBoard connected widgets"
-        # if state == self.state:
-        #     return
 
         if state and state.upper() == "ERROR": 
             state = ttk.DANGER
@@ -373,7 +360,6 @@ class DesignerWindow(ttk.Window):
     def _set_button_state(self, state: Literal[ttk.ACTIVE, ttk.DISABLED, ttk.DANGER]):
         
         if state == ttk.DANGER:
-            # set_buttons = const.ERROR_ACTIVE_BUTTONS
             set_buttons = filter(lambda x: x.winfo_name() in const.ERROR_ACTIVE_BUTTONS, self.interface_buttons)
             button_state = ttk.ACTIVE
             self._set_config_label(self, state)
@@ -433,8 +419,7 @@ class TreeFrame(ttk.Frame):
         self.bind("<Leave>", self._leave)
 
         scrollbar = ttk.Scrollbar(self, orient="vertical",
-                                style=const.SCROLLBAR_STYLE) #bootstyle=(ttk.ROUND, ttk.PRIMARY))
-        # scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+                                style=const.SCROLLBAR_STYLE)
         self.__scrollbar = scrollbar
 
         self.__base_options = (const.NO_TREE_OPTION, const.ELEMENT_TREE_OPTION)
@@ -451,7 +436,6 @@ class TreeFrame(ttk.Frame):
     #region
     @property
     def tree(self) -> Optional[Treeview]:
-        # return self.registered_trees[self.__current_tree_option]
         return self.__tree
 
     @property
@@ -632,14 +616,12 @@ class ElementWindow(_AdditionalWindow):
         # text_widget.pack(fill=tk.X)
 
         img_button = ttk.Button(self,text="Show Image", command=self.show_element_image)
-        # img_button.pack(side=tk.BOTTOM)
         img_button.grid(row=1, column=0)
         ToolTip(img_button,const.SHOW_IMAGE_TIP, const.TOOLTIP_STYLE)
 
         save_button = ttk.Button(self,text="Save Image", command=self.save_element_image)
         save_button.grid(row=1, column=1)
         ToolTip(save_button,const.SAVE_IMAGE_TIP, const.TOOLTIP_STYLE)
-        # save_button.pack(side=tk.BOTTOM)
 
         self._img_button = img_button
 
@@ -769,8 +751,6 @@ class ConfigWindow(_AdditionalWindow):
                         bootstyle=ttk.PRIMARY)
 
         label.pack()
-
-        # super().__init__(title, iconphoto, size, position, minsize, maxsize, resizable, transient, overrideredirect, windowtype, topmost, toolwindow, alpha, **kwargs)
 
     def gather_integrations(self):
         if not hasattr(self._core, "config"):

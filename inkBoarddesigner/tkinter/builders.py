@@ -168,16 +168,11 @@ def build_settings_frame(interface_frame: ttk.Frame):
     hlFrame = build_label_toggle(settFrame,(const.SETTINGS_WIDTH, int(const.SETTINGS_HEIGHT/2)), 
                         text="Highlight", tiptext=const.HIGHLIGHT_TIP, var=hlVar)
     hlFrame.grid(row=1,column=0, sticky="e",padx=const.SETTINGS_PADDING)
-    # window._hightlight_variable = hlVar[0]
 
     blVar = tk.BooleanVar(window, value=EM_SETTINGS.getboolean("backlight"), name="backlight")
     blFrame = build_label_icon(settFrame,(const.SETTINGS_WIDTH, int(const.SETTINGS_HEIGHT/2)), 
                         text="Config", tiptext=const.CONFIG_OPTIONS_TIP, command=tk_functions.open_config_window)
     blFrame.grid(row=0,column=1, sticky="e",padx=const.SETTINGS_PADDING)
-
-    # battFrame = build_label_icon(settFrame,(const.SETTINGS_WIDTH, int(const.SETTINGS_HEIGHT/2)), 
-    #                     text="Battery", tiptext=const.BATTERY_TIP, var=hlVar)
-    # battFrame.grid(row=1,column=1, sticky="e",padx=const.SETTINGS_PADDING)
     
     deviceFrame = build_label_icon(settFrame,(const.SETTINGS_WIDTH, int(const.SETTINGS_HEIGHT/2)), 
                         text="Device", tiptext=const.DEVICE_TIP, command=tk_functions.open_device_window)
@@ -190,7 +185,6 @@ def build_settings_frame(interface_frame: ttk.Frame):
     listFrame.grid_columnconfigure(0, weight=7)
     listFrame.grid_columnconfigure(1, weight=3)
 
-    # ops = ["None", "Elements"] #, "Entities"]
     menu = ttk.Combobox(listFrame, state="readonly", values = const.DEFAULT_LIST_OPTIONS, 
                         width=const.LIST_WIDTH, textvariable=window._tree_list_variable)
     window._list_menu = menu
@@ -203,8 +197,7 @@ def build_settings_frame(interface_frame: ttk.Frame):
 
     button = ttk.Button(listFrame, image=imgTk, cursor="hand2", padding=int(icon_size/4), style="image.TButton")
     ToolTip(button,const.TREE_REFRESH_TIP, bootstyle=const.TOOLTIP_STYLE)
-    button.grid(row=0,column=1, sticky="nsew")   
-    # button.bind("<Button-1>",func=refresh_tree)
+    button.grid(row=0,column=1, sticky="nsew")
 
 def build_tree_frame(frame: ttk.Frame):
 
@@ -233,7 +226,7 @@ def build_interface():
                             style='right.TFrame', 
                             )
 
-    iface_frame = ttk.Frame(ui_frame, #name="interface_frame",
+    iface_frame = ttk.Frame(ui_frame,
                             style='buttons.TFrame')
     iface_frame.pack()
 
@@ -245,15 +238,8 @@ def build_interface():
 
 def create_canvas(size: tuple[int,int]):
     "Creates the canvas widget that the pssm screen will print on"
-    # canvas = tk.Canvas(window, width = size[0], height = size[1], 
-    #     name=const.CANVAS_NAME,
-    #     cursor="target")
 
-    canvas = window.setup_canvas(size)
-    
-    # bgTk = tk_functions.build_canvas_background(canvas,size)
-    # canvas.create_image(0,0, anchor=tk.NW, image=bgTk)
-    
+    canvas = window.setup_canvas(size)    
     return canvas
 
 def build_window() -> DesignerWindow:

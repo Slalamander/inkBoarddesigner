@@ -115,14 +115,10 @@ class Treeview(ttk.Treeview):
         self.__tree_ph = tree
 
         tree.configure(style=const.TREEVIEW_STYLE, selectmode="browse")
-            # self = tree
-
-        # self.tree = self
 
         if tree.master != Treeview._treeframe:
             _LOGGER.trace("Tree has the wrong master widget!")
             tree.master = Treeview._treeframe
-            # return
 
         self.tooltip = ToolTip(self.tree, bootstyle=const.TOOLTIP_STYLE)
         self.last_hover: str = None
@@ -214,7 +210,6 @@ class Treeview(ttk.Treeview):
             _LOGGER.trace(f"Hovered over iid {_iid}")
             if self.last_hover:
                 self.tooltip.hide_tip()
-                # self.tooltip.move_tip()
                 self.item(self.last_hover, tags=[])
             self.item(_iid, tags=[const.HOVER_TAG])
             self.last_hover = _iid
@@ -235,8 +230,6 @@ class Treeview(ttk.Treeview):
 
     def __on_select(self, event: tk.Event):
         if not self.on_select: return
-        # iid = self.identify_row(event.y)
-        # iid = self.selection()
         if not self.selection(): return
         return self.on_select(self, event, self.selection())
 

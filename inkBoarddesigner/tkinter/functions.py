@@ -131,12 +131,6 @@ def configure_themes(themes : tuple = (THEME_DARK, THEME_LIGHT)):
             relief=[('pressed','sunken'),("!pressed", "solid"), ]
             )
 
-        ## For comboboxes in light: when selecting, the text remains selected, or something. Not sure how to fix that, but alas.
-        # style.map('TCombobox', 
-        #         highlightcolor=[('disabled','green')])
-
-        # style.configure()
-        
         style.configure("TLabel",background=style.colors.bg,)
         style.configure(const.LOADBAR_LABEL_STYLE, background=style.colors.secondary,)
         for kw in ttk_style.Keywords.COLORS:
@@ -156,14 +150,6 @@ def configure_themes(themes : tuple = (THEME_DARK, THEME_LIGHT)):
         style.configure("secondary.TLabelframe", padding=(2,0), bordercolor=style.colors.bg)
         style.configure("secondary.TLabelframe.Label",font=('Arial Bold', 10), foreground=style.colors.secondary)
 
-        # style.configure("labelwidget.TButton",
-        #             font=('Arial Bold', 10), anchor=tk.W,
-        #             # foreground=style.colors.fg,
-        #             background=style.colors.bg, hightlight_color=style.colors.bg,
-        #             bordercolor=style.colors.bg, borderwidth=0)
-        # style.map("labelwidget.TButton",
-        #         background=[('pressed',style.colors.bg),('active', style.colors.bg)])
-
     return
         
 
@@ -179,7 +165,6 @@ def change_theme(*args):
 
     window.style.theme_use(new)
     window.trace_variable(const.DARKMODE_VAR_NAME)
-    # trace_setting(var_name=const.DARKMODE_VAR_NAME)
 
 _BG_IMG_TK = []
 def build_canvas_background(size: tuple[int,int]):
@@ -244,10 +229,6 @@ def save_image(img: Image.Image, base_name: str = "Inkboard_Screenshot_"):
 
 def make_package(var_name, var_index, mode):
     ##Will extend this later to include dealing saveas screens etc.
-    # files = [('YAML', '.yaml .yml'),
-    #     ('All Files', '*.*')] 
-    # file_obj = asksaveasfile(filetypes = files, defaultextension = files,
-    #                     initialdir=init_folder, )
     packaging.create_package(CORE)
 
 
@@ -291,7 +272,6 @@ def stop_emulator(*args, exce=None, new_state=None):
         return
 
     if exce == None:
-        # window._set_config_label(window, None)
         exce = QuitInkboard("Quitting Emulator")
 
     if hasattr(CORE,"screen") and CORE.screen.printing:
@@ -338,9 +318,8 @@ def get_tree_icon(icon: ttk_mdi.mdiType):
     """    
     return build_tree_icon(icon)
 
-def validate_positive_number(value: str, widget_name: str): #value: str, widget_name) -> bool:
+def validate_positive_number(value: str, widget_name: str):
     try:
-        # value.lstrip()
         value = value.lstrip().replace(",",".")
         value = float(value)
     except ValueError:
@@ -420,7 +399,6 @@ def open_new_config(*args):
     else:
         init_folder = Path.cwd()
 
-    # file = init_folder / "second_config" / "second_config.yaml"
     _LOGGER.debug("Opening save as dialog")
     files = [('YAML', '.yaml .yml'),
         ('All Files', '*.*')] 
