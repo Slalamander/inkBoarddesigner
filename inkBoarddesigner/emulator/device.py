@@ -454,13 +454,13 @@ class Battery(device.BaseBattery):
 
         if self._randomise:
             self._batteryCharge = rnd.randint(0,100)
-            _LOGGER.trace(f"Emulator has no battery, returning randomised value {self._batteryCharge}%")
+            _LOGGER.verbose(f"Emulator has no battery, returning randomised value {self._batteryCharge}%")
             if self._batteryCharge == 100:
                 self._batteryState = "full"
             else:
                 self._batteryState = rnd.choice(["charging","discharging"])
         else:
-            _LOGGER.trace("Emulator has no battery, not updating")
+            _LOGGER.verbose("Emulator has no battery, not updating")
         return (self._batteryCharge, self._batteryState)
     
     def _set_state(self, value :Literal["full","charging","discharging"]):
@@ -528,7 +528,7 @@ class Backlight(windowed.Backlight):
             return
         
         alpha = int(self.__maxAlpha - self.__maxAlpha*(level/100))
-        _LOGGER.trace(f"Backlight brightness to {level}%; Alpha channel is {alpha}")
+        _LOGGER.verbose(f"Backlight brightness to {level}%; Alpha channel is {alpha}")
         blImg = self.backlightImage
         blImg.putalpha(alpha) 
         blTk = ImageTk.PhotoImage(blImg)

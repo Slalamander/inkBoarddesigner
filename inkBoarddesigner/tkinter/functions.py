@@ -157,10 +157,10 @@ def change_theme(*args):
     "Changes the theme based on the value of the darkmode variable"
     newVal = window.globalgetvar(const.DARKMODE_VAR_NAME)
     if newVal:
-        _LOGGER.trace("Turning on dark mode")
+        _LOGGER.verbose("Turning on dark mode")
         new = THEME_DARK
     else:
-        _LOGGER.trace("Turning off dark mode")
+        _LOGGER.verbose("Turning off dark mode")
         new = THEME_LIGHT
 
     window.style.theme_use(new)
@@ -358,7 +358,7 @@ def get_element_tree_icon(element: "Element"):
 _INDICATOR_RECTANGLES = []
 def highlight_elements(*element_list : "Element"):
     "Pass items to draw a square around. Removes currently drawn squares first."
-    _LOGGER.trace(f"Removing {len(_INDICATOR_RECTANGLES)} rectangles.")
+    _LOGGER.verbose(f"Removing {len(_INDICATOR_RECTANGLES)} rectangles.")
     for rect in _INDICATOR_RECTANGLES:
         ##If this throws errors after clearing: either use find_above and just delete them from there
         ##Just need to know the tag of the screen image itself.

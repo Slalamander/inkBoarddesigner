@@ -297,7 +297,7 @@ class Backlight(basedevice.Backlight):
 
 	async def turn_on_async(self, brightness : int, transition: float):
 		"""Async function to provide support for transitions at turn on. Does NOT perform sanity checks"""
-		_LOGGER.trace("Async turning on")
+		_LOGGER.verbose("Async turning on")
 		if self.brightness == brightness:
 			##Do nothing if the light is already at the correct level
 			return
@@ -330,7 +330,7 @@ class Backlight(basedevice.Backlight):
 
 	async def turn_off_async(self, transition: float = None):
 		"""Async function to provide support for transitions at turn off. Does NOT perform sanity checks"""
-		_LOGGER.trace("Async turning off")
+		_LOGGER.verbose("Async turning off")
 		if not self.state:
 			##Do nothing if the light is already off
 			return

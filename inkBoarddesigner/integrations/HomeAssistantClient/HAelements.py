@@ -58,7 +58,7 @@ else:
 
 
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 # 
 
 ##Set default client here? For service calls?
@@ -70,7 +70,7 @@ def validate_entity(elt : HAelement, entity : str):
     "Check if this entity is allowed for the element. Returns False if not. Also parses entities set using the !entity tag."
     if not isinstance(entity, str):
         msg = f"{elt}: Entities must of type str. {type(entity)}: {entity} is not valid."
-        logger.exception(TypeError(msg))
+        _LOGGER.exception(TypeError(msg))
         return False
         # raise TypeError("Entities must of type str")
     
@@ -78,7 +78,7 @@ def validate_entity(elt : HAelement, entity : str):
         tag = entity.removeprefix(ENTITY_TAG_KEY)
         if tag not in entity_tags:
             msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
-            logger.exception(KeyError(msg))
+            _LOGGER.exception(KeyError(msg))
             return False
         else:
             entity = entity_tags[tag]
@@ -87,7 +87,7 @@ def validate_entity(elt : HAelement, entity : str):
         domain = entity.split(".")[0]
         if not domain in elt.ALLOWED_DOMAINS:
             msg = f"Entity domains for {type(elt).__name__} must be one of {elt.ALLOWED_DOMAINS}. {entity} is an invalid entity."
-            logger.exception(DomainError(msg))
+            _LOGGER.exception(DomainError(msg))
             return False
     
     return entity
@@ -142,7 +142,7 @@ def _attribute_setter(attr : str, self, value : Optional[str]):
             pass
         else:
             msg = f"Element {self.id}: Entity Attribute {attr} must be a string or None. {value} is not valid"
-            logger.exception(msg, exc_info= TypeError(msg))
+            _LOGGER.exception(msg, exc_info= TypeError(msg))
             return
         # raise TypeError(msg)
     setattr(self,attr,value)
@@ -342,7 +342,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
         if not value:
             value = []
         if not isinstance(value, (list, tuple)):
-            logger.exception(ValueError(f"{self}: attribute_styles must be a list, not {type(value)}: {value}"))
+            _LOGGER.exception(ValueError(f"{self}: attribute_styles must be a list, not {type(value)}: {value}"))
         
         self._attribute_styles = value
 
@@ -399,7 +399,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             element (element): the element whose attribute has this function. Is passed to deal with non-class trigger_functions
             trigger (dict): dict with the trigger parameters. When processing, be mindful of the scenerio where 'from_state' is False (i.e. when initially setting up) if relevant.
         """
-        logger.warning("This HAelement has no update function set")
+        _LOGGER.warning("This HAelement has no update function set")
         return
 
     @classmethod
@@ -656,7 +656,7 @@ class StateButton(HAelement, elements.Button):
     @text.setter
     def text(self, value):
         if not self.text_mode:
-            logger.warning(f"{self}: text_mode is not enabled, so the button (may) not show the set text.")
+            _LOGGER.warning(f"{self}: text_mode is not enabled, so the button (may) not show the set text.")
         self._text = str(value)
 
     @property
@@ -685,7 +685,7 @@ class StateButton(HAelement, elements.Button):
     def entity_attribute(self, value):
         if not isinstance(value,str) and value != None: # or value != False:
             msg = f"entity_attribute must be a string or None. {value} is invalid."
-            logger.exception(TypeError(msg))
+            _LOGGER.exception(TypeError(msg))
             return
         self.__entity_attribute = value
 
@@ -1075,7 +1075,7 @@ class EntityTile(_EntityLayout, elements.Tile):
             await L
             for res in L:
                 if isinstance(res,Exception):
-                    logger.exception(res)
+                    _LOGGER.exception(res)
             
             # upd_elt = {}
             # for elt_name, elt in self.elements.items():
@@ -1164,7 +1164,7 @@ class PersonElement(EntityTile):
         value = value.copy()
         if not isinstance(value, dict):
             msg = f"zone_badges must be a dict with 'zone': 'icon'"
-            logger.exception(TypeError(msg))
+            _LOGGER.exception(TypeError(msg))
             return
 
         self._zone_badges.update(value)
@@ -1205,7 +1205,7 @@ class PersonElement(EntityTile):
                 if badge_state == "unavailable": new_badge = UNAVAILABLE_ICON
 
         if "badge_icon" in newAttributes:
-            logger.warning(f"zone_badges Overwrite badge_icons set in the state_styles. Set them via the zoneicons.")
+            _LOGGER.warning(f"zone_badges Overwrite badge_icons set in the state_styles. Set them via the zoneicons.")
 
         newAttributes["badge_icon"] = new_badge
         
@@ -1359,7 +1359,7 @@ class MediaPlayer(_EntityLayout):
 
         # validate_domain(self,entity)
         if "entity_attribute" in kwargs:
-            logger.warning(f"Setting entity_attribute is not allowed for {self.__class__}")
+            _LOGGER.warning(f"Setting entity_attribute is not allowed for {self.__class__}")
             kwargs.pop("entity_attribute")
 
         # self.foreground_color = foreground_color
@@ -1706,7 +1706,7 @@ class MediaPlayer(_EntityLayout):
             value = list(value.keys())
         else:
             msg = f"controls must be either a list with options, or a dict with [options: icons]"
-            logger.exception(TypeError(msg))
+            _LOGGER.exception(TypeError(msg))
             return
         
         for cont in value:
@@ -1714,7 +1714,7 @@ class MediaPlayer(_EntityLayout):
                 icons[cont] = icon_vals[cont]
             else:
                 msg = f"{cont} is not a valid options for media player controls"
-                logger.warning(msg)
+                _LOGGER.warning(msg)
                 value.remove(cont)
         self.__controls = value
         self.__control_icon_map = icons
@@ -1765,7 +1765,7 @@ class MediaPlayer(_EntityLayout):
         not_allow = {"icon", "tap_action"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in control icons")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in control icons")
             value.pop(sett)
 
         set_props = value.copy()
@@ -1845,7 +1845,7 @@ class MediaPlayer(_EntityLayout):
         # self.ArtworkElement.
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in the artwork picture")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the artwork picture")
             value.pop(sett)
 
         set_props = value.copy()
@@ -1882,7 +1882,7 @@ class MediaPlayer(_EntityLayout):
     @duration_type.setter
     def duration_type(self, value: Literal["slider", "text"]):
         if value not in {"slider", "text"}:
-            logger.exception(ValueError(f"duration_type must be one of 'slider' or 'text', {value} is not valid"))
+            _LOGGER.exception(ValueError(f"duration_type must be one of 'slider' or 'text', {value} is not valid"))
             return
         self.__duration_type = value
 
@@ -1896,7 +1896,7 @@ class MediaPlayer(_EntityLayout):
         not_allow = {"minimum", "maximum", "position", "tap_action", "count"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in the duration slider")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the duration slider")
             value.pop(sett)
 
         set_props = value.copy()
@@ -1925,7 +1925,7 @@ class MediaPlayer(_EntityLayout):
     def duration_buttons_properties(self, value : dict):
         
         if "text" in value:
-            logger.warning("Mediaplayers do not allow setting the duration text")
+            _LOGGER.warning("Mediaplayers do not allow setting the duration text")
             value.pop("text")
 
         set_props = value.copy()
@@ -2003,7 +2003,7 @@ class MediaPlayer(_EntityLayout):
         not_allow = {"icon", "tap_action"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in the volume icon")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the volume icon")
             value.pop(sett)
 
         set_props = value.copy()
@@ -2033,7 +2033,7 @@ class MediaPlayer(_EntityLayout):
         not_allow = {"entity", "minimum", "maximum", "position", "tap_action"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in the volume slider")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the volume slider")
             value.pop(sett)
 
         set_props = value.copy()
@@ -2074,7 +2074,7 @@ class MediaPlayer(_EntityLayout):
     def info_text_properties(self, value : dict):
         
         if "entity" in value:
-            logger.warning("Mediaplayers do not allow setting the media info entity")
+            _LOGGER.warning("Mediaplayers do not allow setting the media info entity")
             value.pop("entity")
 
         set_props = value.copy()
@@ -2103,7 +2103,7 @@ class MediaPlayer(_EntityLayout):
     def info_title_properties(self, value : dict):
         
         if "entity" in value:
-            logger.warning("Mediaplayers do not allow setting the media info entity")
+            _LOGGER.warning("Mediaplayers do not allow setting the media info entity")
             value.pop("entity")
 
         set_props = value.copy()
@@ -2146,7 +2146,7 @@ class MediaPlayer(_EntityLayout):
         not_allow = {"tap_action"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
-            logger.warning(f"Mediaplayers do not allow setting {sett} in the off Icon")
+            _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the off Icon")
             value.pop(sett)
 
         set_props = value.copy()
@@ -2340,7 +2340,7 @@ class MediaPlayer(_EntityLayout):
         #     res = await coro
         
             if isinstance(res,Exception): 
-                logger.error(f"{update_coros[i]} returned an exception: {res} ")
+                _LOGGER.error(f"{update_coros[i]} returned an exception: {res} ")
 
         if self.onScreen:
             if bool(update_coros) or update_props:
@@ -2448,7 +2448,7 @@ class MediaPlayer(_EntityLayout):
                 # update_coros.append(self.__DurationSlider._timerTask)
             # elif new_state["state"] in {"paused","buffering"}:
             else:
-                logger.debug(f"{self}: pausing timer")
+                _LOGGER.debug(f"{self}: pausing timer")
                 if new_state["state"] == "paused":
                     self.__DurationSlider.pause_timer()
 
@@ -2469,7 +2469,7 @@ class MediaPlayer(_EntityLayout):
             
 
         try:
-            logger.trace(f"Got media trigger, new state is {new_state['state']}. Elt is updating: {self.isUpdating}")
+            _LOGGER.verbose(f"Got media trigger, new state is {new_state['state']}. Elt is updating: {self.isUpdating}")
             if self.isUpdating:
                 async with self._updateLock:
                     await asyncio.sleep(0)
@@ -2537,7 +2537,7 @@ class MediaPlayer(_EntityLayout):
 
                     await asyncio.sleep(sleep_time) #@IgnoreExceptions
                 except asyncio.CancelledError:
-                    logger.debug(f"{self}: Duration runner was cancelled") #@IgnoreExceptions
+                    _LOGGER.debug(f"{self}: Duration runner was cancelled") #@IgnoreExceptions
                     return
                 
             cur_seconds = total_seconds
@@ -2991,7 +2991,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
 
 
         if "tap_action" not in kwargs:
-            logger.debug("Weather element has get_forecast")
+            _LOGGER.debug("Weather element has get_forecast")
             tap_action = self.async_show_forecast
             
             s = WeatherElement.tap_action.fset
@@ -3067,7 +3067,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             self.popup_properties = popup_properties
 
         elif "forecast" in element_properties:
-            logger.warning(f"{self}: the forecast element is unavailable for WeatherElements used in a ForecastElement")
+            _LOGGER.warning(f"{self}: the forecast element is unavailable for WeatherElements used in a ForecastElement")
             set_element_properties.pop("forecast",None)
             element_properties.pop("forecast")
             
@@ -3154,7 +3154,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             self._condition_icons = d
         else:
             msg = f"{self}: condition_icons must be a preset pack (mdi, meteocons or meteocons-outline), or a dict."
-            logger.exception(TypeError(msg))
+            _LOGGER.exception(TypeError(msg))
             return
         
         nighttime = False
@@ -3207,7 +3207,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             self.__weather_data = [value]
         elif not isinstance(value, (list,set,tuple)):
             msg = f"{self}: weather_data must be an iterable type. Type {type(value)} is not valid"
-            logger.exception(msg)
+            _LOGGER.exception(msg)
             return
 
         self.__weather_data = list(value)
@@ -3234,13 +3234,13 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             defaults = value.pop("defaults")
             if defaults not in {"mdi","meteocons","meteocons-outline"}:
                 msg = f"{self}: Default data icons must be either 'mdi', 'meteocons', 'meteocons-outline', {defaults} is not valid."
-                logger.exception(msg)
+                _LOGGER.exception(msg)
                 return
 
         if isinstance(value,str):
             if value not in {"mdi","meteocons","meteocons-outline"}:
                 msg = f"{self}: Default data icons must be either 'mdi', 'meteocons', 'meteocons-outline'"
-                logger.exception(msg)
+                _LOGGER.exception(msg)
                 return
             defaults = value
 
@@ -3411,7 +3411,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         ##Not allowed to set: layout (is simply the forecast element)
         ##PopupId -> but only for updates, so need to check if that's present in the initial settings.
         if "layout" in value:
-            logger.warning(f"{self}: setting the layout of the forecast popup is not allowed")
+            _LOGGER.warning(f"{self}: setting the layout of the forecast popup is not allowed")
             value.pop("layout")
         
         self.__popup_properties = value
@@ -3442,7 +3442,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             datetime.now().strftime(value)
         except (ValueError, TypeError) as e:
             msg = f"{self}: invalid value {value} for time_format: {e}"
-            logger.exception(msg)
+            _LOGGER.exception(msg)
             return
 
         self._time_format = value
@@ -3550,7 +3550,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             # start_batch = True
             await self.async_update(update_props, skipGen=True, skipPrint=True)
 
-        logger.debug("Weather: " + str(new_state["state"]))
+        _LOGGER.debug("Weather: " + str(new_state["state"]))
 
         
         ##This is for support for forecasts.
@@ -3572,7 +3572,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             
             coro_list = set()
 
-            logger.trace(f"Parsing weather icon {weather_icon}")
+            _LOGGER.verbose(f"Parsing weather icon {weather_icon}")
             # self.elements["condition"].update(updateAttributes={'icon': weather_icon },
             #                 skipPrint = True)
             elts = self.elements
@@ -3614,7 +3614,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                             #astimezone seems to automatically convert to the local timezone yay
                             data_val = data_dt.strftime(self.time_format)
                         except FuncExceptions as e:
-                            logger.error(f"{self}: error converting datetime into readable string: {e}")
+                            _LOGGER.error(f"{self}: error converting datetime into readable string: {e}")
                 else:
                     unit_key = f"{data_key}_unit"
                     if unit_key in data_attr:
@@ -3634,7 +3634,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             L = await asyncio.gather(*coro_list,return_exceptions=False)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
-                    logger.error(f"{coro_list[i]} returned an exception: {res} ")
+                    _LOGGER.error(f"{coro_list[i]} returned an exception: {res} ")
 
             # done, pending = await asyncio.wait(coro_list,loop=self.parentPSSMScreen.mainLoop, timeout= 10)
             # for coro in pending:
@@ -3949,10 +3949,10 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
         for col in value:
             if not Style.is_valid_color(col):
-                logger.warning(f"{self}: {col} is not a valid color. Removing it from the {color_property} list.")
+                _LOGGER.warning(f"{self}: {col} is not a valid color. Removing it from the {color_property} list.")
                 value.remove(col)
         if not value:
-            logger.warning(f"{self}: no valid colors were supplied in the {color_property} list. Not updating.")
+            _LOGGER.warning(f"{self}: no valid colors were supplied in the {color_property} list. Not updating.")
         
         if not value:
             return [None]
@@ -4020,7 +4020,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
         if value not in {"daily", "hourly", "twice_daily"}:
             msg = f'{self}: forecast_type must be one of ("daily", "hourly", "twice_daily"), {value} is not valid'
-            logger.exception(ValueError(msg))
+            _LOGGER.exception(ValueError(msg))
             return
         
         self.__forecast_type = value
@@ -4034,7 +4034,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     @num_forecasts.setter
     def num_forecasts(self, value : int):
         if not isinstance(value, int) or value < 1:
-            logger.exception(f"{self}: num_forecasts must be an integer or 1 or higher.")
+            _LOGGER.exception(f"{self}: num_forecasts must be an integer or 1 or higher.")
             return
         
         self.__num_forecasts = value
@@ -4058,7 +4058,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         elif value == None:
             value = 0
         elif not isinstance(value, int):
-            logger.exception(f"{self}: skip_forecasts must be an integer or 'now'.")
+            _LOGGER.exception(f"{self}: skip_forecasts must be an integer or 'now'.")
             return
         
         self.__skip_forecasts = value
@@ -4080,7 +4080,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             datetime.now().strftime(value)
         except (ValueError, TypeError) as e:
             msg = f"{self}: invalid value {value} for time_format: {e}"
-            logger.exception(msg)
+            _LOGGER.exception(msg)
             return
 
         self._time_format = value
@@ -4105,7 +4105,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             value = [value]
         elif not isinstance(value, (list,set,tuple)):
             msg = f"{self}: weather_data must be an iterable type. Type {type(value)} is not valid"
-            logger.exception(msg)
+            _LOGGER.exception(msg)
             return
         
         self.__forecast_data = value
@@ -4120,7 +4120,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     @orientation.setter
     def orientation(self, value):
         if value not in {"horizontal", "vertical", "ver", "hor"}:
-            logger.error(f"{self}: {value} is not a valid setting for orientation")
+            _LOGGER.error(f"{self}: {value} is not a valid setting for orientation")
         
         if value in "horizontal":
             value = "horizontal"
@@ -4203,7 +4203,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             the location of the element within the layout matrix as (row, column)
         """        
         if idx > self.num_forecasts - 1:
-            logger.error(f"{self}: can't get a forecast that is outside the range of gotten forecasts. Requested index {idx}, but the maximum is {self.num_forecasts - 1} (i.e., {self.num_forecasts} are requested)")
+            _LOGGER.error(f"{self}: can't get a forecast that is outside the range of gotten forecasts. Requested index {idx}, but the maximum is {self.num_forecasts - 1} (i.e., {self.num_forecasts} are requested)")
 
         if self.orientation == "horizontal":
             idx_1 = 0
@@ -4243,11 +4243,11 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     async def _wait(self):
         # while True:
         await self.HAclient.await_commander()
-        logger.debug(f"{self}: starting interval loop to get the forecast")
+        _LOGGER.debug(f"{self}: starting interval loop to get the forecast")
         while self.HAclient.connection and self._waitTime > 0:
             asyncio.create_task(
                 self.callback())
-            logger.trace(f"{self} waiting for {self._waitTime} seconds to call get_forecasts again.")
+            _LOGGER.verbose(f"{self} waiting for {self._waitTime} seconds to call get_forecasts again.")
             await asyncio.sleep(self._waitTime)
 
     async def callback(self):
@@ -4257,7 +4257,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     async def get_forecasts(self):
 
         if self.__forecastLock.locked():
-            logger.debug(f"{self}: already getting forecasts, not adding a new call.")
+            _LOGGER.debug(f"{self}: already getting forecasts, not adding a new call.")
             return
 
         async with self.__forecastLock:
@@ -4299,7 +4299,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         units = self._entity_units
         dt_isos = dt_now.isoformat()
         if self.num_forecasts > len(forecasts):
-            logger.warning(f"{self}: Returned {len(forecasts)} forecasts (With any skipped forecasts already removed), but {self.num_forecasts} were requested. Area for missing forecast entries will be left empty.")
+            _LOGGER.warning(f"{self}: Returned {len(forecasts)} forecasts (With any skipped forecasts already removed), but {self.num_forecasts} were requested. Area for missing forecast entries will be left empty.")
             l = self.layout
             ##I think generally check if any points are None/not None?
             ##Build in functionality to deal with this
@@ -4380,7 +4380,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             L = await asyncio.gather(*update_coros, return_exceptions=True)
             for res in L:
                 if isinstance(res, Exception):
-                    logger.error(f"WeatherElement errored in updating from forecast: {res}")
+                    _LOGGER.error(f"WeatherElement errored in updating from forecast: {res}")
             # for coro in update_coros:
             #     await coro
         await self.async_update(updated=True)
@@ -4546,7 +4546,7 @@ class EntityTimer(HAelement, base._TileBase):
     @base._TileBase.element_properties.setter
     def element_properties(self, value : dict):
         if "slider" in value:
-            logger.warning(f"{self}: slider element cannot be altered directly. Please change the appropriate element: 'timer-slider' or 'timer-countdown'.")
+            _LOGGER.warning(f"{self}: slider element cannot be altered directly. Please change the appropriate element: 'timer-slider' or 'timer-countdown'.")
             value.pop("slider")
         base._TileBase.element_properties.fset(self, value)
 
@@ -4723,7 +4723,7 @@ class EntityTimer(HAelement, base._TileBase):
             L = await asyncio.gather(*update_coros,return_exceptions=True)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
-                    logger.error(f"{update_coros[i]} returned an exception: {res} ")
+                    _LOGGER.error(f"{update_coros[i]} returned an exception: {res} ")
 
         if update_coros or attr_updated:
             if bool(update_coros) or attr_updated:
@@ -4956,7 +4956,7 @@ class ClimateElement(HAelement, base._TileBase):
             L = await asyncio.gather(*update_coros,return_exceptions=True)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
-                    logger.error(f"{update_coros[i]} returned an exception: {res} ")
+                    _LOGGER.error(f"{update_coros[i]} returned an exception: {res} ")
             
             # i = state_elt.imgData
             # if i != None:
@@ -4988,7 +4988,7 @@ class ClimateElement(HAelement, base._TileBase):
         ##Will be called again but that should be ok
         ##Do add a check to prevent it from selecting again
 
-        logger.debug(f"{self}: New mode is {selected}")
+        _LOGGER.debug(f"{self}: New mode is {selected}")
         
         action = "climate.set_hvac_mode"
         data = {"hvac_mode": selected}

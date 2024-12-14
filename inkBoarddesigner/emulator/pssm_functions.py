@@ -177,59 +177,59 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
     treeview.enable()
     return
 
-@tkthread.called_on_main
-def build_entity_tree():
-    if "home_assistant" not in CORE.integration_objects:
-        return
+# @tkthread.called_on_main
+# def build_entity_tree():
+#     if "home_assistant" not in CORE.integration_objects:
+#         return
     
-    client: "HAclient" = CORE.integration_objects["home_assistant"]
+#     client: "HAclient" = CORE.integration_objects["home_assistant"]
 
-    elts = client.elementDict
-    states = client.stateDict
+#     elts = client.elementDict
+#     states = client.stateDict
 
-    treeview = tree_frame.entity_tree
+#     treeview = tree_frame.entity_tree
 
-    open_init = True
+#     open_init = True
 
-    for id, state in states.items():
-        ##Show what state or attribute is connected to an element
-        if not treeview.exists(id):
-            dom = id.split(".")[0]
-            icon = ENTITY_ICONS_TK.get(dom, ENTITY_ICONS_TK["default"])
-            name = state["attributes"].get("friendly_name", id)
-            treeview.insert(
-                "",
-                tk.END,
-                iid = id,
-                text=name,
-                values=(state["state"]),
-                image=icon,
-                open=open_init
-            )
-        if id in elts:
-            for elt in elts[id]:
-                elttype = str(elt.__class__.__name__)
-                if elttype not in ELEMENT_ICONS_TK:
-                    add_element_icon(elt)
-                icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
-                iid = elt.id #f"{id}_{eltname}_{elt.id}"
-                if not treeview.exists(iid):
-                    treeview.insert(
-                        id,
-                        tk.END,
-                        iid = iid,
-                        text=elttype,
-                        image=icon,
-                        open=open_init
-                    )
-                else:
-                    if iid in treeview.get_children(id):
-                        pass
-                    else:
-                        treeview.reattach(iid, id, tk.END)
+#     for id, state in states.items():
+#         ##Show what state or attribute is connected to an element
+#         if not treeview.exists(id):
+#             dom = id.split(".")[0]
+#             icon = ENTITY_ICONS_TK.get(dom, ENTITY_ICONS_TK["default"])
+#             name = state["attributes"].get("friendly_name", id)
+#             treeview.insert(
+#                 "",
+#                 tk.END,
+#                 iid = id,
+#                 text=name,
+#                 values=(state["state"]),
+#                 image=icon,
+#                 open=open_init
+#             )
+#         if id in elts:
+#             for elt in elts[id]:
+#                 elttype = str(elt.__class__.__name__)
+#                 if elttype not in ELEMENT_ICONS_TK:
+#                     add_element_icon(elt)
+#                 icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+#                 iid = elt.id #f"{id}_{eltname}_{elt.id}"
+#                 if not treeview.exists(iid):
+#                     treeview.insert(
+#                         id,
+#                         tk.END,
+#                         iid = iid,
+#                         text=elttype,
+#                         image=icon,
+#                         open=open_init
+#                     )
+#                 else:
+#                     if iid in treeview.get_children(id):
+#                         pass
+#                     else:
+#                         treeview.reattach(iid, id, tk.END)
 
-                _ELEMENT_DICT[iid] = elt
-    return
+#                 _ELEMENT_DICT[iid] = elt
+#     return
 
 
 def element_tree_selected(tree: Treeview, event, iid):
@@ -281,7 +281,7 @@ def tree_leave(event):
 
 def highlight_element(*element_list : "elements.Element"):
     "Pass items to draw a square around. Removes currently drawn squares first."
-    _LOGGER.trace(f"Removing {len(_INDICATOR_RECTANGLES)} rectangles.")
+    _LOGGER.verbose(f"Removing {len(_INDICATOR_RECTANGLES)} rectangles.")
     for rect in canvas.find_above(const.SCREEN_TAG):
         ##If this throws errors after clearing: either use find_above and just delete them from there
         ##Just need to know the tag of the screen image itself.
