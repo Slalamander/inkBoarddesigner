@@ -1,0 +1,61 @@
+{
+    "__init__": {
+        "required": {},
+        "optional": {
+            "name": {
+                "default": null,
+                "type_hint": "str"
+            },
+            "frame_rate": {
+                "default": 20,
+                "type_hint": "int"
+            },
+            "width": {
+                "default": 1280
+            },
+            "height": {
+                "default": 720
+            },
+            "fullscreen": {
+                "default": false,
+                "type_hint": "bool"
+            },
+            "resizeable": {
+                "default": false,
+                "type_hint": "bool"
+            },
+            "cursor": {
+                "default": "target",
+                "type_hint": "str"
+            },
+            "color_mode": {
+                "default": "RGB",
+                "type_hint": "str"
+            },
+            "default_color": {
+                "default": "white",
+                "type_hint": "ColorType"
+            },
+            "interactive": {
+                "default": true,
+                "type_hint": "bool"
+            },
+            "network": {
+                "default": true,
+                "type_hint": "bool"
+            },
+            "backlight": {
+                "default": false,
+                "type_hint": "bool"
+            },
+            "backlight_alpha": {
+                "default": 175,
+                "type_hint": "int"
+            },
+            "window_icon": {
+                "default": "inkboard",
+                "type_hint": "typing.Union[str, pathlib.Path]"
+            }
+        }
+    }
+}

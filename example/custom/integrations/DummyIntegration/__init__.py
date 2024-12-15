@@ -38,10 +38,9 @@ if TYPE_CHECKING:
     from PythonScreenStackManager import pssm_types as pssm
     from PythonScreenStackManager.pssm.screen import PSSMScreen
 
-##Once figured out, don't forget to add a dummy element and explain how/when to import it
-
 #This if the full dict as read out from the config file.
 #The integration is imported, which means the config entry dummy_integration is guaranteed to be present
+#however, if the user i.e. reloads, the object may change, so be mindful when using it here. The setup functions are always passed the correct, up to date core object.
 conf = CORE.config.configuration.get("dummy_integration")
 if conf:
     msg = f"Good news, everyone! I've integrated a dummy integration with settings {conf} into inkBoard!"
@@ -60,6 +59,22 @@ def setup(core : "CORE", config : "CORE.config") -> Union[Literal[False],Any]:
     dummy_conf = config.configuration["dummy_integration"]
     screen = core.screen
 
+    from .dummy import Dummy
+
+
+    def dummy_parser(elt_type : str):
+        ##An element parser is relatively simple. It gets passed a string, and has to return an element type (provided it is all fine and dandy)
+        if elt_type != "Dummy":
+            _LOGGER.error("I am user-friendly, my good chum.")
+        
+        return Dummy
+    
+    core.add_element_parser("DUMMY",dummy_parser)
+
+    ##For integrations with more custom elements, the core.util function can get all Element classes and put them in a dict (the keys being the string names of the Element class)
+    ##The function only returns classes which do not have any abstract functions left, and also omits any classes starting with an _
+    ##See usage in the second elif statement, though it is obviously not very useful for the dummy.
+
     if dummy_conf == "I'm 40% config!":
         ##If this is the value of the config, the integration deems the config, or anything else in the setup, to have failed.
         ##So, like the Home Assistant setup functions, return False to indicate something went wrong.
@@ -69,6 +84,9 @@ def setup(core : "CORE", config : "CORE.config") -> Union[Literal[False],Any]:
         #Returning a boolean True indicates to the integration loader that the setup result does not need to be available otherwise.
         #This means that, in the latter two functions, the setup_result will be None.
         _LOGGER.info("Good news everyone! It seems I already setup the dummy integration last year.")
+        from . import dummy
+        all_elements = core.util.get_module_element(dummy)
+        _LOGGER.info(f"All dummies aboard the planet express ship! {all_elements}")
         return True
     else:
         ##Returning the dummyobj will lead to inkBoard making the object available under inkBoard.integration_objects["dummy_integration"]
@@ -76,7 +94,7 @@ def setup(core : "CORE", config : "CORE.config") -> Union[Literal[False],Any]:
         msg = f"A size of {screen.width} by {screen.height}? Let me put on my reading glasses."
         _LOGGER.info(msg)
         from .dummy import DummyClient
-        dummyobj = DummyClient(screen)
+        dummyobj = DummyClient(screen, core)
         return dummyobj
 
 async def async_setup(core : "CORE", config : "CORE.config"):

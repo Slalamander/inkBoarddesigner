@@ -7,8 +7,8 @@ import ttkbootstrap as ttk
 
 from inkBoard import core as CORE
 
-from inkBoard_designer.tkinter import window, functions as tk_functions
-from inkBoard_designer.tkinter.widgets import Treeview
+from inkBoarddesigner.tkinter import window, functions as tk_functions
+from inkBoarddesigner.tkinter.widgets import Treeview
 
 from . import _LOGGER, setup as super_setup
 
