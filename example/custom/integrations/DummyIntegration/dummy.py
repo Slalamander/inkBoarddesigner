@@ -95,7 +95,7 @@ class DummyClient:
         for elt in self.dummies:
             upd_dict = {"rotation": rnd.randint(0,360)}
             if not self._running:
-                upd_dict["badge"] = "mdi:wizard-hat"
+                upd_dict["badge_icon"] = "mdi:wizard-hat"
             elt.update(upd_dict)
 
 
