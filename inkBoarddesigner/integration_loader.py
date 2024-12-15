@@ -221,9 +221,9 @@ class IntegrationLoader(loaders.IntegrationLoader):
                 progress_func(progress, f"Setting up integration {integration}")
             try:
                 if asyncio.iscoroutinefunction(setup_func):
-                    res = await setup_func(screen,config)
+                    res = await setup_func(core ,config)
                 else:
-                    res = setup_func(screen,config)
+                    res = setup_func(core, config)
 
                 if res == None:
                     _LOGGER.error(f"Integration setup functions must return a result (at minimum a boolean `True`), or `False`. {integration} returned `None`")
@@ -273,10 +273,10 @@ class IntegrationLoader(loaders.IntegrationLoader):
                 if not asyncio.iscoroutinefunction(module.async_start):
                     _LOGGER.error(f"integration {integration}: async_start must be a coroutine")
                     continue
-                t = asyncio.create_task(module.async_start(screen, setup_res), name=pkg)
+                t = asyncio.create_task(module.async_start(core, setup_res), name=pkg)
 
             elif hasattr(module, "start"):
-                coro = asyncio.to_thread(module.start, screen, setup_res)
+                coro = asyncio.to_thread(module.start, core, setup_res)
                 t = asyncio.create_task(coro,name=pkg)
             else:
                 continue
@@ -357,9 +357,9 @@ class IntegrationLoader(loaders.IntegrationLoader):
                     continue
 
                 if pkg in cls._pending_setups:
-                    coro = await_setup(pkg, module.async_run(screen, setup_res))
+                    coro = await_setup(pkg, module.async_run(core, setup_res))
                 else:
-                    coro = module.async_run(screen, setup_res)
+                    coro = module.async_run(core, setup_res)
 
                 t = asyncio.create_task(coro, name=pkg)
                 coro_list.add(t)
