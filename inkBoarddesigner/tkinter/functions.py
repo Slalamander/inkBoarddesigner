@@ -227,9 +227,9 @@ def save_image(img: Image.Image, base_name: str = "Inkboard_Screenshot_"):
     img.save(filename)
     _LOGGER.info(f"Screenshot saved as {filename}")
 
-def make_package(var_name, var_index, mode):
+def make_package(*args):
     ##Will extend this later to include dealing saveas screens etc.
-    packaging.create_package(CORE)
+    packaging.create_package(CORE, pack_all=True)
 
 
 def open_device_window(event):
