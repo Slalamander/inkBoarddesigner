@@ -12,7 +12,7 @@ import sys
 import asyncio
 import json
 
-from inkBoard import core as CORE, constants as ib_const, loaders
+from inkBoard import constants as ib_const, loaders
 from inkBoard.helpers import classproperty, reload_full_module
 
 _LOGGER = logging.getLogger(__name__)

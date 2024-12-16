@@ -124,6 +124,7 @@ async def run_inkboard_thread(config_file):
 
         from .emulator import pssm_functions
         pssm_functions.CORE = CORE
+        tk_functions.CORE = CORE
 
         _LOGGER.debug(f"CORE imported at {CORE.IMPORT_TIME}")
 
