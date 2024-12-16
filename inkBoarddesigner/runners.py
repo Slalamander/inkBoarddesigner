@@ -122,10 +122,12 @@ async def run_inkboard_thread(config_file):
 
         from inkBoard import core as CORE
 
-        print(f"CORE imported at {CORE.IMPORT_TIME}")
+        from .emulator import pssm_functions
+        pssm_functions.CORE = CORE
+
+        _LOGGER.debug(f"CORE imported at {CORE.IMPORT_TIME}")
 
         from inkBoard import bootstrap 
-        bootstrap.reload_core
 
         from .integration_loader import IntegrationLoader
         
@@ -138,7 +140,6 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(value=20, text="Importing PythonScreenStackManager")
 
-        import PythonScreenStackManager as pssm
         from PythonScreenStackManager.exceptions import ReloadWarning, FullReloadWarning
 
         window.set_progress_bar(value=25, text="Reading out base config")
