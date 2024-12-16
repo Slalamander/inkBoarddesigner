@@ -50,7 +50,7 @@ class DesignerWindow(ttk.Window):
         util.window = self
 
         window_icon = Path(__file__).parent.parent / "files" / "inkboard_designer_icon.ico"
-        self.wm_iconbitmap(window_icon)
+        self.wm_iconbitmap(window_icon, window_icon)
 
         self._current_config_file = None
 
