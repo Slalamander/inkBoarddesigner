@@ -3,6 +3,7 @@
 import tkthread
 tkthread.patch()
 
+from typing import TYPE_CHECKING
 import inkBoard.packaging
 
 import asyncio
@@ -21,13 +22,17 @@ from inkBoard.helpers import QuitInkboard, ConfigError, DashboardError, DeviceEr
 
 import PythonScreenStackManager as pssm
 
-
 from . import util, const, _LOGGER
 from .settings import EM_SETTINGS, save_settings
 
 from .tkinter import window, functions as tk_functions
 from .tkinter.builders import build_window
 from .tkinter.functions import open_device_window, stop_emulator
+
+if TYPE_CHECKING:
+    import inkBoard.bootstrap
+    import inkBoard.constants
+    import inkBoard.helpers
 
 importer_thread = concurrent.futures.ThreadPoolExecutor(None,const.IMPORTER_THREADPOOL)
 
@@ -47,19 +52,21 @@ async def async_stop_designer():
     await asyncio.sleep(0)
     return
 
-async def async_unload_inkBoard():
+async def async_unload_inkBoard(reload_modules: bool = False):
     "Cancels all tasks running in the PSSM loop and reloads necessary modules."
+    
     _LOGGER.debug(f"Unloading inkBoard")
     if hasattr(CORE,"screen") and CORE.screen.mainLoop:
         CORE.screen.mainLoop.stop()
     
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     await asyncio.to_thread(window._inkBoard_thread.join)
-    
-    reload_mods = [pssm.__package__]
-    reload_mods.extend(inkBoard.constants.FULL_RELOAD_MODULES)
-    reload_mods.extend(const.RELOAD_MODULES)
-    
+
+    if not hasattr(inkBoard, "core"):
+        window._inkBoard_clean = True
+        window._inkBoard_lock.release()
+        return
+
     await asyncio.sleep(0)
 
     if hasattr(CORE,"screen"):
@@ -68,30 +75,34 @@ async def async_unload_inkBoard():
     
     await asyncio.sleep(0)
 
-    _LOGGER.debug(f"Reloading {len(reload_mods)} modules")
-    for mod in reload_mods:
-        _LOGGER.verbose(f"Reloading module {mod}")
+    if reload_modules:
+        ##Reloading the platform may actually be done already via the platform check
         await asyncio.to_thread(
-            inkBoard.helpers.reload_full_module, mod)
+            inkBoard.bootstrap.reload_core, CORE, True
+                )
+    else:
+        await asyncio.to_thread(
+            inkBoard.bootstrap.reload_core, CORE, False
+                )
+        ##Regarding that: move shorthand colors to style, so they can be reset from there.
 
-    if hasattr(CORE,"screen") and CORE.screen.mainLoop:
-        CORE.screen.mainLoop.close()
 
     window._inkBoard_clean = True
     window._inkBoard_lock.release()
     return
 
-def unload_inkBoard():
-    t = window._mainLoop.create_task(async_unload_inkBoard())
+def unload_inkBoard(reload_modules: bool = False):
+    t = window._mainLoop.create_task(async_unload_inkBoard(reload_modules))
     return t
 
-async def reload_config(config):
-    await unload_inkBoard()
+async def reload_config(config, full_reload: bool = False):
+    await unload_inkBoard(True)
     window.set_progress_bar(value=-1)
     window._mainLoop.create_task(run_inkboard_config(config))
 
 async def run_inkboard_thread(config_file):
     
+    reload_finally = True
     try:
         config_path = Path(config_file)
         config_folder = config_path.parent.absolute()
@@ -111,8 +122,11 @@ async def run_inkboard_thread(config_file):
 
         from inkBoard import core as CORE
 
+        print(f"CORE imported at {CORE.IMPORT_TIME}")
+
         from inkBoard import bootstrap 
-        
+        bootstrap.reload_core
+
         from .integration_loader import IntegrationLoader
         
         CORE.integration_loader = IntegrationLoader
@@ -125,7 +139,7 @@ async def run_inkboard_thread(config_file):
         window.set_progress_bar(value=20, text="Importing PythonScreenStackManager")
 
         import PythonScreenStackManager as pssm
-        from PythonScreenStackManager.exceptions import ReloadWarning
+        from PythonScreenStackManager.exceptions import ReloadWarning, FullReloadWarning
 
         window.set_progress_bar(value=25, text="Reading out base config")
 
@@ -186,9 +200,14 @@ async def run_inkboard_thread(config_file):
                 raise RuntimeWarning            
         except asyncio.CancelledError:
             window.set_inkboard_state(ttk.DISABLED)
-        except ReloadWarning:
+        except ReloadWarning as exce:
             window.set_inkboard_state(ttk.DISABLED)
-            window._mainLoop.create_task(reload_config(config_file))
+            if exce == FullReloadWarning or isinstance(exce, FullReloadWarning):
+                full_reload = True
+            else:
+                full_reload = False
+            window._mainLoop.create_task(reload_config(config_file, full_reload))
+            reload_finally = False
         except QuitInkboard:
             window.set_inkboard_state(None)
             await asyncio.sleep(0)
@@ -221,7 +240,7 @@ async def run_inkboard_thread(config_file):
     finally:
         if window._inkBoard_lock.locked():
             window._inkBoard_lock.release()
-        unload_inkBoard()
+        if reload_finally: unload_inkBoard(True)
     return
 
 async def run_inkboard_config(configuration, **kwargs):
