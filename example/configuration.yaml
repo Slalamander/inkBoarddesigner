@@ -14,6 +14,25 @@ inkBoard:
   time_format: "%H:%M" #Time format in datetime format string. Defaults to %H:%M
   integration_start_time: -1 #Time to wait for integrations to start, before moving on to running the dashboard. -1 means wait until they are all finished.
 
+elements:
+  ##For example's sake, these element's will be reused.
+  ##But keep in mind, this may at times lead to unexpected consequences.
+  - type: Icon
+    icon: mdi:test-tube
+    id: test-icon
+  - type: Button
+    id: example-button
+    text: Hello World!
+    fit_text: true
+    radius: h*0.1
+    background_color: inkBoard-light
+  - type: Icon
+    id: example-icon
+    icon: mdi:shape
+    background_shape: circle
+    background_color: inkBoard-light
+
+
 popups:
   - type: PopupMenu
     id: grid-popup
@@ -29,7 +48,7 @@ layouts:
     columns: 3
     elements:
       ##Buttons are similar to webpage buttons: some text and some other basic styling options
-      - type: Button 
+      - type: Button
         text: Hello World!
         fit_text: true
         radius: h*0.1
@@ -82,7 +101,8 @@ layouts:
         active_color: inkBoard-light
         end_points: [mdi:numeric-0-circle, mdi:numeric-1-circle]
         background_color: white
-      ##A TimerSlider can be used to show time progression. Both LineSlider and BoxSlider styles can be used, by setting style to line and box respectively. 
+      ##A TimerSlider can be used to show time progression. Both LineSlider and BoxSlider styles can be used, by setting style to line and box respectively.
+      ##The Label can be clicked to start the timer
       - type: TimerSlider
         count: up
         style: box
@@ -125,42 +145,132 @@ layouts:
           action: element:set-position
           element_id: example-lineslider
 
+  ##Layout Elements group elements together.
+  ##There are a couple of varieties implemented currently
+  ##In regards to coloring: aside from the background and outline_colors, layouts also have a foreground and accent color property
+  ##Any element implemented within can use this color for its color properties by setting the value to foreground, accent, background etc.
+  ##The depth of implementation does not matter here, the colour will be parsed from the first layout that actually has it defined.
+  - type: custom:LabeledElements
+    id: layout-elements
+    outer_margins: 10
+    inner_margins: 10
+    columns: 2
+    rows: 2
+    elements:
 
+      ##The Layout element is the base of all other layouts
+      ##However, it is not very yaml friendly, though possible to use as is.
+      - type: Layout
+        background_color: white
+        outline_color: inkboard-light
+        layout: [["?", [example-button, "w"]], ["?", [test-icon, "?"], [example-icon, "?"]]]
+          
+
+      ##GridLayouts arange elements in a grid. The number of rows and columns can be configured, and elements can be given rows and/or columns to be put in.
+      - type: GridLayout
+        background_color: white
+        foreground_color: inkBoard
+        columns: 2
+        rows: 2
+        elements:
+          - type: Button
+            text: This is a grid
+            grid_column: 1
+            grid_row: 1
+            multiline: true
+            font_size: h*0.4
+            font_color: foreground
+          - example-button
+          - example-icon
+          - test-icon
+
+      ##TileLayout are possibly the most flexible layouts. Each element they get can be given a name, and via that name, the layout can be configured.
+      ##tile_layouts are build in the following way:
+        # A ';' indicates a vertical split, a ',' indicates a horizontal one
+        # Using [] around elements, they can be put in the sublayouts, allowing for i.e. stacking two elements in the same row.
+        # For sizing, attributes horizontal_sizes and vertical_sizes are available, which allows setting the sizes for elements, depending on availability (i.e. multiple elements in a row cannot as easily be given a vertical size.)
+        # Both size attributes also allow for the keys 'inner' and 'outer', which respectively control the margins around the Layout itself, and inbetween the elements themselves.
+      - type: TileLayout
+        background_color: white
+        tile_layout: "[button;icon],slider"
+        horizontal_sizes:
+          slider: w*0.25
+        elements:
+          button: example-button
+          icon: example-icon
+          slider:
+            type: Slider
+            style: box
+            orientation: vertical
+            outline_color: None
+            active_color: inkBoard-light
+            inactive_color: gray
+
+      ##For navigation, TabPages are ideal. Various tabs can be registered, and they can be navigated through using either a navigation bar, or page handles.
+      - type: TabPages
+        accent_color: gray
+        background_color: white
+        hide_navigation_bar: true
+        hide_page_handles: false
+        apply_default_sizes: false
+        tile_layout: left
+        vertical_sizes:
+          tab: h*0.75
+        tabs:
+          - name: Button
+            icon: mdi:gesture-tap-button
+            element: example-button
+          - name: Icon
+            icon: mdi:earth
+            element:
+              type: Icon
+              icon: mdi:earth
+              icon_color: accent
+          - name: Icon 2.0
+            icon: mdi:google-earth
+            element: example-icon
+
+  - type: custom:LabeledElements
+    id: misc-elements
+    outer_margins: 10
+    inner_margins: 10
+    columns: 2
+    rows: 2
+    elements:
+      - type: Button
+        text: Click me!
+        label_text: Popup
+        background_color: gray12
+        tap_action:
+          ##Popups can be opened from elements using an action like on of the following:
+          action: show-popup
+          data:
+            popup_id: grid-popup
+        hold_action:
+          action: element:show-popup
+          element_id: grid-popup
+
+      ##Device Button: show feature classes (currently means battery, network and backlight) with textual info
+      - type: DeviceButton
+        monitor_feature: network
+        monitor_attribute: IP
+        background_color: white
+        prefix: "IP: "
+      
+      ##Device Icon: shows feature info in an Icon element
+      - type: DeviceIcon
+        icon_feature: network
 
   - type: GridLayout
-    columns: 3
-    rows: 1
     id: grid-popup-layout
     elements:
       - type: Button
-        text: I'm in a popup layout!
-
-  - type: GridLayout
-    id: custom-elements
-    columns: 3
-    rows: 1
-    row_size: "h*0.5"
-    column_size: ["w*0.4", "w*0.15", w*0.4]
-    outer_margins: [h*0.25, 25]
-    inner_margins: 10
-    elements:
-      - type: Button
-        font: DancingScript-Bold.ttf
-        text: I can write in a custom font!
-        background_color: inkboard-light
-      - type: Icon
-        icon: speaker-outline.png
-        icon_color: white
-        background_color: inkboard
-        background_shape: circle
-      - type: Picture
-        picture: 1024px-Kingda_Ka.jpg
-        background_shape: rounded_rectangle
-
+        text: I'm in a popup!
 
 main_tabs:
   ##Add some defaults in the parser here for markup (i.e. margins etc.)
   foreground_color: inkboard-light
+  background_color: [100, 100, 100, 150]
   element_properties:
     navigation:
       inactive_properties:
@@ -176,9 +286,28 @@ main_tabs:
             font_color: active
   tabs:
     - element: small-elements
-      name: Breakfast
-      icon: mdi:bread-slice
-    - element: custom-elements
-      name: "Elements"
+      name: Elements
+      icon: mdi:shape
+    - element: layout-elements
+      name: Layouts
+      icon: mdi:view-dashboard
+    - element: misc-elements
+      name: Misc
+      icon: mdi:atom
 
-##Don't forget to include the statusbar
+statusbar:
+  ##The statusbar config entry has two additional entries to those of the StatusBar Element: size and location
+  ##Size: a PSSMdimension for the width/height of the statusbar
+  ##location: top,left,bottom,right. Self explanatory
+  orientation: horizontal
+  location: top
+  size: h*0.05
+  background_color: inkBoard
+  foreground_color: white
+  status_element_properties:
+    background_color: None
+    background_shape: None
+    icon_color: foreground
+  element_properties:
+    clock:
+      font_color: foreground
