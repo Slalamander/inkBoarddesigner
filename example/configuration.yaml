@@ -3,6 +3,7 @@ device:
   name: Example Device
   fullscreen: false
 
+# dummy_integration:
 
 screen:
   poll_interval: 10   ##Amount of seconds between polling various device features
@@ -20,31 +21,58 @@ popups:
     menu_layout: grid-popup-layout
 
 layouts:
-  - type: GridLayout
-    id: my-layout
+  - type: custom:LabeledElements
+    id: small-elements
     outer_margins: 10
     inner_margins: 10
-    rows: 2
-    columns: 1
+    rows: 4
+    columns: 3
     elements:
       - type: Button
-        id: test1-button
-        text: We've had one button yes.
-        multiline: true
-      - type: GridLayout
-        inner_margins: 0
-        outer_margins: 0
-        rows: 1
-        columns: 2
-        elements:
-          - type: Button
-            id: test-button
-            text: But what about a second button?
-            multiline: true
-            background_color: grey
-            radius: 10
-          - type: Icon
-            icon: mdi:ring
+        text: Hello World!
+        fit_text: true
+        radius: h*0.1
+        background_color: inkBoard-light
+      - type: Icon
+        icon: mdi:shape
+        background_shape: circle
+        background_color: inkBoard-light
+      - type: Picture
+        picture: 1024px-Kingda_Ka.jpg
+        background_shape: rounded_rectangle
+
+      - type: AnalogueClock
+        clock_fill_color: inkBoard
+        tick_color: white
+        hour_hand_color: white
+        minute_hand_color: white
+        outline_color: inkBoard
+      - type: DigitalClock
+        background_color: inkboard
+        font_color: white
+      - type: DateElement
+        date_format: "%a %d %B"
+        background_color: inkboard
+        font_color: white
+
+      ##Voor de element titles: maak een custom grid layout die regelt dat ieder element in een layout met zn naam erbij wordt geplaatst
+
+
+      # - type: DUMMY:Dummy
+      # - type: GridLayout
+      #   inner_margins: 0
+      #   outer_margins: 0
+      #   rows: 1
+      #   columns: 2
+      #   elements:
+      #     - type: Button
+      #       id: test-button
+      #       text: But what about a second button?
+      #       multiline: true
+      #       background_color: grey
+      #       radius: 10
+      #     - type: Icon
+      #       icon: mdi:ring
 
   - type: GridLayout
     columns: 3
@@ -94,8 +122,10 @@ main_tabs:
           name: 
             font_color: active
   tabs:
-    - element: my-layout
+    - element: small-elements
       name: Breakfast
       icon: mdi:bread-slice
     - element: custom-elements
       name: "Elements"
+
+##Don't forget to include the statusbar
