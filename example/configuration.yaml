@@ -28,39 +28,53 @@ layouts:
     rows: 4
     columns: 3
     elements:
-      - type: Button
+      ##Buttons are similar to webpage buttons: some text and some other basic styling options
+      - type: Button 
         text: Hello World!
         fit_text: true
         radius: h*0.1
         background_color: inkBoard-light
+      ##Icons are similar to buttons, but instead of text they use icons
+      ##Any mdi icon is valid as an icon, however image files can also be used (these will be styled to correspond to mdi icons)
       - type: Icon
         icon: mdi:shape
         background_shape: circle
         background_color: inkBoard-light
+      ##Picture elements are similar to the Icon element, but do not do any styling or recoloring. Nor do they accept mdi:icons as value.
       - type: Picture
         picture: 1024px-Kingda_Ka.jpg
         background_shape: rounded_rectangle
 
+      ##The AnalogueClock is an analogue clock that shows the time
       - type: AnalogueClock
         clock_fill_color: inkBoard
         tick_color: white
         hour_hand_color: white
         minute_hand_color: white
         outline_color: inkBoard
+
+      ##The DigitalClock is, well, a digital clock
       - type: DigitalClock
         background_color: inkboard
         font_color: white
+
+      ##A DateElement is similar to the DigitalClock, but is mainly meant to show e.g. dates.
+      ##The date_format string must be a valid datetime format string for Python.
       - type: DateElement
         date_format: "%a %d %B"
         background_color: inkboard
         font_color: white
 
+      ##The LineSlider is a Slider element has a position indicator that moves along the line
       - type: LineSlider
+        id: example-lineslider
+        minimum: 0
+        maximum: 10
         color: inkBoard
         thumb_color: inkBoard-light
-        end_points: [mdi:numeric-0-circle, mdi:numeric-1-circle]
+        end_points: [mdi:numeric-0-circle, mdi:numeric-10-circle]
         background_color: white
-
+      ##The BoxSlider indicates it position by filling the box accordingly
       - type: BoxSlider
         inactive_color: inkBoard
         outline_color: inkBoard
@@ -68,7 +82,7 @@ layouts:
         active_color: inkBoard-light
         end_points: [mdi:numeric-0-circle, mdi:numeric-1-circle]
         background_color: white
-
+      ##A TimerSlider can be used to show time progression. Both LineSlider and BoxSlider styles can be used, by setting style to line and box respectively. 
       - type: TimerSlider
         count: up
         style: box
@@ -83,6 +97,34 @@ layouts:
         label_tap_action:
           action: element:toggle-timer
           element_id: example-timerslider
+
+      ##A CheckBox is an icon that can be checked and unchecked. It also has an on_set action, that can be used to call functions when the state changes.
+      - type: CheckBox
+        checked_icon: mdi:checkbox-marked
+        unchecked_icon: mdi:checkbox-blank
+        icon_color: inkboard
+        state_attributes:
+          true:
+            icon_color: inkBoard
+          false:
+            icon_color: gray
+      ##A DropDown opens a popup from which an option can be selected.
+      - type: DropDown
+        options:
+          - "inkBoard"
+          - "green"
+          - "yellow"
+        opened_icon: mdi:eyedropper-variant
+      ##A Counter displays a count, and can be increased and decreased. Using on_count, functions can be called when the value changes.
+      - type: Counter
+        minimum: 0
+        maximum: 10
+        on_count:
+          ##Making elements interact with each other is possible like this.
+          ##the action identifier element: makes it look for an element with the corresponding element_id, and use the function (provided the element has said function)
+          action: element:set-position
+          element_id: example-lineslider
+
 
 
   - type: GridLayout
