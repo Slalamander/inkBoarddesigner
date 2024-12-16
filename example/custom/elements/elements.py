@@ -147,6 +147,9 @@ class LabeledElements(GridLayout):
         elt_name = element.__class__.__name__
         label = Button(elt_name, fit_text=True, radius="h*0.15", background_color="white")
 
+        id = f"{element.id}_layout"
+
         labellayout = [["?", (element,"w")], ["h*0.2", (label, "w")]]
-        return Layout(labellayout, grid_row=getattr(element,"grid_row", None), grid_column=getattr(element,"grid_column", None))
+        return Layout(labellayout, id=id,
+                    grid_row=getattr(element,"grid_row", None), grid_column=getattr(element,"grid_column", None))
 
