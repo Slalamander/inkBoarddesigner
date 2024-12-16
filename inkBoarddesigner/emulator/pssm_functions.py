@@ -12,12 +12,11 @@ from PIL import Image, ImageTk
 import mdi_pil as mdi
 from mdi_pil import ttkbootstrap_mdi as ttk_mdi
 
-from inkBoard import core as CORE
-
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
 import inkBoard
+from inkBoard import core as CORE
 
 from PythonScreenStackManager import elements
 from PythonScreenStackManager.tools import DummyTask
