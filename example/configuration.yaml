@@ -21,7 +21,7 @@ popups:
     menu_layout: grid-popup-layout
 
 layouts:
-  - type: custom:LabeledElements
+  - type: custom:LabeledElements  ##If possible, maybe make the labels link to the documentation of said element
     id: small-elements
     outer_margins: 10
     inner_margins: 10
@@ -55,24 +55,35 @@ layouts:
         background_color: inkboard
         font_color: white
 
-      ##Voor de element titles: maak een custom grid layout die regelt dat ieder element in een layout met zn naam erbij wordt geplaatst
+      - type: LineSlider
+        color: inkBoard
+        thumb_color: inkBoard-light
+        end_points: [mdi:numeric-0-circle, mdi:numeric-1-circle]
+        background_color: white
 
+      - type: BoxSlider
+        inactive_color: inkBoard
+        outline_color: inkBoard
+        thumb_color: inkBoard
+        active_color: inkBoard-light
+        end_points: [mdi:numeric-0-circle, mdi:numeric-1-circle]
+        background_color: white
 
-      # - type: DUMMY:Dummy
-      # - type: GridLayout
-      #   inner_margins: 0
-      #   outer_margins: 0
-      #   rows: 1
-      #   columns: 2
-      #   elements:
-      #     - type: Button
-      #       id: test-button
-      #       text: But what about a second button?
-      #       multiline: true
-      #       background_color: grey
-      #       radius: 10
-      #     - type: Icon
-      #       icon: mdi:ring
+      - type: TimerSlider
+        count: up
+        style: box
+        minimum: 0
+        maximum: 45
+        id: example-timerslider
+        inactive_color: inkBoard
+        outline_color: inkBoard
+        thumb_color: inkBoard
+        active_color: inkBoard-light
+        background_color: white
+        label_tap_action:
+          action: element:toggle-timer
+          element_id: example-timerslider
+
 
   - type: GridLayout
     columns: 3
