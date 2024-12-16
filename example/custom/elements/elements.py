@@ -144,7 +144,7 @@ class LabeledElements(GridLayout):
         super().__init__(labelelts, **kwargs)
 
     def create_element_label(self, element: Element) -> Layout:
-        elt_name = element.__class__.__name__
+        elt_name = getattr(element,"label_text", element.__class__.__name__)
 
         label = Button(elt_name, fit_text=True, radius="h*0.15", background_color="white", tap_action=getattr(element, "label_tap_action", None))
 
