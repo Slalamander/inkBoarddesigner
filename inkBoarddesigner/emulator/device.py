@@ -9,6 +9,7 @@ import json
 
 from pathlib import Path
 from math import ceil
+from contextlib import suppress
 
 import tkthread
 import tkinter as tk
@@ -360,22 +361,23 @@ class Device(device.Device):
 
     async def simple_canvas_event_handler(self):
         while self.Screen.printing:
-            await self._interactEvent.wait()
-            self._interactEvent.clear()
-
-            try:
-                await asyncio.wait_for(self._interactEvent.wait(),
-                        timeout=self._long_click_time)
-            except asyncio.TimeoutError:
-                t = pssmconst.TOUCH_LONG
+            with suppress(asyncio.CancelledError):
                 await self._interactEvent.wait()
-            else:
-                t = pssmconst.TOUCH_TAP
+                self._interactEvent.clear()
 
-            self._interactEvent.clear()
-            x, y = (self._lastEvent.x, self._lastEvent.y)
-            _LOGGER.verbose(f"Passing touch at {(x,y)} as {t}")
-            await self.eventQueue.put(TouchEvent(x,y,t))
+                try:
+                    await asyncio.wait_for(self._interactEvent.wait(),
+                            timeout=self._long_click_time)
+                except asyncio.TimeoutError:
+                    t = pssmconst.TOUCH_LONG
+                    await self._interactEvent.wait()
+                else:
+                    t = pssmconst.TOUCH_TAP
+
+                self._interactEvent.clear()
+                x, y = (self._lastEvent.x, self._lastEvent.y)
+                _LOGGER.verbose(f"Passing touch at {(x,y)} as {t}")
+                await self.eventQueue.put(TouchEvent(x,y,t))
 
 
     async def event_bindings(self, eventQueue = None, grabInput=False):
