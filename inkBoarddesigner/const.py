@@ -24,7 +24,6 @@ DEFAULT = "default-designer-value"
 "constant to mark default values"
 
 RELOAD_MODULES = [
-    "pssm_functions",
     "emulator"
 ]
 
