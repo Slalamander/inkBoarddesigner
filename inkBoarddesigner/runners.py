@@ -56,8 +56,10 @@ async def async_unload_inkBoard(reload_modules: bool = False):
     "Cancels all tasks running in the PSSM loop and reloads necessary modules."
     
     _LOGGER.debug(f"Unloading inkBoard")
+    stop_loop = False
     if hasattr(CORE,"screen") and CORE.screen.mainLoop:
         CORE.screen.mainLoop.stop()
+        stop_loop = CORE.screen.mainLoop
     
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     await asyncio.to_thread(window._inkBoard_thread.join)
@@ -86,6 +88,8 @@ async def async_unload_inkBoard(reload_modules: bool = False):
                 )
         ##Regarding that: move shorthand colors to style, so they can be reset from there.
 
+    if stop_loop:
+        stop_loop.close()
 
     window._inkBoard_clean = True
     window._inkBoard_lock.release()
@@ -215,6 +219,8 @@ async def run_inkboard_thread(config_file):
             await asyncio.sleep(0)
         except SystemExit:
             window._inkBoard_lock.release() #Keeping this here to catch out the errors in IDE
+            reload_finally = False
+            
         except RuntimeError:
             pass
     except DashboardError as exce:
@@ -242,7 +248,8 @@ async def run_inkboard_thread(config_file):
     finally:
         if window._inkBoard_lock.locked():
             window._inkBoard_lock.release()
-        if reload_finally: unload_inkBoard(True)
+        if reload_finally: 
+            unload_inkBoard(True)
     return
 
 async def run_inkboard_config(configuration, **kwargs):
