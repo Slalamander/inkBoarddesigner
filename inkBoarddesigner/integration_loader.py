@@ -17,6 +17,9 @@ from inkBoard.helpers import classproperty, reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
 
+if TYPE_CHECKING:
+    from inkBoard import core as CORE
+
 class IntegrationLoader(loaders.IntegrationLoader):
     "Provides bindings to load inkBoard integrations including those in the designer."
 
@@ -106,6 +109,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
             else:
                 cls._imported_modules[integration] = module
 
+        cls._reload_imports = False
         return
         ##See code in hass core: https://github.com/home-assistant/core/blob/ab5ddb8edfb72d5f5915574f642eba93afc5abdc/homeassistant/loader.py#L1669
 
@@ -119,43 +123,26 @@ class IntegrationLoader(loaders.IntegrationLoader):
         ##Messing with the package name and whatever will just cause issues with relative imports and stuff
         ##So: make different file, like integration.py or something, that provided the hooks for the integration_loader
         ##Or simply make writers use the init to provide the correct hooks *shrug*
-        
-        if name in sys.modules:
-            try:
-                    reload_full_module(name)
-                    module = sys.modules.get(name,None)
-            except ImportError as exce:
-                _LOGGER.error(f"Unable to reload integration {name}, will try to import it again", exc_info=exce)
-                sys.modules.pop(name)
 
         spec = importlib.util.find_spec(f"{name}.designer")
         if spec:
-            _LOGGER.debug(f"Integration {name} has designer module")
+            if f"{name}.designer" in sys.modules and cls._reload_imports:
+                try:
+                        reload_full_module(name)
+                        module = sys.modules.get(name,None)
+                except ImportError as exce:
+                    _LOGGER.error(f"Unable to reload integration {name}, will try to import it again", exc_info=exce)
+                    sys.modules.pop(name)
+                _LOGGER.debug(f"Integration {name} has designer module")
+            elif f"{name}.designer" in sys.modules:
+                return sys.modules.get(f"{name}.designer",None)
+            
             try:
                 return cls._import_designer_module(integration, spec)
             except ImportError:
                 return
-
-        _LOGGER.debug(f"Integration {name} does not have a designer module")
-        spec = importlib.util.find_spec(name)
-
-        ##Got this code from: https://docs.python.org/3/library/importlib.html#checking-if-a-module-can-be-imported
-        if spec  == None:
-            _LOGGER.error(f"Unable to import integration {integration} from {name}")
-            return
-        try:
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-        except Exception as exce:
-            msg = f"Error importing integration {integration}: {exce}"
-            _LOGGER.exception(msg, stack_info=True)
-            raise exce
-
-        if not hasattr(module,"async_setup") and not hasattr(module,"setup"):
-            _LOGGER.warning(f"Integration {integration} is missing the required setup function")
-            return
-
-        return module
+        else:
+            return super()._import_integration(name)
 
     @classmethod
     def _import_designer_module(cls, integration, spec):
