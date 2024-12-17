@@ -742,6 +742,10 @@ class DeviceWindow(_AdditionalWindow):
 class ConfigWindow(_AdditionalWindow):
 
     def __init__(self, core: "core", **kwargs):
+        ##Need to determine what to show in this window
+        ##At least: config name; platform; loaded integrations
+        ##Also: allow for installing integration/platform requirements from here
+        ##Likely: also the ui to run examples
 
         self._core = core
 
@@ -757,6 +761,7 @@ class ConfigWindow(_AdditionalWindow):
             text = "No config loaded"
             return text
         
+        # text = self._core.integration_loader._loaded_integrations
         text = self._core.config.filePath.name
         return text
 
