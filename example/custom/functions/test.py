@@ -13,7 +13,7 @@ from inkBoard import core as CORE
 
 
 if TYPE_CHECKING:
-    from inkBoard.integrations.HomeAssistantClient import client
+    from inkBoard.integrations.homeassistant_client import client
 
 def my_function(elt: Button, interaction: InteractEvent):
     """A very basic custom function.
