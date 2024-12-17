@@ -229,7 +229,7 @@ def save_image(img: Image.Image, base_name: str = "Inkboard_Screenshot_"):
 
 def make_package(*args):
     ##Will extend this later to include dealing saveas screens etc.
-    packaging.create_package(CORE, pack_all=True)
+    packaging.create_core_package(CORE, pack_all=True)
 
 
 def open_device_window(event):
