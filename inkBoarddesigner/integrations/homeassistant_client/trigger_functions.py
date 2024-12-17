@@ -659,9 +659,6 @@ def options_setter(element : Union["HAelement", elts.DropDown], savedattributes 
             "data": {"action": defaultDomains[domain]["action"]},
             "map": defaultDomains[domain]["action_data_map"]
         }
-        # element.on_select = partial(element.HAclient.call_service_action, coords=None)
-        # f = partial(element.HAclient.call_service_action, coords=None)
-        # c = callable(f)
         toset.__required_keys__ = toset.__required_keys__.union(frozenset({"action", "action_data_map"}))
 
     if "action" in savedattributes and "action_data_map" not in savedattributes: savedattributes["action_data_map"] = {}
