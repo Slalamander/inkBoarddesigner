@@ -919,7 +919,7 @@ class HAclient:
 
         return subscr_resp
 
-    def call_service(self, elt : Union[HAelement,elements.Element]=None, coords=None, service = None, service_data = None, target = None, response = False, *args, **kwargs):
+    def call_service(self, elt : Union[HAelement,elements.Element] = None, coords = None, service = None, service_data = None, target = None, response = False, *args, **kwargs):
         """
         Placeholder for the old terminology of service (which was renamed to service_action in HA)
 
@@ -972,6 +972,7 @@ class HAclient:
             if target == None: target = getattr(elt,"entity",None)
             
             service_header = self.build_service_header(action_id = action, action_data = action_data, target = target, return_response=return_response)
+        
         if return_response and service_header:
             response_task = self.loop.create_task(self._async_get_message_result( service_header, elt, coords))
             _LOGGER.debug("Made task for service callback and added to queue")

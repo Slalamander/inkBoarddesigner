@@ -4,6 +4,7 @@ Provides base update functions (functions called when the entity associated with
 from typing import Callable, Union, TYPE_CHECKING, TypedDict, Optional, Any
 import logging
 import asyncio
+from functools import partialmethod, partial
 from inspect import getcoroutinestate, getcoroutinelocals
 from ast import literal_eval
 
@@ -24,7 +25,7 @@ if TYPE_CHECKING:
     from PythonScreenStackManager import elements as elts
     from PythonScreenStackManager import tools
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 attribute_styles_stateType = TypedDict('attribute_style_states', {"state": Any, 'properties': dict})
 attribute_stylesType = TypedDict('attribute_stylesDict', {'attribute': str, 'states': attribute_styles_stateType, 'else': dict})
@@ -133,7 +134,7 @@ def get_attribute_styles(element : "HAelement", trigger_dict : "triggerDictType"
         prop_dict = {}
         attr = attr_conf.get("attribute", None)
         if attr == None:
-            logger.warning(f"{element.id} attribute_styles is missing an attribute key at index {attr_list.index(attr_conf)}")
+            _LOGGER.warning(f"{element.id} attribute_styles is missing an attribute key at index {attr_list.index(attr_conf)}")
             continue
 
         # if attr not in attr_states or "states" not in attr_conf:
@@ -195,7 +196,6 @@ async def get_entity_picture(entity_picture : str, client : "HAclient") -> tuple
         Otherwise a tuple with the full response and the status code is returned.
     """
 
-    # url = entity_picture
     if "http" not in entity_picture:
         hass_url = client.hass_data["url"]
         ##I assume this should take care of getting a correct url?
@@ -206,11 +206,6 @@ async def get_entity_picture(entity_picture : str, client : "HAclient") -> tuple
         url = hass_url + entity_picture
     else:
         url = entity_picture
-
-    # try:
-    #     img = await request_image_threadsafe(url)
-    # except Exception as exce:
-    #     logger.error(exce)
 
     return await request_image_threadsafe(url)
 
@@ -229,12 +224,11 @@ async def button_trigger(element: Union["elts.Button", "HAelement"],trigger_dict
     
     newAttributes = {}
     new_state = get_new_state(element,trigger_dict)
-    # element.font_color
     if new_state not in element.state_styles:
         if new_state == "unknown":
-            newAttributes["font_color"] = UNKNOWN_COLOR #"gray4"
+            newAttributes["font_color"] = UNKNOWN_COLOR
         elif new_state == "unavailable":
-            newAttributes["font_color"] = UNAVAILABLE_COLOR #"gray4"
+            newAttributes["font_color"] = UNAVAILABLE_COLOR
         
         elif "else" in element.state_styles:
             new_state = "else"
@@ -257,9 +251,7 @@ async def button_trigger(element: Union["elts.Button", "HAelement"],trigger_dict
         newAttributes.update(attr_props)
 
     if newAttributes:
-        # if element.parentPSSMScreen.isBatch:
         skipPrint = getattr(element.parentPSSMScreen,"isBatch",False)
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes, skipPrint=skipPrint)
     return
 
@@ -283,10 +275,6 @@ async def icon_trigger(element: Union["elts.Icon", "HAelement"],trigger_dict : "
             newAttributes["badge_icon"] = UNKNOWN_ICON
         elif new_state == "unavailable":
             newAttributes["badge_icon"] = UNAVAILABLE_ICON
-        # elif "default" not in element.state_styles:
-        #     return
-        # else:
-        #     new_state = "default"
         if new_state == None:
             new_state = "else"
 
@@ -310,7 +298,7 @@ async def icon_trigger(element: Union["elts.Icon", "HAelement"],trigger_dict : "
     
     if icon_attr != None and "icon" not in newAttributes:
         ##Defining an icon in a state overwrites the attribute.
-        logger.debug(f"{element}: Getting entity {element.entity} picture")
+        _LOGGER.debug(f"{element}: Getting entity {element.entity} picture")
         if icon_attr == "entity_picture":
             if element.iconData[0] != trigger_dict["to_state"]["attributes"]["entity_picture"] or element.iconData[1] != 200:
 
@@ -331,14 +319,10 @@ async def icon_trigger(element: Union["elts.Icon", "HAelement"],trigger_dict : "
     if new_state in state_color_dict and getattr(element,"state_colors",False):
         newAttributes.setdefault("icon_color", state_color_dict[new_state])
 
-    # else:
     if newAttributes:
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes)
-            # if element.imgData: element.imgData.show()
-
         if element.fileError:
-            logger.warning(f"Icon {element.icon} for state {new_state} could not be found.")
+            _LOGGER.warning(f"Icon {element.icon} for state {new_state} could not be found.")
     return
 
 async def picture_trigger(element: Union["elts.Picture", "HAelement"],trigger_dict : "triggerDictType"):
@@ -350,16 +334,6 @@ async def picture_trigger(element: Union["elts.Picture", "HAelement"],trigger_di
 
     if new_state not in element.state_styles:
         pass
-        # if new_state == "unknown" or new_state == None:
-        #     newAttributes["badge_icon"] = UNKNOWN_ICON
-        # elif new_state == "unavailable":
-        #     newAttributes["badge_icon"] = UNAVAILABLE_ICON
-        # # elif "default" not in element.state_styles:
-        # #     return
-        # # else:
-        # #     new_state = "default"
-        # if new_state == None:
-        #     new_state = "default"
 
     statedict = element.state_styles.get(new_state,False)
     if statedict:
@@ -380,8 +354,7 @@ async def picture_trigger(element: Union["elts.Picture", "HAelement"],trigger_di
     status = 0
     if pic_attr != None and "picture" not in newAttributes:
         ##Defining an icon in a state overwrites the attribute.
-        logger.debug("Getting picture")
-        # if pic_attr == "entity_picture":
+        _LOGGER.verbose(f"{element}: Getting picture")
 
         ##For pictures, I think it makes more sense to assume you're getting an image from the HA server.
         ##So we always try and get it.
@@ -421,19 +394,12 @@ async def picture_trigger(element: Union["elts.Picture", "HAelement"],trigger_di
                 element.pictureData = (picture_link, status)
 
     if newAttributes:
-        # if element.parentPSSMScreen.isBatch:
         skipPrint = getattr(element.parentPSSMScreen,"isBatch",False)
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes, skipPrint=skipPrint)
         if element.fileError:
-            logger.warning(f"Picture {element.picture} for state {new_state} could not be found.")
+            _LOGGER.warning(f"Picture {element.picture} for state {new_state} could not be found.")
     if status == 200:
         return
-
-        # else:
-        #     new_pic = trigger_dict["to_state"]["attributes"].get(pic_attr,None)
-        #     if new_icon != None and element.icon != new_icon:
-        #         newAttributes["icon"] = new_icon
 
 async def slider_trigger(element: Union["elts.Slider", "HAelement"],trigger_dict : "triggerDictType"):
     """
@@ -454,7 +420,6 @@ async def slider_trigger(element: Union["elts.Slider", "HAelement"],trigger_dict
             minVal = element.minAttribute
         if minVal != None and element.minimum != minVal:
             element.minimum = minVal
-            # newAttributes["minimum"] = minVal
 
     if element.maxAttribute != None:
         if isinstance(element.maxAttribute,str):
@@ -463,15 +428,11 @@ async def slider_trigger(element: Union["elts.Slider", "HAelement"],trigger_dict
             maxVal = element.maxAttribute
         if maxVal != None and element.maximum != maxVal:
             element.maximum = maxVal
-            # newAttributes["maximum"] = maxVal
-    
-    # entity_range = element.valueRange
     new_state = get_new_state(element,trigger_dict)
 
     newAttributes = {}
 
     if new_state  in ["off", "unknown", "unavailable", None, 'None']:
-        # cur_state_perc = entity_range[0]
         
         ##What to do here for unavailable etc?
         position = element.minimum
@@ -486,12 +447,10 @@ async def slider_trigger(element: Union["elts.Slider", "HAelement"],trigger_dict
     else:
         try:
             position = float(new_state) #@IgnoreException
-            # cur_state_perc = float(new_state) #int(((new_state - entity_range[0])/(entity_range[1] - entity_range[0]))*100)
             ##Rewrite sliders to allow setting position within range.
         except TypeError:
             position = element.minimum
-            logger.exception(f"New state {new_state} for slider {element.id} could not be converted into a number.")
-            # if inkBoard.RAISE: raise TypeError(f"New state {new_state} for slider {element.id} could not be converted into a number.")
+            _LOGGER.exception(f"New state {new_state} for slider {element.id} could not be converted into a number.")
 
     newAttributes.update({'position': position})
 
@@ -506,7 +465,6 @@ async def slider_trigger(element: Union["elts.Slider", "HAelement"],trigger_dict
 
     if newAttributes:
         skipPrint = getattr(element.parentPSSMScreen,"isBatch",False)
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes, skipPrint=skipPrint)
 
 async def counter_trigger(element: Union["elts.Counter", "HAelement"],trigger_dict : "triggerDictType"):
@@ -530,7 +488,6 @@ async def counter_trigger(element: Union["elts.Counter", "HAelement"],trigger_di
             minVal = element.minAttribute
         if minVal != None and element.minimum != minVal:
             element.minimum = minVal
-            # newAttributes["minimum"] = minVal
 
     if element.maxAttribute != None:
         if isinstance(element.maxAttribute,str):
@@ -545,10 +502,8 @@ async def counter_trigger(element: Union["elts.Counter", "HAelement"],trigger_di
             stepVal = trigger_dict["to_state"]["attributes"].get(element.stepAttribute,None)
         else:
             stepVal = element.stepAttribute
-        # stepVal = trigger_dict["to_state"]["attributes"].get(element.stepAttribute,None)
         if stepVal != None and element.step != stepVal:
             element.step = stepVal
-            # newAttributes["step"] = stepVal
 
     new_state = get_new_state(element, trigger_dict)
     newAttributes["value"] = float(new_state)
@@ -563,12 +518,7 @@ async def counter_trigger(element: Union["elts.Counter", "HAelement"],trigger_di
 
     if newAttributes:
         skipPrint = getattr(element.parentPSSMScreen,"isBatch",False)
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes, skipPrint=skipPrint)
-
-
-    ##element states?
-    ##Yes.
 
     return
 
@@ -596,7 +546,6 @@ async def select_trigger(element: Union["elts.DropDown", "HAelement"], trigger_d
     new_state = get_new_state(element,trigger_dict)
     
     if new_state  in ["unknown", "unavailable"]:
-        # cur_state_perc = entity_range[0]
 
         icon = UNAVAILABLE_ICON if new_state == "unavailable" else UNKNOWN_ICON
         newAttributes["closedIcon"] = icon
@@ -615,7 +564,6 @@ async def select_trigger(element: Union["elts.DropDown", "HAelement"], trigger_d
 
     if newAttributes:
         skipPrint = getattr(element.parentPSSMScreen,"isBatch",False)
-        # element.update(newAttributes, skipPrint=skipPrint)
         await element.async_update(newAttributes, skipPrint=skipPrint)
 
     
@@ -649,9 +597,6 @@ def min_max_setter(element : Union["HAelement",elts.Slider, elts.BoxSlider, elts
         attributes that were saved during the wrapping of this element into a home assistant element, by default {}
     """
     
-    # toset = {"minAttribute" : "minimum","maxAttribute" : "maximum","entity_attribute" : None}
-    # toset = {"entity_attribute", "minAttribute" ,"maxAttribute"}
-
     toset = tosetCounter
     defaultDomains = {"counter" :  toset(entity_attribute=None,minAttribute="minimum",maxAttribute="maximum", stepAttribute="step", action="counter.set_value", action_data_map={"value":"value"}), 
                     "number":  toset(entity_attribute=None,minAttribute="min",maxAttribute="max", stepAttribute="step", action="number.set_value", action_data_map={"value":"value"}),
@@ -679,21 +624,14 @@ def min_max_setter(element : Union["HAelement",elts.Slider, elts.BoxSlider, elts
             element.on_count = d
             ##So set on_count_map and on_count_data
             ##service_action_data should be made from the kwargs
-            # toset.__required_keys__ = toset.__required_keys__.union(frozenset({"action", "action_data_map"}))
     elif isinstance(element, (elts.Slider, elts.BoxSlider)):
         if element._tap_action == None:
             # element.tap_action = element.HAclient.call_service_action
             d = {"action": "service-action", 
                 "data": {"action": defaultDomains[domain]["action"]}, "map": defaultDomains[domain]["action_data_map"]}
             element.tap_action = d
-            # toset.__required_keys__ = toset.__required_keys__.union(frozenset({"action", "action_data_map"}))
 
-    # if "action" in savedattributes and "action_data_map" not in savedattributes: savedattributes["action_data_map"] = {}
     for attr in toset.__required_keys__:
-        # if attr == "action_data_map":
-        #     print(type(defaultDomains[domain][attr]))
-        #     print("hi")
-        #     pass
         if attr in savedattributes:
             ##Declare an attribute when building the element as None to not set a default.
             continue
@@ -703,7 +641,7 @@ def min_max_setter(element : Union["HAelement",elts.Slider, elts.BoxSlider, elts
 
     return
 
-def options_setter(element : Union["HAelement",elts.DropDown], savedattributes : dict = {}):
+def options_setter(element : Union["HAelement", elts.DropDown], savedattributes : dict = {}):
     toset = TypedDict("toset",{"entity_attribute" : Optional[str], "optionsAttribute" : Union[str,int,float] ,
                             "action" : str, "action_data_map": dict[str,str]}, total=False)
     toset.__required_keys__ = frozenset({'entity_attribute','optionsAttribute'})
@@ -715,8 +653,15 @@ def options_setter(element : Union["HAelement",elts.DropDown], savedattributes :
     if domain not in defaultDomains:
         return
 
-    if element.on_menu_select == None:
-        element.on_menu_select = element.HAclient.call_service_action
+    if element.on_select == None:
+        element.on_select = {
+            "action": element.HAclient.call_service_action,
+            "data": {"action": defaultDomains[domain]["action"]},
+            "map": defaultDomains[domain]["action_data_map"]
+        }
+        # element.on_select = partial(element.HAclient.call_service_action, coords=None)
+        # f = partial(element.HAclient.call_service_action, coords=None)
+        # c = callable(f)
         toset.__required_keys__ = toset.__required_keys__.union(frozenset({"action", "action_data_map"}))
 
     if "action" in savedattributes and "action_data_map" not in savedattributes: savedattributes["action_data_map"] = {}
@@ -746,11 +691,9 @@ def default_action_setter(element : "HAelement"):
     domain = element.entity.split(".")[0]
     if domain in DEFAULT_DOMAIN_ACTIONS and element.tap_action == None:
         d = {"action": "service-action"}
-        # element.tap_action = element.HAclient.call_service_action
-        # element.action = DEFAULT_DOMAIN_ACTIONS[domain] ##Entity is automatically gotten from the element itself
 
         if domain in ["input_select", "select"]:
-            d["data"] = {"action": DEFAULT_DOMAIN_ACTIONS[domain],"cycle": True}
+            d["data"] = {"action": DEFAULT_DOMAIN_ACTIONS[domain], "cycle": True}
         else:
             d["data"] = {"action": DEFAULT_DOMAIN_ACTIONS[domain]}
         
@@ -788,7 +731,6 @@ def set_trigger_function(element : "HAelement", savedattributes : dict = {}) -> 
     """
     
     "Sets the base trigger function for the provided element type if it was not yet set."
-    # if hasattr(element,"trigger_function"):
     eCls =  element.__class__.__base__
     if "trigger_function" in savedattributes:
         ##Perform the check here for possible custom functions
@@ -801,7 +743,7 @@ def set_trigger_function(element : "HAelement", savedattributes : dict = {}) -> 
     elif eCls in element_triggers:
         element.trigger_function = element_triggers[eCls] #element_triggers[element.__class__.__base__]
     else:
-        logger.info(f"Got pssm element without base trigger function: {element.__class__.__name__}")
+        _LOGGER.info(f"Got pssm element without base trigger function: {element.__class__.__name__}")
     
     if eCls in compound_setters:
         setter = compound_setters[eCls]
@@ -811,10 +753,6 @@ def set_trigger_function(element : "HAelement", savedattributes : dict = {}) -> 
         func = default_tap_action_setters[eCls]
         func(element)
 
-    # if isinstance(element,elts.Counter):
-    #     print(element.minAttribute)
-    #     element.minAttribute = 3
-    #     print("That's it")
     return None 
 
 #endregion

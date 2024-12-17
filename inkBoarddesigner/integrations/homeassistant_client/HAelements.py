@@ -48,7 +48,7 @@ from .trigger_functions import set_trigger_function
 from . import icon_sets
 
 if TYPE_CHECKING:
-    from inkBoard.integrations.homeassistant_client.client import HAclient, triggerDictType
+    from inkBoarddesigner.integrations.homeassistant_client.client import HAclient, triggerDictType
     # from typing import Union
 else:
     ##Union is causing some weird bug in VSCode, the first line is marked as an error when it is imported. 
