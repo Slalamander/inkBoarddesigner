@@ -828,18 +828,13 @@ class _EntityLayout(HAelement, elements.Layout):
     """
     def __init__(self, entity:str, layout, trigger_function = False, link_element = False, **kwargs):
         
-        # super().__init__( layout=layout,  **kwargs)
-        # HAelement
         self.link_element = link_element
 
         HAelement.__init__(self)
         
         ##If layout is None, assume the layout element is called elsewhere
 
-        # if layout != None:
         elements.Layout.__init__(self, layout=layout,  **kwargs)
-        # self.pssm_update = self.update
-        # self.update = self.update_element
         
         self.entity : str = entity
         "The entity_id of the entity associated with this element"
@@ -1112,7 +1107,7 @@ class PersonElement(EntityTile):
         specific tile parts to hide, by default {"text": True}, which means no text part (state) is shown.
         The idea of this element is to use the zone icons to display the state/location.
     zone_badges : Optional[dict], optional
-        The badge icons used to depict which zones a person is in. By default {"default": None,"home": "mdi:home", "not_home": "mdi:home-off", "unavailable": UNAVAILABLE_ICON, "unknown": UNAVAILABLE_COLOR}. Any missing values at element init will be set to the default, if not explicitly set.
+        The badge icons used to depict which zones a person is in. By default {"default": None, "home": "mdi:home", "not_home": "mdi:home-off", "unavailable": UNAVAILABLE_ICON, "unknown": UNAVAILABLE_COLOR}. Any missing values at element init will be set to the default, if not explicitly set.
     """
 
     ALLOWED_DOMAINS = ["person"]
@@ -1271,7 +1266,7 @@ class MediaPlayer(_EntityLayout):
     duration_type : Literal[&quot;slider&quot;, &quot;text&quot;], optional
         How to show the duration, by default "slider", which shows a slider that progresses with the media. "Text" shows a button with the passed time and the maximum duration.
     duration_slider_properties : dict, optional
-        Properties for the duration slider, by default `{"style":"box", "activeColor": "foreground"}`
+        Properties for the duration slider, by default `{"style":"box", "active_color": "foreground"}`
         Does not allow setting `{"minimum", "maximum", "position", "tap_action", "count"}`
     duration_buttons_properties : dict, optional
         Properties for the duration buttons, by default `{}`.
@@ -1284,7 +1279,7 @@ class MediaPlayer(_EntityLayout):
         Properties for the volume icon element, by default `{"icon_color": "foreground"}`
         Does not allow setting `{"icon", "tap_action"}`
     volume_slider_properties : dict, optional
-        Properties for the volume slider, by default `{"style" : "box", "activeColor": "foreground", "outline_color": "foreground"}`
+        Properties for the volume slider, by default `{"style" : "box", "active_color": "foreground", "outline_color": "foreground"}`
         Does not allow setting `{"entity","minimum", "maximum", "position", "tap_action"}`
     info_title_properties : dict, optional
         properties for the title StateButton, by default `{"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fitText": True, "fontSize": 0}`
@@ -1351,8 +1346,8 @@ class MediaPlayer(_EntityLayout):
                 foreground_color : Optional[ColorType]=DEFAULT_FOREGROUND_COLOR, accent_color : Optional[ColorType]=DEFAULT_ACCENT_COLOR, background_color : Optional[ColorType] =None, outline_color : Optional[ColorType] = None, #DEFAULT_BACKGROUND_COLOR, 
                 controls : Union[Literal["all"],list[__control_options],dict] = "all", controls_layout : Union[Literal["default"],PSSMLayoutString] = "default", control_icon_properties : dict = {"icon_color": "foreground"},  ff_time : Union[float,DurationType] = 30, rewind_time : Union[float,DurationType] = 30, 
                 idle_picture : Union[str,mdiType] = "mdi:multimedia", artwork_properties : dict = {},
-                duration_type : Literal["slider", "text"] = "slider", duration_slider_properties : dict = {"style":"box", "activeColor": "foreground"}, duration_buttons_properties : dict = {"fitText": True, "fontSize": 0}, 
-                volume_icon : Union[Literal["state"], mdiType] = 'state', volume_icon_properties : dict = {"icon_color": "foreground"}, volume_slider_properties : dict = {"style" : "box", "activeColor": "foreground", "outline_color": "foreground"}, 
+                duration_type : Literal["slider", "text"] = "slider", duration_slider_properties : dict = {"style":"box", "active_color": "foreground"}, duration_buttons_properties : dict = {"fitText": True, "fontSize": 0}, 
+                volume_icon : Union[Literal["state"], mdiType] = 'state', volume_icon_properties : dict = {"icon_color": "foreground"}, volume_slider_properties : dict = {"style" : "box", "active_color": "foreground", "outline_color": "foreground"}, 
                 info_title_properties : dict = {"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fitText": True, "fontSize": 0}, info_text_properties : dict = {"font_color": "foreground", "entity_attribute": "media_artist", "fitText": True, "fontSize": 0}, 
                 off_icon_properties : dict = {"icon": "mdi:power","backgroundShape": "circle", "background_color": "foreground", "icon_color": "background"},
                 link_element = False, **kwargs):            
@@ -1377,6 +1372,7 @@ class MediaPlayer(_EntityLayout):
         Formed as `{'state': new_state, 'attributes': {'example_attribute': example}}`
         """
 
+        self.__full_init = False
         self._HAclient = None
         
         self._layout = []
@@ -1406,7 +1402,7 @@ class MediaPlayer(_EntityLayout):
         self.__off_icon_properties.update(off_icon_properties)
         self.__off_Icon = elements.Icon("mdi:power", tap_action = self._turn_off)
 
-        self.__volume_slider_properties = {"style" : "box", "activeColor": "foreground", "outline_color": "foreground"}
+        self.__volume_slider_properties = {"style" : "box", "active_color": "foreground", "outline_color": "foreground"}
         self.__volume_slider_properties.update(volume_slider_properties)
         self.__volume_icon_properties = {"icon_color": "foreground"}
         self.__volume_icon_properties.update(volume_icon_properties)
@@ -1435,7 +1431,7 @@ class MediaPlayer(_EntityLayout):
         self.__InfoTitle = StateButton(entity, link_element=False, entity_attribute="media_title", font=DEFAULT_FONT_HEADER, fitText=True, fontSize=0)
         
 
-        self.__duration_slider_properties = {"style" : "box", "activeColor": "foreground"}
+        self.__duration_slider_properties = {"style" : "box", "active_color": "foreground"}
         self.__duration_slider_properties.update(duration_slider_properties)
 
         self.__duration_buttons_properties = {"fitText": True, "fontSize": 0}
@@ -1507,11 +1503,10 @@ class MediaPlayer(_EntityLayout):
         self.__ArtworkElement.picture = self.idle_picture
         self.artwork_url = self.idle_picture
         ##Should be able to just call this if i'm not mistaken, since it shouldn't lead to errors before printing has started
+        self.__full_init = True
         self.__reparse_element_colors()
 
         return
-        # self.pssm_update = self.update
-        # self.update = self.update_element
 
     #region [Media Player Properties]
     #region [General]
@@ -1582,42 +1577,14 @@ class MediaPlayer(_EntityLayout):
     def accent_color(self) -> ColorType:
         "The accent color to use. Can be used for the element colors by setting it's value to 'accent'."
         return self._accent_color
-    
-    # @accent_color.setter
-    # def accent_color(self, value):
-    #     self._accent_color : ColorType
-
-    #     if value == self._accent_color:
-    #         return
-
-    #     self._color_setter("_accent_color",value,False)
-    #     self.__reparse_element_colors()
 
     @colorproperty
     def background_color(self) ->  Union[ColorType,None]:
         return self._background_color
 
-    # @background_color.setter
-    # def background_color(self, value:  Union[ColorType,None]):
-    #     if value == self._background_color:
-    #         return
-        
-    #     self._color_setter("_background_color",value,True)
-        
-    #     self.__reparse_element_colors()
-
     @colorproperty
     def outline_color(self) ->  Union[ColorType,None]:
         return self._outline_color
-
-    # @outline_color.setter
-    # def outline_color(self, value:  Union[ColorType,None]):
-    #     if value == self._outline_color:
-    #         return
-        
-    #     self._color_setter("_outline_color",value,True)
-        
-    #     self.__reparse_element_colors()
 
     def _style_update(self, attribute: str, value):
         "Called when a style property is updated"
@@ -1630,6 +1597,8 @@ class MediaPlayer(_EntityLayout):
     def __reparse_element_colors(self):
         "Calls the setters for all property setters, use when setting e.g. foreground_color or background_color"
 
+        if not self.__full_init:
+            return
         cls = self.__class__
         cls.artwork_properties.fset(self,self.artwork_properties)
         cls.control_icon_properties.fset(self,self.control_icon_properties)
@@ -1900,7 +1869,7 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "activeColor", "color", "thumbColor", "thumbicon_color"}
+        # color_props = {"background_color", "outline_color", "active_color", "color", "thumbColor", "thumbicon_color"}
         color_props = self.DurationSlider.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2037,7 +2006,7 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "activeColor", "color", "thumbColor", "thumbicon_color"}
+        # color_props = {"background_color", "outline_color", "active_color", "color", "thumbColor", "thumbicon_color"}
         color_props = self.VolumeSlider.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -4418,7 +4387,7 @@ class EntityTimer(HAelement, base._TileBase):
         Any other valid python time format string can be used too.
     element_properties : dict, optional
         Properties for the different elements, 
-            applied defaults are {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": 'toggle_timer'}, "timer-slider": {"style": "box", "inactiveColor": 'accent', "activeColor": "foreground", "outline_color": None}, "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER}, "timer-countdown": {"text_xPosition": "left"}}
+            applied defaults are {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": 'toggle_timer'}, "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None}, "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER}, "timer-countdown": {"text_xPosition": "left"}}
     """ 
     
     @property
@@ -4437,7 +4406,7 @@ class EntityTimer(HAelement, base._TileBase):
                 timer_type : Literal["slider","countdown_total","countdown"] = "slider", 
                 timeformat : Union[Literal["duration","dynamic"],str] = "duration", 
                 element_properties : dict[str,dict[str,str]] = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": 'toggle_timer'},
-                            "timer-slider": {"style": "box", "inactiveColor": 'accent', "activeColor": "foreground", "outline_color": None},
+                            "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None},
                             "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER},
                             "timer-countdown": {"text_xPosition": "left"}},
                 **kwargs):
@@ -4487,7 +4456,7 @@ class EntityTimer(HAelement, base._TileBase):
 
         ##Don't forget to set the tap_action from the string
         default_properties = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": self.toggle_timer},
-                            "timer-slider": {"style": "box", "inactiveColor": 'accent', "activeColor": "foreground", "outline_color": None},
+                            "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None},
                             "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER},
                             "timer-countdown": {"text_xPosition": "left"}}
         
@@ -4820,12 +4789,12 @@ class ClimateElement(HAelement, base._TileBase):
     @property
     def color_properties(cls):
         "Set containing all possible color properties for an element type"
-        return base._TileBase.color_properties | {"activeColor"}
+        return base._TileBase.color_properties | {"active_color"}
 
     @classproperty
     def _color_shorthands(cls) -> dict[str,str]:
         "Class method to get shorthands for color setters, to allow for parsing their values in element properties. Returns a dict with the [key] being the shorthand to use for element properties and [value] being the tile attribute it links to."
-        return {"active": "activeColor"} | base._TileBase._color_shorthands
+        return {"active": "active_color"} | base._TileBase._color_shorthands
 
     _default_layouts = {
                 "horizontal": "[state-tile,thermostat];hvac-modes",
@@ -4873,7 +4842,7 @@ class ClimateElement(HAelement, base._TileBase):
         HAelement.__init__(self)
 
         default_properties = {
-            "hvac-modes": {"accent_color": "accent", "foreground_color": "foreground", "activeColor": "foreground", "inactiveColor": "accent", "active_properties": {"icon_color": "active"}, "inactive_properties": {"icon_color": "inactive"}},
+            "hvac-modes": {"accent_color": "accent", "foreground_color": "foreground", "active_color": "foreground", "inactive_color": "accent", "active_properties": {"icon_color": "active"}, "inactive_properties": {"icon_color": "inactive"}},
             "state-tile": {"accent_color": "accent", "foreground_color": "foreground", "background_color": None},
             "thermostat": {"accent_color": "accent", "foreground_color": "foreground"}
             }
