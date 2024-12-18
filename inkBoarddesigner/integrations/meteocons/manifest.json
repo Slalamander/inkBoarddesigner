@@ -1,0 +1,8 @@
+{
+    "name": "Meteocons",
+    "config_entry": "meteocons",
+    "codeowners": [],
+    "documentation": "https://www.example.com",
+    "requirements": [],
+    "version": "0.1.0"
+}
