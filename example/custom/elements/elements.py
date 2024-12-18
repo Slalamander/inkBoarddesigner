@@ -156,13 +156,17 @@ class LabeledElements(GridLayout):
 class LabeledElementsHA(LabeledElements):
 
     def create_element_label(self, element: Element) -> Layout:
-        elt_name = getattr(element,"label_text", element.__class__.__name__)
-        if hasattr(element,"entity"):
-            elt_name = f"{elt_name}: {element.entity}"
+        if element:
+            elt_name = getattr(element,"label_text", element.__class__.__name__)
+            if hasattr(element,"entity"):
+                elt_name = f"{elt_name}: {element.entity}"
 
-        label = Button(elt_name, fit_text=True, multiline=True, font_size=0, radius="h*0.15", background_color="white", tap_action=getattr(element, "label_tap_action", None))
+            label = Button(elt_name, fit_text=True, multiline=True, font_size=0, radius="h*0.15", background_color="white", tap_action=getattr(element, "label_tap_action", None))
 
-        id = f"{element.id}_layout"
+            id = f"{element.id}_layout"
+        else:
+            label = None
+            id = None
         labellayout = [["?", (element,"w")], ["h*0.2", (label, "w")]]
         return Layout(labellayout, id=id,
                     grid_row=getattr(element,"grid_row", None), grid_column=getattr(element,"grid_column", None))
