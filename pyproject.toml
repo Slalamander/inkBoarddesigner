@@ -12,6 +12,7 @@ authors = [
 ]
 description = "inkBoard designer bridges the gaps between designing an inkBoard dashboard and deploying it to a platform, without being tied down by the platform's limitations."
 readme = "README.md"
+license = {file = "LICENSE"}
 requires-python = ">=3.9"
 keywords = ["gui", "pixels", "interface", "MaterialDesignIcon", "mdi icons", "dashboards", "dashboarding",]
 classifiers = [
@@ -28,4 +29,4 @@ dynamic = ["version"]
 version = {attr = "inkBoarddesigner.__version__"}
 
 [project.urls]
-Homepage = "https://github.com/Slalamander/inkBoard"
+Homepage = "https://github.com/Slalamander/inkBoarddesigner"
