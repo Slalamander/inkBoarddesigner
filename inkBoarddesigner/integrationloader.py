@@ -57,7 +57,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
 
             manifest = int_dir / "manifest.json"
             if not manifest.exists():
-                _LOGGER.warning(f"Integration folder {int_dir} is missing the manifest.json file.")
+                _LOGGER.error(f"Integration folder {int_dir} is missing the manifest.json file.")
                 continue
 
             with open(manifest) as f:
@@ -74,7 +74,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
                 cls._installed_integrations[int_dir.name] = int_dir
                 cls._integration_modules[int_dir.name] = name
             else:
-                _LOGGER.warning(f"Integrations are required to have a config_entry key {int_dir.name} does not")
+                _LOGGER.error(f"Integrations are required to have a config_entry key {int_dir.name} does not")
                 continue
 
     @classmethod

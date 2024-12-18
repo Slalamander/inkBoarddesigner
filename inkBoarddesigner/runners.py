@@ -134,7 +134,7 @@ async def run_inkboard_thread(config_file):
 
         from inkBoard import bootstrap 
 
-        from .integration_loader import IntegrationLoader
+        from .integrationloader import IntegrationLoader
         
         CORE.integration_loader = IntegrationLoader
 
@@ -175,9 +175,11 @@ async def run_inkboard_thread(config_file):
         bootstrap.setup_styles(CORE)
 
         window.set_progress_bar(52, "Setting up integrations")
-        CORE.integration_objects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, (60,80))
+        max_integration_progress = 70
+        CORE.integration_objects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, 
+                                                                                (window._progressBar["value"],max_integration_progress))
 
-        window.set_progress_bar(65, "Setting up dashboard")
+        window.set_progress_bar(max_integration_progress, "Setting up dashboard")
         main_layout = bootstrap.setup_dashboard_config(CORE)
 
         window.set_progress_bar(75, "Readying screen")
