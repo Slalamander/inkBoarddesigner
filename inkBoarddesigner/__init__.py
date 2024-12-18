@@ -17,8 +17,6 @@ if TYPE_CHECKING:
     import argparse
 
 _LOGGER = logging.getLogger(__package__)
-_LOGGER.setLevel(logging.DEBUG)
-
 
 def check_threads() -> None:
     """Check if there are any lingering threads.
