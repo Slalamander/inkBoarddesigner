@@ -191,15 +191,19 @@ class Device(device.Device):
 
         self._device_map = device_map
 
-        if device_map["width"] == None:
-            width = self.canvas.winfo_width()
-        else:
+        if "width" in config.device:    ##The validation part should take care of width being illegal for a platform
+            width = config.device["width"]
+        elif device_map["width"] != None:
             width = device_map["width"]
-
-        if device_map["height"] == None:
-            height = self.canvas.winfo_height()
         else:
+            width = self.canvas.winfo_width()
+
+        if "height" in config.device:    ##The validation part should take care of width being illegal for a platform
+            height = config.device["height"]
+        elif device_map["height"] != None:
             height = device_map["height"]
+        else:
+            height = self.canvas.winfo_height()
 
         features = InkboardDeviceFeatures(**device_map["features"])
 
