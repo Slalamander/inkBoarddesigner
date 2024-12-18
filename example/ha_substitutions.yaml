@@ -1,0 +1,14 @@
+
+instance_url: !secret instance_url  ##The url to connect to your HA instance
+api_token: !secret api_token    ##A long lived API token, you can get one in the frontend by clicking on your user, and going to security -> Long lived access tokens -> create token
+
+sensor_entity: !secret sensor_entity  ##Best to use a sensor with a unit of measurement
+light_entity: !secret light_entity    ##Use a light that can have its brightness set
+counter_entity: !secret counter_entity  ##A counter entity. A simple counter helper works fine
+select_entity: !secret select_entity
+weather_entity: !secret weather_entity
+person_entity: !secret person_entity
+media_player_entity: !secret media_player_entity  ##A media_player entity
+climate_entity: !secret climate_entity  ##Most climate entities should work, but id advice to use a radiator
+timer_entity: !secret timer_entity  ##Anything in the timer. domain
+button_entity: !secret button_entity ##Any kind of input_button or button entity

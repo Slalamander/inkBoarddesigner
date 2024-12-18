@@ -1,15 +1,227 @@
 ##This yaml file serves as an example for the Home Assistant Integration.
 
+substitutions: !include ha_substitutions.yaml
+
 device:
   platform: desktop
-  name: ${device_name}
+  name: Hass Example
   fullscreen: false
+  width: 1080
+  height: 720
+
+meteocons:
 
 inkBoard:
   name: "Example Home Assistant"
   integration_start_time: -1
 
 home_assistant:
-  url: !secret instance_url
-  token: !secret api_token
+  url: ${instance_url}
+  token: ${api_token}
+  ##Don't forget to setup a custom trigger function. See old packaged folder
+  ##Use a button entity that makes a popup appear
 
+entities:
+  - entity_id: ${button_entity}
+    trigger_functions:
+      ##Custom trigger functions can be implemented like this.
+      ##call_on_connect means the function is called when the client connects to Home Assistant, otherwise it is only called when the entity changes.
+      - function: custom:custom_trigger
+        call_on_connect: true
+
+popups:
+  - type: PopupMenu
+    title: Trigger Popup
+    id: trigger-popup
+    menu_layout: null
+
+layouts:
+  - type: custom:LabeledElementsHA 
+    id: base-elements
+    outer_margins: 10
+    inner_margins: 10
+    rows: 3
+    columns: 3
+    elements:
+      ##A couple of standard elements can be used by the home_assistant client.
+      ##If they have an entity attribute, the client will track them, and wrap them if needed.
+      - type: Button
+        entity: ${sensor_entity}
+        label_text: State Button
+      - type: Button
+        entity: ${sensor_entity}
+        entity_attribute: unit_of_measurement
+        label_text: Attribute Button
+
+      - type: Icon
+        background_color: black
+        background_shape: circle
+        entity: ${light_entity}
+        state_styles:
+          "on":
+            icon: mdi:lightbulb
+            icon_color: white
+          "off":
+            icon: mdi:lightbulb-off
+            icon_color: gray
+      
+      ##Sliders have a set of available domains which are setup immediately, i.e. lights, input_numbers
+      - type: Slider
+        entity: ${light_entity}
+
+      ##Counters can use input_numbers and numbers
+      - type: Counter
+        entity: ${counter_entity}
+
+      ##DropDowns can use input_select and select
+      - type: DropDown
+        entity: ${select_entity}
+
+      ##State styles can be used with state_conditionals to apply styling based on conditions
+      - type: Button
+        entity: ${counter_entity}
+        id: button-style
+        state_conditionals: true
+        label_text: State Style Conditions
+        state_styles:
+          "default": "Eh"
+          "state > 2": "That's Something"
+          "state < -2": "This is even less than eh"
+
+      - type: Button
+        entity: ${weather_entity}
+        state_conditionals: true
+        label_text: Attribute Style Conditions
+        attribute_styles:
+          ##Use attribute_styles to use more complex styling. The conditions are checked in order, so the last state that sets an attribute of the element will be used.
+          - attribute: temperature
+
+            ##For evaluation, the same logic is used.
+            ##The attribute set above with the attribute key is used as value for state
+            states:
+              - state: state > 19
+                properties:
+                  background_color: green
+              - state: state < 7.5
+                properties:
+                  background_color: gray
+            else:
+              background_color: white
+          - attribute: state
+            ##The conditions are checked using Python literal evals, meaning they are executed as Python code and can be written as such
+            ##This does mean code can be executed as from here, so be careful using templates with these settings
+            states:
+              - state: "'rain' in state"
+                properties:
+                  font_color: steelblue
+              - state: "'sun' in state"
+                properties:
+                  font_color: yellow
+            else:
+              font_color: black
+
+        
+            ##This applies to most elements with entities, so attribute styles etc. can be used for those.
+
+  - type: GridLayout
+    rows: 3
+    columns: 1
+    id: ha-elements
+    elements:
+      - type: custom:LabeledElementsHA 
+        outer_margins: 10
+        inner_margins: 10
+        rows: 1
+        columns: 4
+        elements:
+          ##StateButtons are basically a normal button with entity, with some additional defaults to make them more userfriendly
+          - type: HA:StateButton
+            entity: ${sensor_entity}
+            prefix: My sensor is 
+            multiline: true
+
+          ##EntityTiles are similar to mushroom Tiles, using the pssm tile_layout engine to configure
+          ##The icon is set to automatically use the icon attribute of the entity, however this menas no icon shows up if none has been set explicitly
+          - type: HA:EntityTile
+            tile_layout: vertical
+            entity: ${sensor_entity}
+            vertical_sizes:
+              icon: h*0.4
+            element_properties:
+              title:
+                fit_text: true
+              text:
+                fit_text: true
+
+          ##A PersonElement is a variation on the EntityTile
+          ##It automatically shows the profile picture of the attached person element, and has some present badges to use for a few zones, along with the abality to change or add any.
+          - type: HA:PersonElement
+            entity: ${person_entity}
+            zone_badges:
+              home: homeassistant
+              not_home: mdi:rocket-launch
+          
+          ##WeatherElements show the current weather condition
+          ##By default, they will open a popup showing the forecast when clicked on
+          - type: HA:WeatherElement
+            entity: ${weather_entity}
+            condition_icons: meteocons
+            element_properties:
+              title:
+                multiline: true
+            weather_data:
+              - temperature
+              - humidity
+              - wind_speed
+
+      - type: custom:LabeledElementsHA
+        rows: 1
+        columns: 1
+        elements:
+          ##MediaPlayers are well, media players. They are based on Tiles, however they are in an early version, and will likely be rewritten later on
+          ##They work though, and are likely the most complex element in the current set.
+          - type: HA:MediaPlayer
+            entity: ${media_player_entity}
+
+      - type: custom:LabeledElementsHA
+        rows: 1
+        columns: 2
+        elements:
+          ##ClimateElements handle climate entities (at least radiators)
+          ##TileBased, and can be configured as such
+          - type: HA:ClimateElement
+            entity: ${climate_entity}
+          
+          ##EntityTimers take a timer entity, and show it's progress.
+          ##By default, the button toggles the timer.
+          - type: HA:EntityTimer
+            entity: ${timer_entity}
+            vertical_sizes:
+              outer: h*0.1
+
+main_tabs:
+  ##Add some defaults in the parser here for markup (i.e. margins etc.)
+  foreground_color: homeassistant
+  background_color: [100, 100, 100, 150]
+  tabs:
+    - name: Base Elements
+      icon: mdi:shape
+      element: base-elements
+    - name: Integration Elements
+      icon: home-assistant
+      element: ha-elements
+
+statusbar:
+  ##The Home Assistant integration adds a new icon to the statusbar, with info and some controls for the client.
+  orientation: horizontal
+  location: top
+  size: h*0.05
+  background_color: homeassistant
+  foreground_color: white
+  status_element_properties:
+    background_color: None
+    background_shape: None
+    icon_color: foreground
+  element_properties:
+    clock:
+      font_color: foreground
