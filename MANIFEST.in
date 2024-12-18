@@ -1,7 +1,11 @@
 graft ./inkBoarddesigner/files
-graft ./inkBoarddesigner/platforms
-graft ./inkBoard/integrations
 
-prune ./inkBoarddesigner/files/settings.ini
+recursive-include ./inkBoarddesigner/platforms *
+recursive-include ./inkBoarddesigner/integrations *
 
-prune ./inkBoard/files/icons/meteocons
+global-exclude */__pycache__/*
+global-exclude *.pyc
+
+global-exclude */settings.ini
+global-exclude */secrets.yaml
+global-exclude */secrets.yml
