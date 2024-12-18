@@ -711,7 +711,7 @@ class HAclient:
         entity_id = element.entity
 
         if entity_id not in all_entities:
-            _LOGGER.info(f"{entity_id} is not defined in config, adding it.")
+            _LOGGER.debug(f"{entity_id} is not defined in config, adding it.")
             
             if self.websocket is not None:      
                 self.messageQueue.put_nowait(trigger_headers(entity_id,self.__last_id))
@@ -823,8 +823,11 @@ class HAclient:
         for func_tuple in call_functions:
             if isinstance(func_tuple, (tuple,list)):
                 func, call_after_add = func_tuple
+            elif isinstance(func_tuple,(dict,MappingProxyType)):
+                func = func_tuple.get("function")
+                call_after_add = func_tuple.get("call_on_connect", False)
             else:
-                call_after_add = True
+                call_after_add = False
                 func = func_tuple
             
             if isinstance(func,str):
@@ -904,8 +907,17 @@ class HAclient:
             subscr_resp = await t
         else:
             await self.websocket.send(json.dumps(header))
-            subscr_resp = await self.websocket.recv()
-            subscr_resp = json.loads(subscr_resp)
+            subscr_resp = {}
+
+            while subscr_resp.get("id", None) != header["id"]:
+                subscr_resp = await self.websocket.recv()
+                subscr_resp = json.loads(subscr_resp)
+
+                if subscr_resp.get("type", None) == "event":
+                    try:
+                        asyncio.create_task(self.update_states(subscr_resp))
+                    except (TypeError, KeyError, IndexError, OSError) as exce:
+                        _LOGGER.error(f"Error in update states for {subscr_resp}: {exce}")
 
         _LOGGER.debug(subscr_resp)
         if not "success" in subscr_resp:
@@ -1488,7 +1500,7 @@ class dummyClient:
             async for message in self.websocket:
                 message = json.loads(message)
                 id = message["id"]
-                _LOGGER.debug(f"Received message {id}")
+                _LOGGER.verbose(f"Received message {id}")
                 _LOGGER.verbose(message)
                 if id in self._callback_queues:
                     ##Maybe have a seperate queue for service responses and one for pings/pongs.

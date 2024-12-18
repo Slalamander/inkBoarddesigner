@@ -11,7 +11,7 @@ from pathlib import Path
 
 import logging
 
-logger = logging.getLogger("inkBoard.HAClient")
+logger = logging.getLogger(__name__)
 
 __default_domain_actions: dict[Literal["domain"],Optional[Literal["action"]]] = {  
                         "default": None,
@@ -105,12 +105,7 @@ MAX_PONGS_MISSED : int = 5
 HOMEASSISTANT_BLUE : tuple = (3, 169, 244, 255)
 "The Blue Color used in Home Assistant Branding :)"
 
-PSSM_COLORS['home-assistant'] = HOMEASSISTANT_BLUE
-
-SHORTHAND_FONTS['home-assistant'] = SHORTHAND_FONTS['quicksand-bold']
-##The Home Assistant font is included as a default font, but for consistency the shorthand is only declared here
-
-SHORTHAND_ICONS['home-assistant'] = Path(__file__).parent / 'home-assistant.png'
+HOMEASSISTANT_ICON = Path(__file__).parent / 'home-assistant.png'
 
 ERROR_STATES = {"unknown", "unavailable"}
 "Shorthand for the states that indicate an error in the entity (so unknown or unavailable)"

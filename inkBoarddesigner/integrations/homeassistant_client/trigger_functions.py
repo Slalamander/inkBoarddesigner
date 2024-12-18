@@ -32,7 +32,7 @@ attribute_stylesType = TypedDict('attribute_stylesDict', {'attribute': str, 'sta
 
 state_color_dict = CORE.config.styles.get("state_colors",{})
 
-def get_condition_key(state : str,conditions : list[str]):
+def get_condition_key(state : str, conditions : list[str]):
     """
     Tests if any of the conditional strings in conditions return true. 
     Conditions can be defined as e.g. 'state < 5', the first one to evaluate as true is returned, otherwise None.
@@ -53,15 +53,8 @@ def get_condition_key(state : str,conditions : list[str]):
         except (SyntaxError, NameError, TypeError, ZeroDivisionError):
             continue
     
-    # if not isinstance(state,str):
-    #     state = str(state)
-    #     for cond in conditions:
-    #         try:
-    #             if state == cond: return cond
-    #         except TypeError:
-    #             continue
     ##Return default if no matches were found
-    return None
+    return "default" if "default" in conditions else None
 
 def get_new_state(element : "HAelement", trigger_dict : "triggerDictType", skip_conditions : bool=False):
     """
@@ -74,9 +67,6 @@ def get_new_state(element : "HAelement", trigger_dict : "triggerDictType", skip_
     """
     ##Handle eval states hiero
     ##First test if any of the expressions can be evaluated to true, else check for the state, else return default
-
-    # if trigger_dict["to_state"]["state"] in ["unknown", "unavailable"]:
-    #     new_state = trigger_dict["to_state"]["state"]
 
     if attr := getattr(element,"entity_attribute", None):
         if attr in trigger_dict["to_state"]["attributes"]:
@@ -576,7 +566,9 @@ element_triggers = {
     elts.Counter: counter_trigger,
     elts.Slider: slider_trigger,
     elts.BoxSlider: slider_trigger,
+    elts.LineSlider: slider_trigger,
     elts.DropDown: select_trigger,
+    ##Should perhaps include booleans in here too? For switches e.g.
 }
 "Links baseelements to default trigger functions"
 #endregion

@@ -13,7 +13,7 @@ import logging
 import requests
 from PIL import Image
 
-logger = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)
 
 ##Use this file to declare some more constants and extend a couple
 class DomainError(ValueError):
@@ -61,8 +61,11 @@ async def request_image_threadsafe(image_url : str) -> tuple[Union[Image.Image, 
         If the status code is 200 (i.e. the request was succesfull) a tuple is returned with the gotten Image and the status code. 
         Otherwise a tuple with the full response and the status code is returned.
     """
-
-    response = await asyncio.to_thread(requests.get, image_url)
+    try:
+        response = await asyncio.to_thread(requests.get, image_url)
+    except (requests.exceptions.InvalidURL):
+        _LOGGER.error(f"Cannot request image from {image_url}, invalid url")
+        return (None, -1)
 
     if response.status_code == 200:
 
@@ -73,5 +76,5 @@ async def request_image_threadsafe(image_url : str) -> tuple[Union[Image.Image, 
         img = await asyncio.to_thread(Image.open,respIO)
         return (img.copy(), response.status_code)
     else:
-        logger.warning(f"Unable to get requested image")
+        _LOGGER.warning(f"Unable to get requested image")
         return (response, response.status_code)

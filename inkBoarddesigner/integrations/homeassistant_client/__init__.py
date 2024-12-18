@@ -8,6 +8,9 @@ from types import MappingProxyType
 import logging
 
 from inkBoard.helpers import *
+from PythonScreenStackManager import constants as pssm_const
+
+from . import constants as const
 
 if TYPE_CHECKING:
     from inkBoard import config, core as CORE
@@ -36,6 +39,14 @@ async def async_setup(core: "CORE", config : "config") -> None:
     parser.setup_elements()
 
     core.add_element_parser("HA", parser.parse_ha_element)
+    pssm_const.PSSM_COLORS['home-assistant'] = const.HOMEASSISTANT_BLUE
+    pssm_const.PSSM_COLORS['homeassistant'] = const.HOMEASSISTANT_BLUE
+
+    pssm_const.SHORTHAND_FONTS['home-assistant'] = 'quicksand-bold' ##The font comes with pssm by default
+    pssm_const.SHORTHAND_FONTS['homeassistant'] = 'quicksand-bold'
+
+    pssm_const.SHORTHAND_ICONS['home-assistant'] = const.HOMEASSISTANT_ICON
+    pssm_const.SHORTHAND_ICONS['homeassistant'] = const.HOMEASSISTANT_ICON
     return HAclient
 
 async def async_start(core: "CORE", client : "client.HAclient"):

@@ -70,15 +70,15 @@ def validate_entity(elt : HAelement, entity : str):
     "Check if this entity is allowed for the element. Returns False if not. Also parses entities set using the !entity tag."
     if not isinstance(entity, str):
         msg = f"{elt}: Entities must of type str. {type(entity)}: {entity} is not valid."
-        _LOGGER.exception(TypeError(msg))
+        _LOGGER.error(msg)
         return False
-        # raise TypeError("Entities must of type str")
     
     if entity.startswith(ENTITY_TAG_KEY):
         tag = entity.removeprefix(ENTITY_TAG_KEY)
         if tag not in entity_tags:
             msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
-            _LOGGER.exception(KeyError(msg))
+            # _LOGGER.exception(KeyError(msg))
+            _LOGGER.error(msg)
             return False
         else:
             entity = entity_tags[tag]
@@ -87,7 +87,8 @@ def validate_entity(elt : HAelement, entity : str):
         domain = entity.split(".")[0]
         if not domain in elt.ALLOWED_DOMAINS:
             msg = f"Entity domains for {type(elt).__name__} must be one of {elt.ALLOWED_DOMAINS}. {entity} is an invalid entity."
-            _LOGGER.exception(DomainError(msg))
+            # _LOGGER.exception(DomainError(msg))
+            _LOGGER.error(msg)
             return False
     
     return entity
@@ -1117,7 +1118,7 @@ class PersonElement(EntityTile):
     @property
     def _emulator_icon(cls): return "mdi:card-account-details"
 
-    def __init__(self, entity : str, placeholder_icon : mdiType = "mdi:account", element_properties : dict = {"icon": {"icon_attribute": "entity_picture", "icon_color": False, "backgroundShape": None, "background_color": None}},
+    def __init__(self, entity : str, placeholder_icon : mdiType = "mdi:account", element_properties : dict = {"icon": {"icon_attribute": "entity_picture", "icon_color": False, "background_shape": None, "background_color": None}},
                 tile_layout : Union[Literal["vertical", "horizontal"], str] = "vertical", hide : elements.Tile._HideDict = {"text"},
                 zone_badges: Optional[dict] = defaultBadges ,#{"default": None,"home": "mdi:home", "not_home": "mdi:home-off", "unavailable": UNAVAILABLE_ICON, "unknown": UNAVAILABLE_COLOR}, 
                  **kwargs):
@@ -1282,11 +1283,11 @@ class MediaPlayer(_EntityLayout):
         Properties for the volume slider, by default `{"style" : "box", "active_color": "foreground", "outline_color": "foreground"}`
         Does not allow setting `{"entity","minimum", "maximum", "position", "tap_action"}`
     info_title_properties : dict, optional
-        properties for the title StateButton, by default `{"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fitText": True, "fontSize": 0}`
+        properties for the title StateButton, by default `{"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fit_text": True, "font_size": 0}`
         default_attribute_styles sets the title to the entity's friendly name if the media_player is not playing.
         Does not allow setting `{"entity"}`
     info_text_properties : dict, optional
-        properties for the text StateButton, by default `{"font_color": "foreground", "entity_attribute": "media_artist", "fitText": True, "fontSize": 0}`
+        properties for the text StateButton, by default `{"font_color": "foreground", "entity_attribute": "media_artist", "fit_text": True, "font_size": 0}`
         Does not allow setting `{"entity"}`
     """
     
@@ -1346,10 +1347,10 @@ class MediaPlayer(_EntityLayout):
                 foreground_color : Optional[ColorType]=DEFAULT_FOREGROUND_COLOR, accent_color : Optional[ColorType]=DEFAULT_ACCENT_COLOR, background_color : Optional[ColorType] =None, outline_color : Optional[ColorType] = None, #DEFAULT_BACKGROUND_COLOR, 
                 controls : Union[Literal["all"],list[__control_options],dict] = "all", controls_layout : Union[Literal["default"],PSSMLayoutString] = "default", control_icon_properties : dict = {"icon_color": "foreground"},  ff_time : Union[float,DurationType] = 30, rewind_time : Union[float,DurationType] = 30, 
                 idle_picture : Union[str,mdiType] = "mdi:multimedia", artwork_properties : dict = {},
-                duration_type : Literal["slider", "text"] = "slider", duration_slider_properties : dict = {"style":"box", "active_color": "foreground"}, duration_buttons_properties : dict = {"fitText": True, "fontSize": 0}, 
+                duration_type : Literal["slider", "text"] = "slider", duration_slider_properties : dict = {"style":"box", "active_color": "foreground"}, duration_buttons_properties : dict = {"fit_text": True, "font_size": 0}, 
                 volume_icon : Union[Literal["state"], mdiType] = 'state', volume_icon_properties : dict = {"icon_color": "foreground"}, volume_slider_properties : dict = {"style" : "box", "active_color": "foreground", "outline_color": "foreground"}, 
-                info_title_properties : dict = {"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fitText": True, "fontSize": 0}, info_text_properties : dict = {"font_color": "foreground", "entity_attribute": "media_artist", "fitText": True, "fontSize": 0}, 
-                off_icon_properties : dict = {"icon": "mdi:power","backgroundShape": "circle", "background_color": "foreground", "icon_color": "background"},
+                info_title_properties : dict = {"font_color": "foreground", "attribute_styles": 'default_attribute_styles', "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fit_text": True, "font_size": 0}, info_text_properties : dict = {"font_color": "foreground", "entity_attribute": "media_artist", "fit_text": True, "font_size": 0}, 
+                off_icon_properties : dict = {"icon": "mdi:power","background_shape": "circle", "background_color": "foreground", "icon_color": "background"},
                 link_element = False, **kwargs):            
 
         # validate_domain(self,entity)
@@ -1359,10 +1360,10 @@ class MediaPlayer(_EntityLayout):
 
         # self.foreground_color = foreground_color
 
-        self._color_setter("__foreground_color",foreground_color,False)
-        self._color_setter("__background_color",background_color,True)
-        self._color_setter("__outline_color",outline_color,True)
-        self._color_setter("__accent_color",accent_color,True)
+        self._color_setter("_foreground_color",foreground_color,False)
+        self._color_setter("_background_color",background_color,True)
+        self._color_setter("_outline_color",outline_color,True)
+        self._color_setter("_accent_color",accent_color,True)
         # self.entity = entity
         self.entity = entity
 
@@ -1378,12 +1379,10 @@ class MediaPlayer(_EntityLayout):
         self._layout = []
 
         ##Maybe add duration time?
-        # show = ("media_info", "controls", "duration", "artwork", "volume")
-        # show = ("media_info", "controls", "duration", "artwork","turn_off","volume")
         self.show = show
 
-        self._mediaPosition = 0
-        self._mediaDuration = -1
+        self._media_position = 0
+        self._media_duration = -1
         self._updateTime = None
         self._media_updateTime = None
 
@@ -1398,7 +1397,7 @@ class MediaPlayer(_EntityLayout):
         
         self.__ArtworkElement = elements.Picture(picture=None,entity=self.entity, picture_attribute="entity_picture", link_element=False, fallback_icon=None)
 
-        self.__off_icon_properties = {"icon": "mdi:power","backgroundShape": "circle", "background_color": "foreground", "icon_color": "background"}
+        self.__off_icon_properties = {"icon": "mdi:power","background_shape": "circle", "background_color": "foreground", "icon_color": "background"}
         self.__off_icon_properties.update(off_icon_properties)
         self.__off_Icon = elements.Icon("mdi:power", tap_action = self._turn_off)
 
@@ -1414,27 +1413,27 @@ class MediaPlayer(_EntityLayout):
         self.__VolumeSlider = elements.Slider(style=self.__volume_slider_properties["style"], minimum=0, maximum=1, position=0, width="h*0.5", tap_action=self._set_volume)
 
         
-        self.__info_text_properties = {"font_color": "foreground", "entity_attribute": "media_artist", "fitText": True, "fontSize": 0}
+        self.__info_text_properties = {"font_color": "foreground", "entity_attribute": "media_artist", "fit_text": True, "font_size": 0}
         self.__info_text_properties.update(info_text_properties)
 
         # self.__info_title_properties = {"font_color": "foreground", "state_styles": state_styles, "state_conditionals": True}
         attribute_styles = [{"attribute": "media_title", 
                             "states": [{"state": "None", "properties": {"entity_attribute": "friendly_name"}}],
                             "else": {"entity_attribute": "media_title"}}]
-        self.__info_title_properties = {"font_color": "foreground", "attribute_styles": attribute_styles, "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fitText": True, "fontSize": 0}
+        self.__info_title_properties = {"font_color": "foreground", "attribute_styles": attribute_styles, "entity_attribute": "media_artist", "font": DEFAULT_FONT_HEADER,"fit_text": True, "font_size": 0}
         self.__info_title_properties.update(info_title_properties)
         if self.__info_title_properties["attribute_styles"] == "default_attribute_styles":
             self.__info_title_properties["attribute_styles"] = attribute_styles
 
 
-        self.__InfoText = StateButton(entity, link_element=False, entity_attribute="media_artist", fitText=True, fontSize=0)
-        self.__InfoTitle = StateButton(entity, link_element=False, entity_attribute="media_title", font=DEFAULT_FONT_HEADER, fitText=True, fontSize=0)
+        self.__InfoText = StateButton(entity, link_element=False, entity_attribute="media_artist", fit_text=True, font_size=0)
+        self.__InfoTitle = StateButton(entity, link_element=False, entity_attribute="media_title", font=DEFAULT_FONT_HEADER, fit_text=True, font_size=0)
         
 
         self.__duration_slider_properties = {"style" : "box", "active_color": "foreground"}
         self.__duration_slider_properties.update(duration_slider_properties)
 
-        self.__duration_buttons_properties = {"fitText": True, "fontSize": 0}
+        self.__duration_buttons_properties = {"fit_text": True, "font_size": 0}
         self.__duration_buttons_properties.update(duration_buttons_properties)
 
         self.duration_type =  duration_type
@@ -1526,9 +1525,9 @@ class MediaPlayer(_EntityLayout):
         return self.__mediaType
 
     @property
-    def mediaPosition(self):
+    def media_position(self):
         "Last media position as reported by Home Assistant"
-        return self._mediaPosition
+        return self._media_position
     
     @property
     def updateTime(self):
@@ -1541,9 +1540,9 @@ class MediaPlayer(_EntityLayout):
         return self._media_updateTime
 
     @property
-    def mediaDuration(self) -> float:
+    def media_duration(self) -> float:
         "Duration of the media, in seconds. Returns -1 if no duration was present in the attributes."
-        return self._mediaDuration
+        return self._media_duration
 
     @property
     def mediaActive(self) -> bool:
@@ -1937,9 +1936,9 @@ class MediaPlayer(_EntityLayout):
             return None
         
         if self.state in {"paused", "buffering"}:
-            return self.mediaPosition
+            return self.media_position
 
-        cur_seconds = datetime.now(timezone.utc).timestamp() - self.media_updateTime.timestamp() + self.mediaPosition
+        cur_seconds = datetime.now(timezone.utc).timestamp() - self.media_updateTime.timestamp() + self.media_position
 
         if cur_seconds > self.__DurationSlider.maximum:
             return self.__DurationSlider.maximum
@@ -2165,13 +2164,12 @@ class MediaPlayer(_EntityLayout):
         
         ##Allow this one to be made using it's own layout string
 
-        if self.mediaDuration >= 3600:
+        if self.media_duration >= 3600:
             text_w = "w*0.2"
         else:
             text_w = "w*0.15"
         layout = [["?", (self.TimeButton, text_w),(self.DurationSlider, "?"), (self.DurationButton, text_w)]]
         return elements.Layout(layout, _register=False)
-        # return self.__durationLayout
     #endregion
 
     def build_layout(self):
@@ -2195,6 +2193,7 @@ class MediaPlayer(_EntityLayout):
         return
     
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggers.triggerDictType):
+        
         if trigger_dict["from_state"] == None:
             # self._updateTime = datetime.fromisoformat(trigger_dict['to_state']["last_updated"])
             for elt  in {self.__ArtworkElement, self.__InfoText, self.__InfoTitle}:
@@ -2204,10 +2203,7 @@ class MediaPlayer(_EntityLayout):
         # else:
         #     ##Update time seems to be a bit more accurate like this.
         #     ##But doesn't work when starting since the media time is not correct then (misses the offset)
-        #     # self._updateTime = datetime.now(timezone.utc)
-        #     self._updateTime = datetime.fromisoformat(trigger_dict['to_state']["last_updated"])
 
-        # datetime.strptime
         if self._optimistic_trigger:
             ##When interacting with i.e. the volume, a trigger is thrown but it may not be up to date entirely. So that update is skipped. Mainly determined by the call functions.
             trigger_dict = dict(trigger_dict)
@@ -2223,12 +2219,6 @@ class MediaPlayer(_EntityLayout):
 
         new_state = trigger_dict['to_state'].copy()
 
-        # new_media = False
-        # if trigger_dict["from_state"] == None:
-        #     new_media = True
-        # elif trigger_dict["to_state"]["attributes"].get("media_title", None) != trigger_dict["from_state"]["attributes"].get("media_title", None):
-        #     new_media = True
-
         hidden = self.hide
 
         element_state = triggers.get_new_state(self,trigger_dict)
@@ -2239,13 +2229,12 @@ class MediaPlayer(_EntityLayout):
         cur_layout = self.player_layout
         
         self.__state = new_state["state"]
-        self._mediaPosition = new_state["attributes"].get("mediaPosition", 0.0)
-        self._mediaDuration = new_state["attributes"].get("mediaDuration", -1)
+        self._media_position = new_state["attributes"].get("media_position", 0.0)
+        self._media_duration = new_state["attributes"].get("media_duration", -1)
         self.__mediaType = new_state["attributes"].get("media_content_type", None)
         self._updateTime = datetime.fromisoformat(trigger_dict['to_state']["last_updated"])
 
         if update_props:
-            # start_batch = True
             await self.async_update(update_props, skipGen=True, skipPrint=True)
 
         ##If playLayout is in update_props, the new layout should automatically be taken care off I believe
@@ -2254,8 +2243,8 @@ class MediaPlayer(_EntityLayout):
 
         update_coros = []
         
-        if "mediaPosition_updated_at" in new_state["attributes"]:
-            self._media_updateTime = datetime.fromisoformat(new_state['attributes']["mediaPosition_updated_at"])
+        if "media_position_updated_at" in new_state["attributes"]:
+            self._media_updateTime = datetime.fromisoformat(new_state['attributes']["media_position_updated_at"])
         else:
             self._media_updateTime = self._updateTime
 
@@ -2265,7 +2254,6 @@ class MediaPlayer(_EntityLayout):
             start_batch = True
 
         if "artwork" in self.show:
-            # if new_state["state"] in {"playing","paused"}:
             if self.mediaActive:
                 update_coros.append(triggers.picture_trigger(self.__ArtworkElement,trigger_dict))
             else:
@@ -2295,8 +2283,6 @@ class MediaPlayer(_EntityLayout):
 
 
         ##Turn off button can be styled using the off_properties
-        # if "turn_off" in self.show:
-        #     pass
 
         ##Don't forget to test for layout to change, when going from idle to something else e.g.!
         ##And update accordingly.
@@ -2304,9 +2290,6 @@ class MediaPlayer(_EntityLayout):
 
         L = await asyncio.gather(*update_coros, return_exceptions=True)
         for i, res in enumerate(L):
-        # L = asyncio.as_completed(update_coros)
-        # for coro in L:
-        #     res = await coro
         
             if isinstance(res,Exception): 
                 _LOGGER.error(f"{update_coros[i]} returned an exception: {res} ")
@@ -2321,8 +2304,6 @@ class MediaPlayer(_EntityLayout):
                 ##Probably a good moment to implement the generator lock when changing pictures :)
                 ##Maybe also check if the buttons correctly updated
             await self.async_update(updated=updated)
-            # self.parentPSSMScreen.stop_batch_writing()
-
         return
             ##I think it's best to set the text directly if it's not present?
 
@@ -2341,12 +2322,11 @@ class MediaPlayer(_EntityLayout):
 
         previous_ent_state = None
         
-        # new_position = True
         if trigger_dict["from_state"] != None:
             previous_ent_state = trigger_dict["from_state"]["state"]
 
-        if "mediaPosition_updated_at" in new_state["attributes"]:
-            if previous_ent_state != None and new_state["attributes"]["mediaPosition_updated_at"] == trigger_dict["from_state"]["attributes"].get("mediaPosition_updated_at", None):
+        if "media_position_updated_at" in new_state["attributes"]:
+            if previous_ent_state != None and new_state["attributes"]["media_position_updated_at"] == trigger_dict["from_state"]["attributes"].get("media_position_updated_at", None):
                 new_position_update = False
             else:
                 new_position_update = True
@@ -2356,9 +2336,7 @@ class MediaPlayer(_EntityLayout):
         update_coros = []
 
         new_buffer = new_state["state"] in {"playing", "buffering"} and previous_ent_state == "playing"
-        # if (not self.__durationFuture.done() and not (new_state["state"] == previous_ent_state == "playing")):
-        #     self.__durationFuture.cancel()
-        #     await asyncio.sleep(0)
+
 
         gather_cancel = False
         if (not self.__durationFuture.done() or new_position_update):
@@ -2370,8 +2348,8 @@ class MediaPlayer(_EntityLayout):
         ##Well, no, it seems to go through a loop, and get cancelled and start again at the older position
         ##So maybe the paused doesn't work indeed.
         if new_state["state"] in {"playing","paused","buffering"} or new_position_update:
-            if "mediaDuration" in new_state["attributes"]:
-                duration_stamp = new_state["attributes"]["mediaDuration"]
+            if "media_duration" in new_state["attributes"]:
+                duration_stamp = new_state["attributes"]["media_duration"]
                 if duration_stamp != self.__DurationSlider.maximum :
                     self.__DurationSlider.maximum = duration_stamp
             else:
@@ -2381,7 +2359,6 @@ class MediaPlayer(_EntityLayout):
             timeformat = "%H:%M:%S" if duration_stamp >= 3600 else "%M:%S"
             durstr = duration.strftime(timeformat)
 
-            # cur_seconds = datetime.now(timezone.utc).timestamp() - self.media_updateTime.timestamp() + self.mediaPosition
             cur_seconds = self.get_assumed_position()
 
             if durstr != self.DurationButton.text:
@@ -2389,19 +2366,16 @@ class MediaPlayer(_EntityLayout):
 
             buffer_new_media = False
             if new_state["state"] == "buffering":
-                # await asyncio.gather(*update_coros)
                 if trigger_dict["from_state"] != None:
                     old_media_title = trigger_dict["from_state"]["attributes"].get("media_title",None)
                     new_media_title = trigger_dict["from_state"]["attributes"].get("media_title",None)
                     if new_media_title != None and new_media_title != old_media_title:
                         buffer_new_media = True
-                # return
 
             if new_state["state"] == "playing" or new_buffer or buffer_new_media:
-                # pass
                 
                 self.__DurationSlider.position = cur_seconds
-                if self.onScreen: # and not self.__DurationSlider.running:
+                if self.onScreen: 
                     ##I believe it's cancelled by cancelling the future (which is ok), so the running check should not be necessary
                     # pass
                     self.__DurationSlider.pause_timer()
@@ -2413,15 +2387,11 @@ class MediaPlayer(_EntityLayout):
                     update_coros.append(
                             self.__durationtext_loop(duration_stamp,timeformat))
                 
-                # self.__DurationSlider.start_timer(reset=False)
-                # update_coros.append(self.__DurationSlider._timerTask)
-            # elif new_state["state"] in {"paused","buffering"}:
             else:
-                _LOGGER.debug(f"{self}: pausing timer")
                 if new_state["state"] == "paused":
+                    _LOGGER.debug(f"{self}: pausing timer")
                     self.__DurationSlider.pause_timer()
 
-                # if self.__DurationSlider.position != self.mediaPosition:
                 ##Don't need the if case since async_set_position returns anyways if the position already matches.
                 update_coros.append(
                     self.__DurationSlider.async_set_position(cur_seconds))
@@ -2431,7 +2401,6 @@ class MediaPlayer(_EntityLayout):
                         self.TimeButton.async_update({"text": posstr}, reprintOnTop=True))
         else:
             ##I don't think it's necessary to filter these out? Since the element's shouldn't update anyways if nothing changes.
-            # if new_state["state"] == previous_ent_state:
             update_coros.append(self.DurationButton.async_update({"text": ""}))
             update_coros.append(self.TimeButton.async_update({"text": ""}))
             self.__DurationSlider.cancel_timer()
@@ -2443,7 +2412,6 @@ class MediaPlayer(_EntityLayout):
                 async with self._updateLock:
                     await asyncio.sleep(0)
             group = asyncio.gather(*update_coros, return_exceptions=True, loop=self.parentPSSMScreen.mainLoop) #@IgnoreException
-            # group = asyncio.gather(*update_coros, return_exceptions=True, loop=self.parentPSSMScreen._printLoop) #@IgnoreException
             await asyncio.sleep(0)
             if not (new_state["state"] == previous_ent_state == "playing") or gather_cancel:
                 self.__durationFuture = group
@@ -2464,15 +2432,10 @@ class MediaPlayer(_EntityLayout):
             Timeformat of the text
         """
         async with self.__DurationLock:
-            cur_seconds = self.mediaPosition
+            cur_seconds = self.media_position
             while cur_seconds < total_seconds:      
-                #cur_pos = datetime.utcnow().timestamp() - updateTime.timestamp() + position
                 try:
-                    cur_seconds = datetime.now(timezone.utc).timestamp() - self.media_updateTime.timestamp() + self.mediaPosition
-                    #posstr = datetime.utcfromtimestamp(math.floor(cur_pos)).strftime(timeformat)
-                    #new_text = f"{posstr}/{durstr}"
-                    #sleep_time = update_func(cur_pos)
-                    # update_func(cur_pos)
+                    cur_seconds = datetime.now(timezone.utc).timestamp() - self.media_updateTime.timestamp() + self.media_position
 
                     if cur_seconds > total_seconds:
                         continue
@@ -2492,18 +2455,10 @@ class MediaPlayer(_EntityLayout):
                         if not self.__DurationSlider.running:
                             self.__DurationSlider.position = cur_seconds
                             self.__DurationSlider.start_timer()
-                        # self.TimeButton.update({"text": posstr}, reprintOnTop=True)
                     else:
                         self.TimeButton.text = posstr
 
-                    # if not self.DurationSlider.running and self.DurationSlider.onScreen:
-                    #     self.DurationSlider.set_position(cur_seconds)
-
                     sleep_time = math.ceil(cur_seconds) - cur_seconds
-                    #logger.info(new_text)
-                    # if cur_pos < duration_stamp:
-                    #     self.durationElt.update({"text": new_text}, reprintOnTop=True)
-
                     await asyncio.sleep(sleep_time) #@IgnoreExceptions
                 except asyncio.CancelledError:
                     _LOGGER.debug(f"{self}: Duration runner was cancelled") #@IgnoreExceptions
@@ -2516,11 +2471,6 @@ class MediaPlayer(_EntityLayout):
             else:
                 self.TimeButton.text = posstr
         
-
-        ##Using a lock to ensure only one lock is running at a time.
-        # async with self.__DurationLock:
-        #     asyncio.sleep(1)
-
     async def __update_controls(self, trigger_dict : triggers.triggerDictType):
         new_state = trigger_dict["to_state"]
         update_coros = []
@@ -2545,8 +2495,6 @@ class MediaPlayer(_EntityLayout):
 
                 if contr == "shuffle":
                     s = new_state["attributes"].get("shuffle", None)
-                    # if s == None:
-                    #     new_icon = None
                     if s == True: new_icon = "mdi:shuffle"
                     elif s == False: new_icon = "mdi:shuffle-disabled"
                     else: new_icon = None
@@ -2564,21 +2512,12 @@ class MediaPlayer(_EntityLayout):
             else:
                 hide.append(contr)
 
-        # self.__ControlIcons
-        # self.controls_layout = "default"
-
-        # elts = bool(update_coros)
-
         await asyncio.gather(*update_coros)
 
         new_layout = elements.parse_layout_string(self.controls_layout,hide=hide,**self.__ControlIcons)
-        # await self.__ControlLayout.Async_update({"layout": new_layout}, forceGen=bool(update_coros))
-        
+
         if self.onScreen:
             await self.__ControlLayoutElement.async_update({"layout": new_layout}, updated=bool(update_coros))
-            # b = self.parentPSSMScreen.isBatch
-            # await self.__ControlLayout.Async_update({"layout": new_layout, "_updateTime": self._updateTime}, forceGen=True, skipPrint=False)
-            # layout_img = self.__ControlLayout.imgData
         else:
             await self.__ControlLayoutElement.async_update({"layout": new_layout})
         return
@@ -2598,15 +2537,11 @@ class MediaPlayer(_EntityLayout):
             elif new_state["attributes"].get("is_volume_muted",False): # and new_state["attributes"]["is_volume_muted"]:
                     new_icon = "mdi:volume-mute"
             else:
-                # if level == 0: new_icon = "mdi:volume-variant-off" 
                 if level < 0.35: new_icon = "mdi:volume-low"
                 elif level < 0.65: new_icon = "mdi:volume-medium"
                 else: new_icon = "mdi:volume-high"
         else:
             level = 0
-            # new_icon = self.__VolumeIcon.icon 
-            # if self.volume_icon != "state":
-            #     new_icon = self.volume_icon
             new_icon = "mdi:volume-variant-off" if self.volume_icon == "state" else self.volume_icon
 
         if new_icon != self.__VolumeIcon.icon:
@@ -2619,8 +2554,8 @@ class MediaPlayer(_EntityLayout):
         return
     #endregion
 
-    def on_add(self):
-        super().on_add()
+    def on_add(self, call_all = False):
+        super().on_add(call_all)
 
         if self.HAclient != None and self.HAclient.connection:
             entity_state = self.HAclient.stateDict[self.entity]
@@ -2646,7 +2581,7 @@ class MediaPlayer(_EntityLayout):
             new_position = self.__DurationSlider.position
 
         isotime = datetime.now(timezone.utc).isoformat()
-        optmdict = {"mediaPosition": new_position, "mediaPosition_updated_at": isotime}
+        optmdict = {"media_position": new_position, "media_position_updated_at": isotime}
         if "attributes" in self._optimistic_trigger:
             self._optimistic_trigger["attributes"].update(optmdict)
         else:
@@ -2659,7 +2594,6 @@ class MediaPlayer(_EntityLayout):
         if new_volume == None:
             new_volume = self.__VolumeSlider.position
 
-        # if self.__VolumeSlider in args:
         if "attributes" in self._optimistic_trigger:
             self._optimistic_trigger["attributes"].update({"volume_level": new_volume})
         else:
@@ -2773,8 +2707,8 @@ class MediaPlayer(_EntityLayout):
         """        
         if cur_pos := self.get_assumed_position():
             new_pos = cur_pos + self.ff_time
-            if new_pos > self.mediaDuration:
-                new_pos = self.mediaDuration
+            if new_pos > self.media_duration:
+                new_pos = self.media_duration
             self._seek_time(new_position=new_pos)
     
     def _rewind(self, *args, time : float = None):
@@ -2804,10 +2738,6 @@ class MediaPlayer(_EntityLayout):
 
     def _turn_off(self, *args):
         "Turns off the media player, or (tries to) turn it on if it's state reports off."
-        # if self.state == "off":
-        #     service_action = "turn_on"
-        # else:
-        #     service_action = "turn_off"
         service_action = "toggle"
 
         self.HAclient.call_service(service=f"media_player.{service_action}", target=self.entity)
@@ -2856,7 +2786,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
     element_properties : dict, optional
         Properties of the tile elements, 
         defaults set icon_color for the condition element, 
-        font_color, fitText and fontSize for the title element, 
+        font_color, fit_text and font_size for the title element, 
         and weather-data has all color properties set accordingly as well as the vertical sizes of the outer margins (to center the data rows no matter how many are set)
         for forecasts, the entity and time_format are copied by default as well as the foreground, accent and background colors
     weather_data_properties : dict, optional
@@ -2874,7 +2804,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
     
     _default_layouts : dict = {"vertical": "[condition,title];weather-data", "horizontal": "[condition;title],weather-data"}
 
-    _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"updateInterval", "updateEvery"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
+    _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
     @classmethod
     @property
@@ -2908,13 +2838,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             _description_, by default False
         """        
 
-        
-
-        # validate_domain(self,entity)
-        # if entity.split(".")[0] not in self.ALLOWED_DOMAINS:
-        #     logger.error(f"Please supply an entity in the weather domain. {entity} is not a valid entity for a weather element")
-        #     return Exception("Entity Domain Error")
-
         ##Build the icons and buttons for this when fetching data, and add them to attribute elements or something.
         ##Also, for the layout: have icon;title;weather-data
         # allow for a title?/titleattribute
@@ -2938,9 +2861,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         self.time_format = time_format
 
         ##This button should become a state button
-        # weatherButton = elements.Button("Temp", fontSize = "0.8*h", text_xPosition = 'center' ,text_yPosition = "bottom", outline_color="white", attribute="temperature", show_unit = " °C", fitText=False )
-        # weatherButton = elements.Button("Temp")
-        weatherButton = StateButton(self.entity, "friendly_name", _register = False)
+        weatherButton = StateButton(self.entity, "friendly_name", _register = False, multiline=True)
         weatherIcon = elements.Icon("mdi:weather-fog")
 
         if isinstance(weather_data_icons,dict):
@@ -2986,7 +2907,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         if tile_layout == "vertical":
             # vertical_sizes = kwargs.pop("vertical_sizes",{"condition": "?", "title": "?", "weather-data": "?*2"})
             vertical_sizes = {"condition": "?", "title": "?", "weather-data": "?*2"}
-            horizontal_sizes = {"condition": "r", "outer": "?", "weather-data": "w*0.8"}
+            horizontal_sizes = {"condition": "r", "outer": "w*0.1", "weather-data": "w*0.8"}
             # horizontal_sizes = kwargs.pop("horizontal_sizes",{"condition": "r", "outer": "?", "weather-data": "w"})
             data_vSize = {"outer": "?"}
         elif tile_layout == "horizontal":
@@ -2998,7 +2919,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             horizontal_sizes = kwargs.pop("horizontal_sizes",{})
 
         default_condition_properties = {"icon_color": "foreground"} if condition_icons in {"mdi","meteocons-outline"} else {"icon_color": False}
-        default_title_properties = {"font_color": "foreground", "fitText": True, "fontSize": 0}
+        default_title_properties = {"font_color": "foreground", "fit_text": True, "font_size": 0}
         default_data_properties = {"foreground_color": "foreground", "accent_color": "accent",
                                 "vertical_sizes": data_vSize}
 
@@ -3081,8 +3002,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         return
 
     #region
-    # @base.Element.tap_action.getter
-
     @property
     def _isForecast(self) -> bool:
         "True if this WeatherElement is part of a forecast element (To prevent recursion issues)"
@@ -3113,9 +3032,13 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                 self._condition_suffix = None
                 self._condition_icons = icon_sets.MDI_WEATHER_CONDITION_ICONS
             else:
-                self._condition_icons = icon_sets.METEOCONS_WEATHER_CONDITIONS_ICONS
-                self._condition_suffix = ".png"
-                self._condition_prefix = icon_sets.METEOCONS_PATH if value == "meteocons" else icon_sets.METEOCONS_PATH_OUTLINE
+                if not icon_sets.METEOCONS_INSTALLED:
+                    _LOGGER.error("The meteocons integration is not installed, cannot use meteocon icons. Defaulting to mdi")
+                    self.condition_icons = "mdi"
+                    return 
+                self._condition_icons = icon_sets.METEOCONS.METEOCONS_WEATHER_ICONS
+                self._condition_suffix = icon_sets.METEOCONS.IMAGE_FILE_TYPE
+                self._condition_prefix = icon_sets.METEOCONS.METEOCONS_PATH if value == "meteocons" else icon_sets.METEOCONS.METEOCONS_PATH_OUTLINE
         elif isinstance(value, dict):
             d = value.copy()
             self._condition_suffix = d.pop("suffix",None)
@@ -3123,7 +3046,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             self._condition_icons = d
         else:
             msg = f"{self}: condition_icons must be a preset pack (mdi, meteocons or meteocons-outline), or a dict."
-            _LOGGER.exception(TypeError(msg))
+            _LOGGER.error(msg)
             return
         
         nighttime = False
@@ -3220,9 +3143,13 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                 weather_data_prefix = None
                 ##The ones already have mdi: in front
             else: 
-                icon_dict = icon_sets.METEOCONS_WEATHER_DATA_ICONS.copy()
-                weather_data_suffix = ".png"
-                weather_data_prefix = icon_sets.METEOCONS_PATH if defaults == "meteocons" else icon_sets.METEOCONS_PATH_OUTLINE
+                if not icon_sets.METEOCONS_INSTALLED:
+                    _LOGGER.error("The meteocons integration is not installed, cannot use meteocon icons. Defaulting to mdi")
+                    self.condition_icons = "mdi"
+                    return 
+                icon_dict = icon_sets.METEOCONS.METEOCONS_FORECAST_ICONS.copy()
+                weather_data_suffix = icon_sets.METEOCONS.IMAGE_FILE_TYPE
+                weather_data_prefix = icon_sets.METEOCONS.METEOCONS_PATH if defaults == "meteocons" else icon_sets.METEOCONS.METEOCONS_PATH_OUTLINE
                 
                 for key, icon in icon_dict.items():
                     if icon == None:
@@ -3351,13 +3278,13 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         
         fc_elt = self.__ForecastElement
         if value in {"on-trigger", "on-open"}:
-            new_attr = {"updateEvery": None, "updateInterval": None}
+            new_attr = {"update_every": None, "update_interval": None}
             fc_elt.stop_wait_loop() 
         elif value == "hour":
-            new_attr = {"updateEvery": value, "updateInterval": None}
+            new_attr = {"update_every": value, "update_interval": None}
             fc_elt.start_wait_loop()    
         else:
-            new_attr = {"updateEvery": None, "updateInterval": value}
+            new_attr = {"update_every": None, "update_interval": value}
             ##Should you restart it upon changing this value?
             ##More something for updateintervals in general tho
             fc_elt.start_wait_loop()
@@ -3417,13 +3344,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         self._time_format = value
     #endregion
 
-    # def on_add(self):
-    #     super().on_add()
-    #     for i,color in enumerate(self.forecastBackground):
-    #         if color == "device":
-    #             self.forecastBackground[i] = self.parentPSSMScreen.device.defaultColor
-
-    def generator(self, area, skipNonLayoutGen):
+    def generator(self, area: PSSMarea = None, skipNonLayoutGen: bool = False):
         
         if self._rebuild_layout:
             self.build_layout()
@@ -3432,16 +3353,12 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         img = base._TileBase.generator(self,area,skipNonLayoutGen)
         return img
 
-    async def Async_generate(self, area=None, skipNonLayoutGen=False):
+    async def async_generate(self, area=None, skipNonLayoutGen=False):
         async with self._generatorLock:
             if self._rebuild_layout:
                 self.build_layout()
 
-        return await super().Async_generate(area, skipNonLayoutGen)
-
-    # async def Async_update(self, updateAttributes, skipGen=False, forceGen: bool = False, skipPrint=False, reprintOnTop=False, updated: bool = False) -> asyncio.Coroutine[Any, Any, bool]:
-    #     await super().Async_update(updateAttributes, skipGen, forceGen, skipPrint, reprintOnTop, updated)
-    #     return
+        return await super().async_generate(area, skipNonLayoutGen)
 
     def build_layout(self):
 
@@ -3461,7 +3378,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                     iconElt = base.Icon("mdi:weather-cloudy-clock")
                 else:
                     iconElt = base.Icon(icon)
-                dataElt = base.Button(data_key, fitText=True)
+                dataElt = base.Button(data_key, fit_text=True)
                 tile = base.TileLayout("icon,data",{"icon": iconElt, "data": dataElt}, horizontal_sizes={"icon": "r"})
                 
                 ##Allows for immediately setting the stuff
@@ -3501,9 +3418,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         ##Keep in mind the layout should be rebuild if at default.
 
     async def trigger_function(self, element, trigger_dict):
-	#screen.start_batch_writing()
-        # try:
-
         async with self._updateLock:
             if self._rebuild_layout:
                 self.build_layout()
@@ -3665,7 +3579,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     time_format : str, optional
         The time_format to use for the datetime forecast_data, by default "%A" (the full name of the weekday). 
         To show i.e. the time, use %H:%M. Use i.e. https://www.dateformatgenerator.com/?lang=Python to see the format string needed for a desired way to display the datetime
-    updateInterval : Union[float,str,DurationType], optional
+    update_interval : Union[float,str,DurationType], optional
         The interval with which to request new forecast data, by default "1h"
     element_properties : _type_, optional
         Properties for all of the `WeatherElements`, by default {"background_color": "background", "foreground_color": "foreground", "accent_color": "accent"}
@@ -3693,7 +3607,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
     def __init__(self, entity, orientation : Literal["horizontal","vertical"] = "horizontal", num_forecasts : int = 5, skip_forecasts : Union[int,Literal["now"]] = 0,
                 forecast_type : Literal["daily", "hourly", "twice_daily"] = "daily", forecast_data : Union[Literal["datetime"], WeatherData] = ["datetime", "temperature", "precipitation", "precipitation_probability"], 
-                time_format : str = "%A", updateInterval : Union[float,str,DurationType] = "1h",
+                time_format : str = "%A", update_interval : Union[float,str,DurationType] = "1h",
                 element_properties : dict = {"background_color": "background", "foreground_color": "foreground", "accent_color": "accent"},
                 foreground_color : Union[ColorType,list[ColorType]] = DEFAULT_FOREGROUND_COLOR, accent_color : Union[ColorType,list[ColorType]] = DEFAULT_ACCENT_COLOR,
                 background_color : Union[ColorType,list[ColorType]] = DEFAULT_BACKGROUND_COLOR, outline_color : Union[ColorType,list[ColorType]] = None,
@@ -3750,11 +3664,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         self.__elements : dict[int, WeatherElement] = {}
 
         HAelement.__init__(self)
-
-        # updateInterval = "30s"
-        base._IntervalUpdate.__init__(self,False,False,False, updateEvery=None, updateInterval=updateInterval)
-
-        # base.Layout.__init__(self,[["?"]],**kwargs)
+        base._IntervalUpdate.__init__(self,False,False,False, update_every=None, update_interval=update_interval)
 
         ##Test if this can be moved further down?
         base._TileBase.__init__(self,[["?"]],**kwargs)
@@ -3763,14 +3673,13 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         self.foreground_color = foreground_color
         self.accent_color = accent_color
         self.outline_color = outline_color
-        # self.outlineWidth = 5
 
         default_properties = {
             "background_color": "background", "foreground_color": "foreground", "accent_color": "accent",
             "element_properties": 
             {"condition": {"icon_color": "foreground"}},
             "weather_data_properties": {"foreground_color": "foreground", 
-                        "element_properties": {"data": {"fitText": True, "fontSize": 0, "font_color": "foreground"}, "icon": {"icon_color": "foreground"}}},
+                        "element_properties": {"data": {"fit_text": True, "font_size": 0, "font_color": "foreground"}, "icon": {"icon_color": "foreground"}}},
             "vertical_sizes": {"outer": 10}
             }
         
@@ -4108,21 +4017,19 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         return await super().async_update({}, skipGen, forceGen, skipPrint, reprintOnTop, updated= (updated or attr_updated))
 
     def generator(self, area=None, skipNonLayoutGen=False):
-        # e = self.elements[0]
         if self._rebuild_layout:
             self.build_layout()
         img = super().generator(area, skipNonLayoutGen)
 
-        ##Idea  to have a unify_text_size is fun and all, but tbh let users just set the fontSize in weather-data[data] properties if they want a single fontsize I think
-
+        ##Idea  to have a unify_text_size is fun and all, but tbh let users just set the font_size in weather-data[data] properties if they want a single fontsize I think
         return img
 
-    async def Async_generate(self, area=None, skipNonLayoutGen=False):
+    async def async_generate(self, area=None, skipNonLayoutGen=False):
         async with self._generatorLock:
             if self._rebuild_layout:
                 self.build_layout()
 
-        return await super().Async_generate(area, skipNonLayoutGen)
+        return await super().async_generate(area, skipNonLayoutGen)
 
     def build_layout(self):
         
@@ -4387,11 +4294,16 @@ class EntityTimer(HAelement, base._TileBase):
         Any other valid python time format string can be used too.
     element_properties : dict, optional
         Properties for the different elements, 
-            applied defaults are {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": 'toggle_timer'}, "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None}, "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER}, "timer-countdown": {"text_xPosition": "left"}}
+            applied defaults are {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "background_shape": "circle", "tap_action": 'toggle-timer'}, "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None}, "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER}, "timer-countdown": {"text_xPosition": "left"}}
     """ 
     
     @property
     def _emulator_icon(cls): return "mdi:clock-star-four-points"
+
+    @classproperty
+    def action_shorthands(cls) -> dict[str,Callable[["base.Element", CoordType],Any]]:
+        "Shorthand values mapping to element specific functions. Use by setting the function string as element:{function}"
+        return base._TileBase.action_shorthands | {"start-timer": "start_timer", "pause-timer": "pause_timer", "cancel-timer": "cancel_timer", "toggle-timer": "toggle_timer"}
 
     ALLOWED_DOMAINS = ["timer"]
 
@@ -4402,10 +4314,10 @@ class EntityTimer(HAelement, base._TileBase):
                                     "timer-slider": {"interactive","count","entity","position","minimum","maximum"},
                                     "timer-countdown": {"text"}, "duration": {"text"}}
 
-    def __init__(self, entity : EntityType, tile_layout : Union[Literal["horizontal","vertical"],str] = "horizontal", horizontal_sizes : dict = {"icon": "r", "outer": "?"},
+    def __init__(self, entity : EntityType, tile_layout : Union[Literal["horizontal","vertical"],str] = "horizontal", horizontal_sizes : dict = {"icon": "r"},
                 timer_type : Literal["slider","countdown_total","countdown"] = "slider", 
                 timeformat : Union[Literal["duration","dynamic"],str] = "duration", 
-                element_properties : dict[str,dict[str,str]] = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": 'toggle_timer'},
+                element_properties : dict[str,dict[str,str]] = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "background_shape": "circle", "tap_action": 'toggle-timer'},
                             "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None},
                             "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER},
                             "timer-countdown": {"text_xPosition": "left"}},
@@ -4442,20 +4354,15 @@ class EntityTimer(HAelement, base._TileBase):
 
         self.__elements = elts
 
-        self.timer_type = timer_type #"countdown_total"
+        self.timer_type = timer_type
         self.timeformat = timeformat
 
-        # layout = "icon,slider"
-        # layout = tile_layout #"icon,[title;timer]" 
-        ##is horizontal
-        ##vertical: icon;title;timer
-
-        default_horizontals = {"icon": "r", "outer": "?"}
+        default_horizontals = {"icon": "r"}
         for elt, val in default_horizontals.items():
             horizontal_sizes.setdefault(elt, val)
 
         ##Don't forget to set the tap_action from the string
-        default_properties = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "backgroundShape": "circle", "tap_action": self.toggle_timer},
+        default_properties = {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "background_shape": "circle", "tap_action": self.toggle_timer},
                             "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None},
                             "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER},
                             "timer-countdown": {"text_xPosition": "left"}}
@@ -4468,8 +4375,9 @@ class EntityTimer(HAelement, base._TileBase):
             default_properties[elt].update(set_props)
 
         element_properties = default_properties
+        if element_properties["icon"].get("tap_action", "toggle-timer") == "toggle-timer":
+            element_properties["icon"]["tap_action"] = self.toggle_timer
         
-        # k = kwargs
         base._TileBase.__init__(self, tile_layout = tile_layout, horizontal_sizes=horizontal_sizes, 
                                 element_properties=element_properties,
                                 **kwargs)
