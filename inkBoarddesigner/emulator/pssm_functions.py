@@ -164,10 +164,10 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                 "",
                 tk.END,
                 iid = iid,
-                text=eltname,
+                text = eltname,
                 values=(entity),
-                image=icon,
-                open=open_init
+                image = icon,
+                open = open_init
             )
             _ELEMENT_DICT[iid] = elt
             if isinstance(elt,elements.Layout):
