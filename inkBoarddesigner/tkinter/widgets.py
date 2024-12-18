@@ -382,6 +382,9 @@ class PSSMCanvas(tk.Canvas):
         window_height = height
 
         self.master.geometry(f"{window_width}x{window_height}")
+        self.master.update()
+        self.master.update_idletasks()
+        self._build_canvas_background()
 
     
     def _build_canvas_background(self):
