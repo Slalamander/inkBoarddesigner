@@ -3,16 +3,24 @@ Holds data for default icon packs for some elements.
 """
 import importlib.util
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-
+from inkBoard.constants import DESIGNER_INSTALLED
 from PythonScreenStackManager.constants import MDI_WEATHER_DATA_ICONS, PATH_TO_PSSM
 from mdi_pil import MDI_WEATHER_ICONS as MDI_WEATHER_CONDITION_ICONS
 
+if TYPE_CHECKING:
+    from .. import meteocons
+
 METEOCONS_INSTALLED: bool = False
+s = importlib.util.find_spec("inkBoard.integrations.meteocons")
+if DESIGNER_INSTALLED:
+    try:
+        s = importlib.util.find_spec("inkBoarddesigner.integrations.meteocons")
+    except:
+        pass
 
-from .. import meteocons as METEOCONS
-
-if (s := importlib.util.find_spec("inkBoarddesigner.integrations.meteocons")) or (s := importlib.util.find_spec("inkBoard.integrations.meteocons")):
+if s:
     METEOCONS_INSTALLED = True
     METEOCONS = importlib.import_module(s.name)
 
