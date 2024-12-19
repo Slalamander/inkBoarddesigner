@@ -3,7 +3,7 @@ This module (will) serve as an extension to the actual inkBoard module.
 The designer is meant to help design and create inkBoard packages, for example provide an interface to "debug" your dashboard, but also hold the functionality to create e.g. standalone executables.
 This way, the inkBoard module itself should be able to stay at a relatively small size, which should hopefully make it more portable.
 """
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 from typing import TYPE_CHECKING
 import logging
