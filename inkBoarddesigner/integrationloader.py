@@ -11,7 +11,7 @@ import sys
 import asyncio
 import json
 
-from inkBoard import constants as loaders
+from inkBoard import loaders
 from inkBoard.helpers import classproperty, reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
