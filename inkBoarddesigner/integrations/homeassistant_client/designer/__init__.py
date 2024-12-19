@@ -1,4 +1,3 @@
-import asyncio
 from typing import *
 import tkinter as tk
 
@@ -46,18 +45,10 @@ async def async_start(core: "CORE", client : "client.HAclient"):
         client.add_entity_function(
             entity, ((update_tree_row, False),)
         )
-    # client._subcribe_callbacks.append(_new_subscription)
     return
 
 
 def build_entity_tree(client:  "client.HAclient"):
-
-    # elts = client.elementDict
-    # states = client.stateDict
-
-    # treeview = entity_tree
-    # open_init = True
-
 
     for id in client.stateDict:
         add_entity_to_tree(client, id)

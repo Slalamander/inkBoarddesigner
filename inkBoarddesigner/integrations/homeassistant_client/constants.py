@@ -57,7 +57,6 @@ base_folder = CORE.config.folders["base_folder"]
 entity_file = base_folder / "entitities.yaml"
 if entity_file.exists():
     with open(entity_file) as f:
-        #self.config = yaml.load(f, Loader=yaml.SafeLoader)
         entity_tags = yaml.load(f, Loader=yaml.SafeLoader)
     f.close()
 

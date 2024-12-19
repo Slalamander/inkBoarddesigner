@@ -5,21 +5,16 @@ PSSM elements that integrate  with Home Assistant entities
 from __future__ import annotations
 
 import asyncio
-from time import sleep
-from yaml.loader import SafeLoader
 from pathlib import Path
 
-# import datetime as dt_lib
 from datetime import timezone, datetime, timedelta
-#from read_config import dashboardConfig
-from io import BytesIO
 import logging
 import math
 from itertools import cycle
-from typing import TYPE_CHECKING, Optional, TypeVar, Any, Union
-from functools import partialmethod, partial
+from typing import TYPE_CHECKING, Optional, Any, Union
+from functools import partial
 from types import MappingProxyType
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 from PIL import Image
 
@@ -40,7 +35,7 @@ from .constants import UNAVAILABLE_COLOR, UNAVAILABLE_ICON, UNKNOWN_ICON, UNKNOW
                     entity_tags, ENTITY_TAG_KEY, ERROR_STATES, all_entities
             
 
-from .helpers import DomainError, EntityType, WeatherData, stateDictType, triggerDictType
+from .helpers import EntityType, WeatherData, stateDictType, triggerDictType
 
 from . import trigger_functions as triggers
 from .trigger_functions import set_trigger_function
@@ -49,22 +44,16 @@ from . import icon_sets
 
 if TYPE_CHECKING:
     from inkBoarddesigner.integrations.homeassistant_client.client import HAclient, triggerDictType
-    # from typing import Union
 else:
     ##Union is causing some weird bug in VSCode, the first line is marked as an error when it is imported. 
     ##Importing it like this solves that, typehinting isn't present tho but alas
     ##Leaving this comment here in case I start wondering again
     from typing import Union
 
-
-
 _LOGGER = logging.getLogger(__name__)
-# 
 
 ##Set default client here? For service calls?
 ##Tho maybe not necessary since these can work with properties, later on.
-
-# entity_tag_key = "!entity "
 
 def validate_entity(elt : HAelement, entity : str):
     "Check if this entity is allowed for the element. Returns False if not. Also parses entities set using the !entity tag."
@@ -77,7 +66,6 @@ def validate_entity(elt : HAelement, entity : str):
         tag = entity.removeprefix(ENTITY_TAG_KEY)
         if tag not in entity_tags:
             msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
-            # _LOGGER.exception(KeyError(msg))
             _LOGGER.error(msg)
             return False
         else:
@@ -87,12 +75,10 @@ def validate_entity(elt : HAelement, entity : str):
         domain = entity.split(".")[0]
         if not domain in elt.ALLOWED_DOMAINS:
             msg = f"Entity domains for {type(elt).__name__} must be one of {elt.ALLOWED_DOMAINS}. {entity} is an invalid entity."
-            # _LOGGER.exception(DomainError(msg))
             _LOGGER.error(msg)
             return False
     
     return entity
-            # raise DomainError(f"Entity domains for {type(elt).__name__} must be one of {elt.ALLOWED_DOMAINS}. {entity} is an invalid entity.")
 
 def _attribute_getter(attr : str, self):
     """
@@ -109,7 +95,6 @@ def _attribute_getter(attr : str, self):
     _type_
         the objects attribute
     """
-    ##Use partials for these
     v = getattr(self,attr)
     if isinstance(v, dict):
         if attr[0] == "_":
@@ -118,7 +103,6 @@ def _attribute_getter(attr : str, self):
             return MappingProxyType(v)
     else:
         return v
-    # return getattr(self,attr)
 
 def _attribute_setter(attr : str, self, value : Optional[str]):
     """
@@ -145,9 +129,7 @@ def _attribute_setter(attr : str, self, value : Optional[str]):
             msg = f"Element {self.id}: Entity Attribute {attr} must be a string or None. {value} is not valid"
             _LOGGER.exception(msg, exc_info= TypeError(msg))
             return
-        # raise TypeError(msg)
     setattr(self,attr,value)
-    # self._entity_attribute1 = value
 
 compoundProps = {
     "minAttribute": (("minAttribute","_minAttribute", None, "entity attribute to get the minimum allowed value from"),(int,float)),
@@ -188,15 +170,11 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
     def __init__(self, baseElement : Optional[elements.Element] = None):
-        # self = element
-        # self.__class__ = baseElement.__class__
-        # self._HAclient = None
         if baseElement != None:
             self.wrap_element(baseElement)       
         else:
 
             ##Do this in a similar for loop as the wrapper function
-            # self.__HAwrapper = HAelement.__HAwrapper
             if not hasattr(self,"_HAclient"):
                 self._HAclient = None
             if not hasattr(self,"_entity_attribute"):
@@ -217,7 +195,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
             if not hasattr(self, "__HAwrapper"):
                 self.__setattr__("__HAwrapper",HAelement.__HAwrapper)
-            # print(self.__HAwrapper)
             
 
     #region
@@ -238,7 +215,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
         if not entity_id or entity_id == getattr(self,"_entity",None):
             return
         ##Also make this automatically reregister in the client.
-        # if self._HAclient != None:
         old_entity = getattr(self,"_entity",None)
         self._entity = entity_id
 
@@ -253,8 +229,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     
     @entity_attribute.setter
     def entity_attribute(self, value:str):
-        # if isinstance(value,bool):
-        #     if value: raise ValueError("Entity Attribute can only have boolean value False.")
         if value == None:
             pass
         elif not isinstance(value,str):
@@ -272,7 +246,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     
     @state_styles.setter
     def state_styles(self, value):
-        # raise Exception
         if not isinstance(value, dict):
             raise TypeError(f"{self}: Element state must be a dict, not {type(value)}: {value}.")
         self._state_styles = value.copy()
@@ -405,10 +378,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @classmethod
     def wrap_element(cls,element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
-        # setattr(element,"HAclient",cls.HAclient.fget())
-        # cls()
-        # element._HAclient = None
-        # element._HAclient = None
         """
         Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
         This function is automatically called when adding elements with an entity attribute to a Home Assistant client instance.
@@ -436,8 +405,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             # "trigger_function": "trigger_function"
         }
         ##Dict to link each property to the actual attribute
-        # element.__init_subclass__
-        # class_name = "Wrapped" + element.__class__.__name__ #+ 'Child'
         class_name = element.__class__.__name__
         typeDict = {}
         saved = {}
@@ -452,12 +419,11 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             for prop in moreProps:
                 if hasattr(element,prop):
                     saved[prop] = getattr(element,prop)
-            # properties.update(moreProps)
             typeDict.update(moreProps)
 
         typeDict["__HAwrapper"] = cls.__HAwrapper
         typeDict["ALLOWED_DOMAINS"] = cls.ALLOWED_DOMAINS
-        child_class = type(class_name, (element.__class__,), typeDict)#{"HAclient": cls.HAclient, "entity": cls.entity})
+        child_class = type(class_name, (element.__class__,), typeDict)
 
         element.__class__ = child_class
         for prop in properties:
@@ -467,9 +433,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
         if element.entity != None and ENTITY_TAG_KEY in element.entity:
             element.entity = element.entity
-        # element._entity
-        # element.__instancecheck__ = cls.__instancecheck__
-        # setattr(element,"__instancecheck__",cls.__instancecheck__)
         if v := getattr(element,"trigger_function",False):
             saved["trigger_function"] = v
 
@@ -517,7 +480,6 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
         """
         ##See how this one works. Make some properties that deal with this?
         ##Idk if checks area really necessary on these though tbf. Mainly just need the attributes to set + HA attributes
-        # typeDict[prop] = getattr(cls,prop)
 
         ##For sliders/counters: add min/maxAttribute
         ##For DropDown: add optionsAttribute
@@ -532,23 +494,17 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             s = partial(_attribute_setter, protectedAttr)
             doc = None if len(prop) < 4 else prop[3]
             typeDictupdt[prop[0]] = property(fget=g,fset=s, doc=doc)
-            # print("hi")
         
         return typeDictupdt
 
     def __link_element_to_config(self, element : "HAelement"):
         "Links an element to settings in the entity config. Does not overwrite settings if they are already applied, and only called during init (hence a private method)"
             
-        # if (ent := all_entities.get(self.entity, False)) and getattr(self,"link_element", True):
         ent : dict = all_entities.get(self.entity, {})
 
         ##Like this: the element should still have all the needed properties/attributes set.
         if not ent.get("link_elements",False):
             ent = {}
-
-        ##defaults to true for now, do I want that?
-        # if ent.get("link_elements",True):
-            ##Also link possible attribute?
 
         ##Making changes here: don't forget to also change it in wrap_element
         if not hasattr(self,"_state_styles"):
@@ -652,7 +608,6 @@ class StateButton(HAelement, elements.Button):
             sf = ""            
 
         return f"{pf}{self.state}{sf}"            
-        # return f"{self.prefix}{self.state}{self.suffix}"
     
     @text.setter
     def text(self, value):
@@ -675,7 +630,7 @@ class StateButton(HAelement, elements.Button):
         return self._state
     
     @property
-    def entity_attribute(self) -> Optional[str] :#Optional[str]:
+    def entity_attribute(self) -> Optional[str]:
         """
         The entity's attribute being shown as the element's state. Set to None to use the state (default)
         If the attribute is not present the button will display no text.
@@ -684,7 +639,7 @@ class StateButton(HAelement, elements.Button):
 
     @entity_attribute.setter
     def entity_attribute(self, value):
-        if not isinstance(value,str) and value != None: # or value != False:
+        if not isinstance(value,str) and value != None:
             msg = f"entity_attribute must be a string or None. {value} is invalid."
             _LOGGER.exception(TypeError(msg))
             return
@@ -758,9 +713,9 @@ class StateButton(HAelement, elements.Button):
 
         if new_state not in self.state_styles:
             if new_state == "unknown":
-                newAttributes["font_color"] = UNKNOWN_COLOR #"gray4"
+                newAttributes["font_color"] = UNKNOWN_COLOR
             elif new_state == "unavailable":
-                newAttributes["font_color"] = UNAVAILABLE_COLOR #"gray4"
+                newAttributes["font_color"] = UNAVAILABLE_COLOR
             
             if "else" in self.state_styles:
                 new_state = "else"
@@ -768,7 +723,6 @@ class StateButton(HAelement, elements.Button):
         statedict = self.state_styles.get(new_state,{})
         attr_props = triggers.get_attribute_styles(self, trigger_dict)
         statedict.update(attr_props)
-        # attribute_styles = self.attribute_styles.get()
         
         if self.entity_attribute != None and self.entity_attribute not in trigger_dict["to_state"]["attributes"] and "entity_attribute" not in statedict:
             newAttributes["_state"] = " "
@@ -783,20 +737,15 @@ class StateButton(HAelement, elements.Button):
                     statedict["_state"] = s
                 newAttributes.update(statedict)
         else:
-            # if self.entity_attribute != None and self.entity_attribute in trigger_dict["to_state"]["attributes"]:
-            #     newAttributes["_state"] = " "
-            # else:
             if "_state" not in newAttributes:
                 newAttributes["_state"] = new_state
 
-        if "entity_attribute" in newAttributes: #and self.entity_attribute != newAttributes["entity_attribute"]:
-            # and self.entity_attribute not in trigger_dict["to_state"]["attributes"]:
+        if "entity_attribute" in newAttributes:
             new_attr = newAttributes["entity_attribute"]
             if new_attr == None:
                 newAttributes.setdefault("_state", trigger_dict["to_state"]["state"])
             else:
                 new_state = trigger_dict["to_state"]["attributes"].get(new_attr," ")
-            # new_state = trigger_dict["to_state"]["attributes"]
                 newAttributes["_state"] = new_state
 
         prefixAttr = newAttributes["prefix_attribute"] if "prefix_attribute" in newAttributes else self.prefix_attribute
@@ -818,7 +767,7 @@ class StateButton(HAelement, elements.Button):
                 newAttributes["suffix"] = suffix_val
 
         if newAttributes:
-            await self.async_update(newAttributes) #, skipPrint=False, reprintOnTop=False)
+            await self.async_update(newAttributes)
 
         return
 
@@ -890,10 +839,8 @@ class EntityTile(_EntityLayout, elements.Tile):
         iconElt = elements.Icon(icon=icon, entity=entity, icon_attribute=None, link_element=link_element)
         textState = StateButton(entity=entity, _register = False, link_element=link_element)
         titleState = StateButton(entity=entity, _register = False, link_element=link_element)
-        # titleState._state = "friendly_name"
 
         if icon == None:
-            # iconProperties.setdefault("icon_attribute", "icon")
             icon_defaults = {"icon_attribute": "icon"}
             iconElt._icon = None
             tile_icon = None
@@ -950,9 +897,6 @@ class EntityTile(_EntityLayout, elements.Tile):
         self._IconElement.update(nd)
         self._TextElement.update(nd)
         self._TitleElement.update(nd)
-        # self._Tile__IconElement.update(nd)
-        # self._Tile__TextElement.update(nd)
-        # self._Tile__TitleElement.update(nd)
         
     @property
     def icon(self):
@@ -962,20 +906,16 @@ class EntityTile(_EntityLayout, elements.Tile):
         elif icon := getattr(self._IconElement,"icon_attribute",None):
             return icon
 
-        # return self._IconElement.icon
-
     @icon.setter
     def icon(self, value):
         if value == True:
             raise ValueError("Why is this true?")
-        # elements.Tile.icon.fset(self, value)
         self._IconElement.update({"icon": value}, skipGen=self.isGenerating, skipPrint=self.isUpdating)
         i = self.icon
         return
 
     @property
     def text(self):
-        # self._TextElement : StateButton
         return self._TextElement.state
 
     @text.setter
@@ -990,8 +930,6 @@ class EntityTile(_EntityLayout, elements.Tile):
 
     @property
     def title(self):
-        # self._TextElement : StateButton
-        
         return self._TitleElement.state
 
     @title.setter
@@ -1020,30 +958,22 @@ class EntityTile(_EntityLayout, elements.Tile):
     def build_layout(self):
         ##This ensures _layoutstr is build again
         self.tile_layout = self.tile_layout
-        # self.layout = self._parse_tile_layout(self._IconElement,self._TextElement, self._TitleElement)
-        # self.layout = self._parse_tile_layout(None, icon=self.IconElement, text=self.TextElement, title=self.TitleElement)
-        # return super().build_layout()
 
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: "triggers.triggerDictType"):
 
-        # self.build_layout()
-
         ##Don't forget to set the badge for unknown etc.
-        # self.parentPSSMScreen.start_batch_writing()
-
         if trigger_dict["from_state"] == None:
             for elt  in [self._IconElement, self._TextElement, self._TitleElement]:
                 if elt.HAclient == None: elt._HAclient = self._HAclient
-            # self.build_layout()
 
         newAttributes = {}
         new_state = triggers.get_new_state(self,trigger_dict)
 
         if new_state not in self.state_styles:
             if new_state == "unknown":
-                newAttributes["badge_icon"] = UNKNOWN_ICON #"gray4"
+                newAttributes["badge_icon"] = UNKNOWN_ICON
             elif new_state == "unavailable":
-                newAttributes["badge_icon"] = UNAVAILABLE_ICON #"gray4"
+                newAttributes["badge_icon"] = UNAVAILABLE_ICON
 
             elif "else" in element.state_styles:
                 new_state = "else"
@@ -1058,7 +988,6 @@ class EntityTile(_EntityLayout, elements.Tile):
             newAttributes.update(statedict)
         
         if newAttributes:
-            # async with self._updateLock:
             await self.async_update(newAttributes, skipGen=True, skipPrint=True)
 
         async with self._updateLock:
@@ -1072,23 +1001,12 @@ class EntityTile(_EntityLayout, elements.Tile):
             for res in L:
                 if isinstance(res,Exception):
                     _LOGGER.exception(res)
-            
-            # upd_elt = {}
-            # for elt_name, elt in self.elements.items():
-            #     upd_elt[elt_name] = elt.isUpdating
-        # await self._IconElement.trigger_function(self._IconElement, trigger_dict)
-        # await self._TitleElement.trigger_function(self._TitleElement, trigger_dict)
-        # await self._TextElement.trigger_function(self._TextElement, trigger_dict)
 
         if trigger_dict["from_state"] == None:
             self.build_layout()
         
-        # i = self.icon
         await self.async_update(updated=True)
-
-        # self.parentPSSMScreen.stop_batch_writing()
         return
-        # return super().trigger_function(element, trigger)
 
 class PersonElement(EntityTile):
     """
@@ -1120,7 +1038,7 @@ class PersonElement(EntityTile):
 
     def __init__(self, entity : str, placeholder_icon : mdiType = "mdi:account", element_properties : dict = {"icon": {"icon_attribute": "entity_picture", "icon_color": False, "background_shape": None, "background_color": None}},
                 tile_layout : Union[Literal["vertical", "horizontal"], str] = "vertical", hide : elements.Tile._HideDict = {"text"},
-                zone_badges: Optional[dict] = defaultBadges ,#{"default": None,"home": "mdi:home", "not_home": "mdi:home-off", "unavailable": UNAVAILABLE_ICON, "unknown": UNAVAILABLE_COLOR}, 
+                zone_badges: Optional[dict] = defaultBadges,
                  **kwargs):
         
         self._HAclient = None
@@ -1148,7 +1066,6 @@ class PersonElement(EntityTile):
 
         super().__init__(entity=entity, icon=placeholder_icon, tile_layout=tile_layout,
                         element_properties=element_properties, hide = hide, **kwargs)
-                        #  tap_action=tap_action, show_feedback=show_feedback, **kwargs) #, trigger_function=self.trigger_function, entity=self.entity, tap_action=self.tap_action, show_feedback=self.show_feedback, isInverted=self.isInverted, background_color=self.background_color)
 
     @property
     def zone_badges(self) -> MappingProxyType:
@@ -1326,7 +1243,7 @@ class MediaPlayer(_EntityLayout):
 
     __DefaultControlIcons = MappingProxyType({
         ##Generally: Allow people to change this via settings. I think play-pause will be given a value of default, which will change depending on the state
-        "play-pause": "state", #"mdi:play-pause",
+        "play-pause": "state",
         "shuffle": "state",
         "repeat": "state",
         "mute": "state",
@@ -1353,18 +1270,14 @@ class MediaPlayer(_EntityLayout):
                 off_icon_properties : dict = {"icon": "mdi:power","background_shape": "circle", "background_color": "foreground", "icon_color": "background"},
                 link_element = False, **kwargs):            
 
-        # validate_domain(self,entity)
         if "entity_attribute" in kwargs:
             _LOGGER.warning(f"Setting entity_attribute is not allowed for {self.__class__}")
             kwargs.pop("entity_attribute")
-
-        # self.foreground_color = foreground_color
 
         self._color_setter("_foreground_color",foreground_color,False)
         self._color_setter("_background_color",background_color,True)
         self._color_setter("_outline_color",outline_color,True)
         self._color_setter("_accent_color",accent_color,True)
-        # self.entity = entity
         self.entity = entity
 
         self._optimistic_trigger : dict = {}
@@ -1416,7 +1329,6 @@ class MediaPlayer(_EntityLayout):
         self.__info_text_properties = {"font_color": "foreground", "entity_attribute": "media_artist", "fit_text": True, "font_size": 0}
         self.__info_text_properties.update(info_text_properties)
 
-        # self.__info_title_properties = {"font_color": "foreground", "state_styles": state_styles, "state_conditionals": True}
         attribute_styles = [{"attribute": "media_title", 
                             "states": [{"state": "None", "properties": {"entity_attribute": "friendly_name"}}],
                             "else": {"entity_attribute": "media_title"}}]
@@ -1452,13 +1364,6 @@ class MediaPlayer(_EntityLayout):
 
 
         self.player_layout = player_layout
-
-        # self.duration_type = duration_type if duration_type == "slider" else "timer"
-
-        ##Or make this a stateTile?
-
-        ##Also, give a default value for info attributes, which makes it change depending on music/other media type
-
         self.controls = controls
         self.controls_layout = controls_layout
 
@@ -1555,22 +1460,6 @@ class MediaPlayer(_EntityLayout):
     def foreground_color(self) -> ColorType:
         "The main color to use for the icon and text. Can be overwritten by iconSettings and buttonSettings respectively."
         return self._foreground_color
-    
-    # @foreground_color.setter
-    # def foreground_color(self, value):
-    #     self._foreground_color : ColorType
-
-    #     if value == self._foreground_color:
-    #         return
-
-    #     self._color_setter("_foreground_color",value,False)
-    #     self.__reparse_element_colors()
-
-    #     if self._idleIcon != None:
-    #         self.idle_picture = self._idleIcon
-
-        ##From here: Call the setters for the properties etc. such that the new values are parsed like
-        ##self.setteryaya(self, self.buttonproperties) WHICH SHOULD still have the background/foreground values in there.
 
     @colorproperty
     def accent_color(self) -> ColorType:
@@ -1705,7 +1594,6 @@ class MediaPlayer(_EntityLayout):
         """
         if self.__controls_layout == "default":
             if self.state not in {"playing", "paused", "buffering"}:
-                # return "play-pause"
                 return "None"
             else:
                 ##Default value. Layout updater automatically takes care of hiding.
@@ -1729,7 +1617,6 @@ class MediaPlayer(_EntityLayout):
     
     @control_icon_properties.setter
     def control_icon_properties(self, value : dict):
-        # self.ArtworkElement.outline_color
         not_allow = {"icon", "tap_action"}
 
         for sett in filter(lambda sett: sett in value, not_allow):
@@ -1737,7 +1624,6 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "icon_color"}
         color_props = elements.Icon.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -1754,10 +1640,7 @@ class MediaPlayer(_EntityLayout):
 
         for elt in self.ControlIcons.values():
             ##Maybe generating should not be skipped?
-            # elt.update(set_props, skipGen=self.isUpdating, skipPrint=self.isUpdating)
             elt.update(set_props, skipPrint=self.isUpdating)
-
-        # self.ArtworkElement.update(set_props, skipGen=self.isUpdating, skipPrint=self.isUpdating)
 
     @property
     def ff_time(self) -> float:
@@ -1807,17 +1690,13 @@ class MediaPlayer(_EntityLayout):
     
     @artwork_properties.setter
     def artwork_properties(self, value : dict):
-        # self.ArtworkElement.outline_color
-
         not_allow = {"picture", "picture_attribute", "entity", "fallback_icon", "link_element"}
-        # self.ArtworkElement.
 
         for sett in filter(lambda sett: sett in value, not_allow):
             _LOGGER.warning(f"Mediaplayers do not allow setting {sett} in the artwork picture")
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color"}
         color_props = self.ArtworkElement.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -1831,9 +1710,6 @@ class MediaPlayer(_EntityLayout):
                 set_props[prop] = self.accent_color
         
         self.__artwork_properties.update(value)
-
-        # self.ArtworkElement.update(set_props, skipGen=self.isUpdating, skipPrint=self.isUpdating)
-        # for prop in color_props
 
     @property
     def ArtworkElement(self) -> elements.Picture:
@@ -1868,7 +1744,6 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "active_color", "color", "thumbColor", "thumbicon_color"}
         color_props = self.DurationSlider.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -1897,7 +1772,6 @@ class MediaPlayer(_EntityLayout):
             value.pop("text")
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "font_color"}
         color_props = self.InfoTextElement.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -1975,7 +1849,6 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "icon_color"}
         color_props = self.VolumeIconElement.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2005,7 +1878,6 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "active_color", "color", "thumbColor", "thumbicon_color"}
         color_props = self.VolumeSlider.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2046,7 +1918,6 @@ class MediaPlayer(_EntityLayout):
             value.pop("entity")
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "font_color"}
         color_props = self.InfoTextElement.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2075,7 +1946,6 @@ class MediaPlayer(_EntityLayout):
             value.pop("entity")
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "font_color"}
         color_props = self.InfoTitleElement.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2118,7 +1988,6 @@ class MediaPlayer(_EntityLayout):
             value.pop(sett)
 
         set_props = value.copy()
-        # color_props = {"background_color", "outline_color", "icon_color"}
         color_props = self.__off_Icon.color_properties
         newprops = set(set_props.keys())
         for prop in color_props.intersection(newprops):
@@ -2195,14 +2064,9 @@ class MediaPlayer(_EntityLayout):
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggers.triggerDictType):
         
         if trigger_dict["from_state"] == None:
-            # self._updateTime = datetime.fromisoformat(trigger_dict['to_state']["last_updated"])
             for elt  in {self.__ArtworkElement, self.__InfoText, self.__InfoTitle}:
                 if not isinstance(elt,HAelement):
                     HAelement.wrap_element(elt, self.HAclient)
-                # if elt.HAclient == None: elt._HAclient = self._HAclient
-        # else:
-        #     ##Update time seems to be a bit more accurate like this.
-        #     ##But doesn't work when starting since the media time is not correct then (misses the offset)
 
         if self._optimistic_trigger:
             ##When interacting with i.e. the volume, a trigger is thrown but it may not be up to date entirely. So that update is skipped. Mainly determined by the call functions.
@@ -2258,7 +2122,6 @@ class MediaPlayer(_EntityLayout):
                 update_coros.append(triggers.picture_trigger(self.__ArtworkElement,trigger_dict))
             else:
                 update_coros.append(self.ArtworkElement.async_update({"picture": self.idle_picture}))
-                # new_pic = self.idle_picture
 
         if "media_info" in self.show:
             # pass
@@ -2272,11 +2135,6 @@ class MediaPlayer(_EntityLayout):
 
         if "duration" in self.show:
             asyncio.create_task(self.__duration_runner(trigger_dict))
-            # if self.__durationTask.done() or new_state["state"] != "playing" or new_media:
-            #     ##Something goes wrong when going from idle to not idle
-            #     ##What I found is that the timebutton did not report being onScreen
-            #     ##So gotta check how that is determined and why it was false. Maybe the layout was not updated?
-            #     self.__durationTask = asyncio.create_task(self.__duration_runner(trigger_dict))
 
         if "volume" in self.show:
             update_coros.append(self.__update_volume(trigger_dict))
@@ -2377,7 +2235,6 @@ class MediaPlayer(_EntityLayout):
                 self.__DurationSlider.position = cur_seconds
                 if self.onScreen: 
                     ##I believe it's cancelled by cancelling the future (which is ok), so the running check should not be necessary
-                    # pass
                     self.__DurationSlider.pause_timer()
                     await asyncio.sleep(0)
                     update_coros.append(
@@ -2534,7 +2391,7 @@ class MediaPlayer(_EntityLayout):
             new_icon = self.__VolumeIcon.icon
             if self.volume_icon != "state":
                 new_icon = self.volume_icon
-            elif new_state["attributes"].get("is_volume_muted",False): # and new_state["attributes"]["is_volume_muted"]:
+            elif new_state["attributes"].get("is_volume_muted",False):
                     new_icon = "mdi:volume-mute"
             else:
                 if level < 0.35: new_icon = "mdi:volume-low"
@@ -2748,7 +2605,7 @@ class MediaPlayer(_EntityLayout):
 
 ##Maybe also add a special weather tile? Which simply shows the icon and two attributes
 
-class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
+class WeatherElement(_EntityLayout, base._TileBase):
     """
     A Weather Element. Opens a forecast popup on click (if tap_action is not specified) with a forecast from the entity. \n
     Elements are 'condition' (The condition icon), 'title' (A statebutton which by default shows the friendly name, but is also hidden by default) and 'weather-data', which is the tile_layout holding all the weather_data
@@ -2810,9 +2667,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
     @property
     def action_shorthands(cls) -> dict[str,Callable[["base.Element", CoordType],Any]]:
         "Shorthand values mapping to element specific functions. Use by setting the function string as element:{function}"
-        # return {"show-forecast": "async_show_forecast"}.update(_EntityLayout.action_shorthands)
         return _EntityLayout.action_shorthands | {"show-forecast": "async_show_forecast"}
-        ##Add show-forecast later on as function
 
     @property
     def _emulator_icon(cls): return "mdi:cloud-circle"
@@ -2845,7 +2700,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         # Cause I want the attributes for the forecast buttons to be able to be set via a single attribute, not one for each button
         # And same for icons, butttt that means it's probably gotta loop?
         # Maybe in the layout maker, make a list with the icons/buttons
-        # condition_icons = "meteocons-outline"
 
         self.entity = entity
         self.__isForecast = _isForecast
@@ -2876,21 +2730,11 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         ##Attributes automatically try and look for the correct unit (give auto temperature unit if temperature in attribute name)
         ##Also check how I build it in  the function above
 
-        # self.color = color
-        # self.background_color = background_color
-
-
         if "tap_action" not in kwargs:
             _LOGGER.debug("Weather element has get_forecast")
             tap_action = self.async_show_forecast
-            
-            s = WeatherElement.tap_action.fset
-
-
-            #self.response_function = self.build_forecast_popup
         else:
             tap_action = kwargs.pop("tap_action")
-            # self.response_function = None if "response_function" not in kwargs else kwargs["response_function"]
 
         self.__elements = {"condition": weatherIcon, "title": weatherButton, "weather-data": self.__weather_data_Tile}
 
@@ -2901,14 +2745,11 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         self.weather_data = weather_data
         self.weather_data_icons = weather_data_icons
 
-        # tile_layout = "horizontal"
         t = tap_action
         data_vSize = {}
         if tile_layout == "vertical":
-            # vertical_sizes = kwargs.pop("vertical_sizes",{"condition": "?", "title": "?", "weather-data": "?*2"})
             vertical_sizes = {"condition": "?", "title": "?", "weather-data": "?*2"}
             horizontal_sizes = {"condition": "r", "outer": "w*0.1", "weather-data": "w*0.8"}
-            # horizontal_sizes = kwargs.pop("horizontal_sizes",{"condition": "r", "outer": "?", "weather-data": "w"})
             data_vSize = {"outer": "?"}
         elif tile_layout == "horizontal":
             vertical_sizes = kwargs.pop("vertical_sizes",{"condition": "?", "title": "?*2", "weather-data": "?"})
@@ -2923,7 +2764,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         default_data_properties = {"foreground_color": "foreground", "accent_color": "accent",
                                 "vertical_sizes": data_vSize}
 
-        # if vertical_sizes in kwargs:
         vertical_sizes.update(kwargs.pop("vertical_sizes",{}))
         horizontal_sizes.update(kwargs.pop("horizontal_sizes",{}))
 
@@ -2940,8 +2780,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             forecast_properties.setdefault("foreground_color",'foreground')
             forecast_properties.setdefault("accent_color",'accent')
             forecast_properties.setdefault("background_color",None)
-            # forecast_properties.setdefault("outline_color",'outline')
-            
 
             w_props : dict = forecast_properties.get("element_properties",{})
             w_props.setdefault("condition_icons", condition_icons)
@@ -2994,11 +2832,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
 
         self._rebuild_layout = True
         "Set this to rebuild the layout the next time the generator is called."
-
-        # self.tap_action = self.show_forecast_popup
-        
-
-
         return
 
     #region
@@ -3054,9 +2887,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             sunstate = self.HAclient.stateDict.get("sun.sun", {"state": None})
             nighttime = True if sunstate["state"] == "below_horizon" else False
 
-        # if self.__condition == None:
-
-
         weather_icon = parse_weather_icon(self.__condition, night=nighttime, conditionDict=self.condition_icons, prefix=self._condition_prefix, suffix=self._condition_suffix)
         weatherIcon = self.elements["condition"]
         weatherIcon.update({"icon": weather_icon}, skipGen=self.isGenerating, skipPrint=self.isUpdating)
@@ -3086,7 +2916,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         self._rebuild_layout = True
 
     @property
-    def weather_data(self) -> list: #dict[WeatherData,Union[mdiType,str,None]]:
+    def weather_data(self) -> list:
         "The weather data to show along with the forecast icon"
         return self.__weather_data
     
@@ -3141,7 +2971,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                 icon_dict  = icon_sets.MDI_WEATHER_DATA_ICONS.copy()
                 weather_data_suffix = None 
                 weather_data_prefix = None
-                ##The ones already have mdi: in front
             else: 
                 if not icon_sets.METEOCONS_INSTALLED:
                     _LOGGER.error("The meteocons integration is not installed, cannot use meteocon icons. Defaulting to mdi")
@@ -3200,30 +3029,10 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         if value == self.__weather_data_properties:
             return
 
-        # for elt_str, props in prop_loop:
-
         ##Need to do this for a single Tile element, and then propagate to each tile
         ##Don't need to call this when setting the foreground color etc. since the  data Tile should take care of that as it updates all elements accordingly
         self.__weather_data_properties = value
-        
-        # set_props = value.copy()
-        
-        # color_props = elements.TileLayout.color_properties
-        # color_setters = self.__class__._color_shorthands()
-        # for prop in color_props.intersection(set_props):
-        #     if set_props[prop] in color_setters:
-        #         # set_props[prop] = color_setters[set_props[prop]](self)
-        #         color_attr = color_setters[set_props[prop]]
-        #         set_props[prop] = getattr(self,color_attr)
-
-        # new_props = self._parse_weather_data_properties()
         self._reparse_colors = True
-
-        # for tile in self.weather_data_Tile.elements.values():
-        #     tile.update(updateAttributes=new_props, skipGen=self.isUpdating, skipPrint=self.isUpdating)
-        
-
-            # tile.elements["icon"].update()
 
     def _reparse_element_colors(self, elt_name: str = None):
         base._TileBase._reparse_element_colors(self,elt_name)
@@ -3242,7 +3051,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         color_setters = self.__class__._color_shorthands
         for prop in color_props.intersection(set_props):
             if set_props[prop] in color_setters:
-                # set_props[prop] = color_setters[set_props[prop]](self)
                 color_attr = color_setters[set_props[prop]]
                 set_props[prop] = getattr(self,color_attr)
         return set_props
@@ -3255,12 +3063,8 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             s[data_name] = self.weather_data_icons.get(data_name,None)
         return s
 
-    # @property
-    # def weather_data_Elements(self) -> dict[WeatherData,dict[Literal["icon","button"], Union[base.Icon,base.Button]]]:
-    #     return self.__weather_data_Elements
-
     @property
-    def weather_data_Tile(self) -> base.TileLayout: #dict[WeatherData,dict[Literal["icon","button"], Union[base.Icon,base.Button]]]:
+    def weather_data_Tile(self) -> base.TileLayout:
         return self.__weather_data_Tile
     #endregion
 
@@ -3289,7 +3093,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             ##More something for updateintervals in general tho
             fc_elt.start_wait_loop()
             ##Shouldn't need to cancel this.
-            # self.__ForecastElement.updateTask.cancel()
 
         fc_elt.update(new_attr)
         self._forecast_update = value
@@ -3317,7 +3120,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         color_setters = self.__class__._color_shorthands
         for prop in color_props.intersection(set_props):
             if set_props[prop] in color_setters:
-                # set_props[prop] = color_setters[set_props[prop]](self)
                 color_attr = color_setters[set_props[prop]]
                 set_props[prop] = getattr(self,color_attr)
         self.__ForecastPopup.update(updateAttributes=set_props, skipGen=self.isGenerating, skipPrint=self.isUpdating)
@@ -3329,11 +3131,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
     
     @time_format.setter
     def time_format(self, value :str):
-        # if not isinstance(value, str):
-        #     msg = f"{self}: time_format value must be a string!"
-        #     logger.exception(msg)
-        #     return
-        
         try:
             datetime.now().strftime(value)
         except (ValueError, TypeError) as e:
@@ -3362,19 +3159,13 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
 
     def build_layout(self):
 
-        #[ ]: add option for unit, or check if it can be gotten from entity
-        #, shapeSettings={"drawArgs":{"start": 30, "end": 210}})
-        # self.layout = [["?*0.75", (self.weatherIcon, "?")],["?*0.25", (self.weatherTMP, "?")]]
-
         data_elts = self.weather_data_Tile.elements
-        # weather_data_layout = "icon,data"
         #Don't need to define this, any new element's will have it parsed from the properties.
         rebuild_data_tile = False
         for data_key, icon in self.weather_data_dict.items():
             if data_key not in data_elts:
                 rebuild_data_tile = True
                 if icon == None:
-                    # icon = "mdi:weather-cloudy-clock"
                     iconElt = base.Icon("mdi:weather-cloudy-clock")
                 else:
                     iconElt = base.Icon(icon)
@@ -3384,8 +3175,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                 ##Allows for immediately setting the stuff
                 if self.weather_data_properties:
                     tile.update(self._parse_weather_data_properties(), skipGen=self.isGenerating, skipPrint=self.isUpdating)
-
-                # self.__weather_data_Elements[data_key] = tile
                 self.weather_data_Tile.add_element(data_key, tile)
         ##Will use a tileLayout for each data_element, such that the layouts etc. can be set via that.
             else:
@@ -3393,7 +3182,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             
             if icon == None and "icon" not in tile.hide:
                 tile.hide = ["icon"]
-            elif icon != None:# and "icon" in tile.hide:
+            elif icon != None:
                 if "icon" in tile.hide:
                     tile.hide = []
                 tile.elements["icon"].update({"icon": icon}, skipGen=self.isGenerating, skipPrint=self.isUpdating)
@@ -3404,9 +3193,7 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
 
         if not self._isForecast and getattr(self, "HAclient",None) != None and self.entity in self.HAclient.stateDict:
             to_state = self.HAclient.stateDict[self.entity]
-            # trigger = {"entity_id": self.entity}
             trigger = triggers.triggerDictType(entity_id=self.entity, to_state=to_state, from_state=None, context=None)
-            # if asyncio._get_running_loop() != None:
             if self.parentPSSMScreen.mainLoop.is_running():
                 self.parentPSSMScreen.mainLoop.create_task(self.trigger_function(None, trigger))
 
@@ -3430,7 +3217,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
         update_props.update(attr_props)
 
         if update_props:
-            # start_batch = True
             await self.async_update(update_props, skipGen=True, skipPrint=True)
 
         _LOGGER.debug("Weather: " + str(new_state["state"]))
@@ -3456,8 +3242,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             coro_list = set()
 
             _LOGGER.verbose(f"Parsing weather icon {weather_icon}")
-            # self.elements["condition"].update(updateAttributes={'icon': weather_icon },
-            #                 skipPrint = True)
             elts = self.elements
             conditionElt = elts["condition"]
 
@@ -3466,15 +3250,10 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
             
             titleElt : StateButton = elts["title"]
             coro_list.add(titleElt.trigger_function(titleElt, trigger_dict))
-            # await titleElt.trigger_function(titleElt, trigger_dict)
-
             data_attr = new_state["attributes"]
             for data_key in self.weather_data:
                 if data_key not in data_attr or data_key not in self.weather_data_Tile.elements:
                     continue
-
-                # if data_key not in self.weather_data_Tile.elements:
-                #     continue
 
                 data_tile = self.weather_data_Tile.elements[data_key]
                 data_button : elements.Button = data_tile.elements["data"]
@@ -3484,7 +3263,6 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
                 if "temperature" in data_key or data_key in {"templow", "dew_point"}:
                     if "temperature_unit" in data_attr:
                         data_unit = f' {data_attr["temperature_unit"]}'
-                        # data_unit = f" {data_unit}"
                 elif data_key in {"humidity", "cloud_coverage", "precipitation_probability"}:
                     data_unit = "%"
                 elif data_key == "wind_bearing":
@@ -3505,31 +3283,23 @@ class WeatherElement(_EntityLayout, base._TileBase):# (elements.Layout):
 
                 if data_unit: data_val = f"{data_val}{data_unit}"
                 coro_list.add(data_button.async_update({"text": data_val}, skipPrint=True, skipGen=True))
-                # data_button.update({"text": data_val})
             
             if not self._isForecast and self.forecast_update == "on-trigger":
                 if self.screen.printing:
                     coro_list.add(self.__ForecastElement.get_forecasts())
                 else:
                     asyncio.create_task(self.__ForecastElement.get_forecasts())
-                # asyncio.create_task(self.__ForecastElement.get_forecasts())
 
             L = await asyncio.gather(*coro_list,return_exceptions=False)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
                     _LOGGER.error(f"{coro_list[i]} returned an exception: {res} ")
 
-            # done, pending = await asyncio.wait(coro_list,loop=self.parentPSSMScreen.mainLoop, timeout= 10)
-            # for coro in pending:
-            #     await coro
-
         if self.onScreen:
             if bool(coro_list) or update_props:
                 updated = True
             else: updated = False
-            await self.async_update(updated=updated)
-            # await self.Async_update(updated=updated, skipGen=True, skipPrint=True)
-        
+            await self.async_update(updated=updated)        
         return
 
     def show_forecast(self, *args):
@@ -3612,30 +3382,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
                 foreground_color : Union[ColorType,list[ColorType]] = DEFAULT_FOREGROUND_COLOR, accent_color : Union[ColorType,list[ColorType]] = DEFAULT_ACCENT_COLOR,
                 background_color : Union[ColorType,list[ColorType]] = DEFAULT_BACKGROUND_COLOR, outline_color : Union[ColorType,list[ColorType]] = None,
                 **kwargs):
-     
-
-        # logger.warning("The forecast element has not been implemented yet!")
         
-        ##Todo:
-        ##[x] implement other orientation + orientation switch -> seems to work
-        ##[x] update_interval -> mainly just pass it to the intervalupdate init -> works
-        ##[x] Overflow when not enough forecasts are returned
-        ##[x] Unsuccesfull response -> nvm already did that lol
-        ##[ ] Implement as pop-up tap-action for weather-element
-            # [x] Kijk ook of je de achtergrond van popups kan blurren
-            # [x] Updaten van properties
-            # [ ] icon packs -> gekopieerd?
-            # [x] forecastelement als tile_layout optie toevoegen
-                # Also a check if this is the case cause if so, the forecast element cannot be used as popup
-            # [x] Update intervals
-            # [x] Uitzoeken waarom de printstack soms whack doet i.e. indices van areaMatrix en ImgMatrix komen niet overeen
-                ##Dit lijkt gefixt? Door m te laten loopen over de areaMatrix ipv. de layout zelf
-
-        ##[x] For certain updates: Somehow build in that get_forecasts is called? -> works (use __force_get_forecasts = True1````)
-            ##I.e. when changing the forecast type, the updated data would be preferred to be seen immediatly
-            ##I think by overwriting the async update, first update all attributes, then if a variable is set, you get the new data after finishing the update?
-            ##Would maybe cause some issues? I'd prefer updating and getting the data before that.
-
         self.entity = entity
         self.__lastForecastUpdate = None
         self._rebuild_layout = True
@@ -3685,7 +3432,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         
         default_weather_props : dict = default_properties.pop("element_properties")
         set_weather_props : dict = element_properties.pop("element_properties", {})
-        # default_weather_props.update(set_weather_props)
         for k, v in default_weather_props.items():
             set_weather_props.setdefault(k,v)
         
@@ -3725,12 +3471,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         base._TileBase.foreground_color.fset(self, set_value)
     
     @base._TileBase.accent_color.setter
-    def accent_color(self, value):
-        # if isinstance(value, (tuple,list)):
-        #     set_value = None
-        # else:
-        #     set_value = value
-        
+    def accent_color(self, value):       
         color_list = self.__make_color_list(value, "accent_color")
 
         if not color_list:
@@ -3742,13 +3483,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         base._TileBase.accent_color.fset(self, set_value)
 
     @base._TileBase.background_color.setter
-    def background_color(self, value: Union[str,list]):
-        
-        # if isinstance(value, (tuple,list)):
-        #     set_value = None
-        # else:
-        #     set_value = value
-        
+    def background_color(self, value: Union[str,list]):       
         color_list = self.__make_color_list(value, "background_color")
 
         if not color_list:
@@ -3765,11 +3500,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
     @base._TileBase.outline_color.setter
     def outline_color(self, value):
-        # if isinstance(value, (tuple,list)):
-        #     set_value = None
-        # else:
-        #     set_value = value
-        
         color_list = self.__make_color_list(value, "outline_color")
 
         if not color_list:
@@ -3837,11 +3567,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         return value
 
     def _reparse_element_colors(self, elt_name: str = None):
-        
-        # if isinstance(self.background_color, list):
-            ##Will just use the shorthands.
-            ##Put cycles in a dict -> call next when parsing
-            # next(bg_cols)
         color_cycles = {
             "background": cycle(self._background_colorList),
             "foreground": cycle(self._foreground_colorList),
@@ -3857,8 +3582,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         
         ##Don't need to parse these since they are done automatically
         ##maybe easy to do tho? Since it's an easy way to make the dict correctly
-        # color_setters = self.__class__._color_shorthands()
-
         for elt in self.elements.values():
             set_props = set_props_init.copy()
             ##Perform a check for elements not in there to cycle those too
@@ -3866,8 +3589,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             for prop in color_props.intersection(set_props):
                 if set_props[prop] in color_cycles:
                     key = set_props[prop]
-                    # col_cycl = color_cycles[key]
-                    # col = next(col_cycl)
                     set_props[prop] =  next(color_cycles[key])
                     cycled_cols.add(key)
                     
@@ -3876,8 +3597,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
                 next(color_cycles[prop])
             
             elt.update(set_props, skipPrint=self.isUpdating, skipGen=self.isGenerating)
-            # elt.update(set_props)
-                # else:
         self._reparse_colors = False
         return
 
@@ -3949,11 +3668,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     
     @time_format.setter
     def time_format(self, value :str):
-        # if not isinstance(value, str):
-        #     msg = f"{self}: time_format value must be a string!"
-        #     logger.exception(msg)
-        #     return
-        
         try:
             datetime.now().strftime(value)
         except (ValueError, TypeError) as e:
@@ -4006,7 +3720,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             value = "vertical"
 
         self.__orientation = value
-        # self.build_layout()
         self._rebuild_layout = True
     #endregion
 
@@ -4038,7 +3751,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             layout_row[0] = "?"
             layout = [layout_row]
         else:
-            # layout = [["?", None]] * self.num_forecasts
             layout = [["?", None] for _ in range(self.num_forecasts)]
 
         reparse_colors = self._reparse_colors
@@ -4111,13 +3823,10 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         if trigger_dict["from_state"] == None:
             if self._updateTask.done():
                 self.__lastForecastUpdate = None
-                # await self.HAclient.await_commander()
-                # await self.get_forecasts()
                 self.start_wait_loop()
         return
 
     async def _wait(self):
-        # while True:
         await self.HAclient.await_commander()
         _LOGGER.debug(f"{self}: starting interval loop to get the forecast")
         while self.HAclient.connection and self._waitTime > 0:
@@ -4166,7 +3875,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         else:
             i = 0
             for fc in forecasts:
-                # forecast_dt = 
                 if dt_now <= datetime.fromisoformat(fc["datetime"]):
                     break
                 i += 1
@@ -4202,7 +3910,6 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
         if "is_daytime" not in forecasts[0]:
             if self.forecast_type == "daily":
-                # for forecast in forecasts: forecast["is_daytime"] = True
                 pass
             elif self.forecast_type == "hourly":
                 sunstate = self.HAclient.stateDict.get("sun.sun")
@@ -4257,13 +3964,8 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
             for res in L:
                 if isinstance(res, Exception):
                     _LOGGER.error(f"WeatherElement errored in updating from forecast: {res}")
-            # for coro in update_coros:
-            #     await coro
         await self.async_update(updated=True)
         return
-            
-
-        # return super()._reparse_element_colors(elt_name)
 
 ##Apparently seting HAelement as the second parentclass caused issues lol
 ##So it needs to be in front
@@ -4381,7 +4083,6 @@ class EntityTimer(HAelement, base._TileBase):
         base._TileBase.__init__(self, tile_layout = tile_layout, horizontal_sizes=horizontal_sizes, 
                                 element_properties=element_properties,
                                 **kwargs)
-        # base.Layout.__init__(self, None, show_feedback=False, **kwargs)
 
         HAelement.__init__(self)
 
@@ -4477,7 +4178,6 @@ class EntityTimer(HAelement, base._TileBase):
             else:
                 timeformat = "%S"
         else:
-            # timeformat = "%H:%M:%S"
             timeformat = self.timeformat
         return timeformat
 
@@ -4631,13 +4331,11 @@ class EntityTimer(HAelement, base._TileBase):
 
                     if elt.onScreen:
                         elt.update({"text": posstr}, reprintOnTop=True)
-                        # await elt.Async_update({"text": posstr}, reprintOnTop=True)
                     else:
                         elt.text = posstr
                     
                     ##A constant delay simply looks better.
                     ##Considering how cur_seconds is determined it should not lead to issues anyways.
-                    # sleep_time = math.ceil(cur_seconds) - cur_seconds
                     await asyncio.sleep(1) #@IgnoreExceptions
                 except asyncio.CancelledError:
                     return
@@ -4650,20 +4348,15 @@ class EntityTimer(HAelement, base._TileBase):
 
     def start_timer(self, *args):
         "Pauses the connected timer entity"
-        # self.elements["timer-slider"].start_timer()
-
         if self.state != "active":
             self.HAclient.call_service(service="timer.start", target=self.entity)
 
     def pause_timer(self, *args):
-        # self.elements["timer-slider"].pause_timer()
-
         if self.state == "active":
             self.HAclient.call_service(service="timer.pause", target=self.entity)
 
     def cancel_timer(self, *args):
         "Cancels the timer"
-        # self.elements["timer-slider"].cancel_timer()
         self.HAclient.call_service(service="timer.cancel", target=self.entity)
 
 class ClimateElement(HAelement, base._TileBase):
@@ -4690,9 +4383,6 @@ class ClimateElement(HAelement, base._TileBase):
     """  
 
     ALLOWED_DOMAINS = ["climate"]
-
-    # mode_attributes = {"hvac_modes","preset_modes","swing_modes", "fan_modes"}
-
     @classmethod
     @property
     def color_properties(cls):
@@ -4726,8 +4416,6 @@ class ClimateElement(HAelement, base._TileBase):
         ##Add color attribute for active -> parsed to the active mode icon
         ##Can't parse it to the active one using 'active' as color but is done automatically for those
         ##simply to use it elsewhere if desired
-
-        # styles = { "heat": {"icon": "mdi:thermostat"},"else":{"icon": "mdi:fire-off"}}
         styles = {}
 
         tile = EntityTile(self.entity, icon="mdi:thermostat", element_properties={"text":{"entity_attribute": "current_temperature", "prefix_attribute": "state", "prefix_separator": "•"}, "icon": {"icon_attribute": None}}, 
@@ -4782,10 +4470,6 @@ class ClimateElement(HAelement, base._TileBase):
         return self.__HVACModeLayout
     #endregion
 
-    # def generator(self, area: CoordType[CoordType, CoordType] = None, skipNonLayoutGen: bool = False):
-    #     img= super().generator(area, skipNonLayoutGen)
-    #     return img
-
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggerDictType):
         
         new_state = trigger_dict["to_state"]
@@ -4801,9 +4485,6 @@ class ClimateElement(HAelement, base._TileBase):
             await t_elt.async_update({"suffix": " " + self.unit, "suffix_attribute": None})
             await therm.async_update({"unit": " " + self.unit})
             self.make_mode_selectors(state_attr.get("hvac_modes", []))
-            # await self.elements["state-tile"].Async_update({"element_properties": {"text": {"suffix": " " + temp_unit, "suffix_attribute": None}}})
-
-
 
         element_state = triggers.get_new_state(self,trigger_dict)
         update_props = self.state_styles.get(element_state,{})
@@ -4812,20 +4493,14 @@ class ClimateElement(HAelement, base._TileBase):
 
         attr_updated = False
         if update_props:
-            # start_batch = True
             attr_updated = await self.async_update(update_props, skipGen=True, skipPrint=True)
 
-
-        # hvac_mode = state_attr.get("hvac_mode", None)
         update_coros =  set()
         async with self._updateLock:
 
             if new_state["state"] not in ERROR_STATES and self.HVACModeLayout.selected !=  new_state["state"]:
-                # await self.HVACModeLayout.async_select(new_state["state"],call_on_select=False)
                 update_coros.add(self.HVACModeLayout.async_select(new_state["state"], call_on_select=False))
 
-
-            # await self.elements["state-tile"].trigger_function(self.elements["state-tile"], trigger_dict)
             update_coros.add(therm.trigger_function(therm, trigger_dict))
             update_coros.add(state_elt.trigger_function(state_elt, trigger_dict))
             # await therm.trigger_function(therm, trigger_dict)
@@ -4834,10 +4509,6 @@ class ClimateElement(HAelement, base._TileBase):
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
                     _LOGGER.error(f"{update_coros[i]} returned an exception: {res} ")
-            
-            # i = state_elt.imgData
-            # if i != None:
-            #     state_elt.imgData.show()
         
         if update_coros or attr_updated:
             await self.async_update(updated=True)

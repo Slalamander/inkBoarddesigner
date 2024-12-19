@@ -29,7 +29,6 @@ class ClientElement(base.Icon):
         return self._HAclient   
 
     def on_add(self):
-        # asyncio.create_task(self._update_status_icon())
         loop = self.parentPSSMScreen.mainLoop
         self._monitorTask = loop.create_task(self._monitor_client_state())
 
@@ -64,10 +63,8 @@ class ClientElement(base.Icon):
         if testVal == "connected" and self.badge_icon != None:
             await self.async_update({"badge_icon": "mdi:check-bold"})
             await asyncio.sleep(3)
-            # await self.Async_update({"badge_icon": None})
 
         await self.async_update({"badge_icon": badge})
-        # self.imgData.show()
         return
 
 class HomeAssistantMenu(menu.UniquePopupMenu):
@@ -79,8 +76,6 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
         titleTxt = f"Not connected to Home Assistant"
         self.__titleButton = base.Button(titleTxt, **buttonSettings)
         self.__integrationButton = base.Button("inkBoard integration not found", **buttonSettings)
-
-        # button_col = menu.DEFAULT_MENU_BUTTON_COLOR
         
         buttonSettings["background_color"] = menu.DEFAULT_MENU_BUTTON_COLOR
         buttonSettings["text_x_position"] = "center"
@@ -91,13 +86,13 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
 
         ##No background means badge doesn't show --> fix that
         iconCol = "home-assistant"
-        self.__clientElt = ClientElement(tap_action=None, icon_color = iconCol) #, backgroundShape = "circle")
+        self.__clientElt = ClientElement(tap_action=None, icon_color = iconCol)
         self.__integrationIcon = base.Icon("mdi:devices", icon_color=iconCol)
 
         self.__HAclient = None
 
         popupid = "home-assistant-menu"
-        height = 225 #3*50 + 2*10
+        height = 225
 
         super().__init__(popupid, "Home Assistant", height=height, id=popupid, **kwargs)
 
@@ -122,9 +117,6 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
         self.__connectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.connect_client)
         self.__reconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.reconnect_client)
         self.__disconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.disconnect_client)
-        
-        s = self.screen
-        # self.mainLoop.create_task(self.__clientElt.update_icon())
         asyncio.create_task(self.__clientElt.update_icon())
 
     def build_menu(self):
@@ -132,7 +124,6 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
         m = "w*0.02"
         h = 50
         h_margin = 5
-        # [[h, (None,m), (networkIcon, "r"), (None,m) , (wifiButton,"?")]
         layout = [
             [h, (None,m), (self.__clientElt, "r"), (None,m), (self.__titleButton,"?")],
             [h_margin],

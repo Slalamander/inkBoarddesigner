@@ -77,7 +77,7 @@ def trigger_headers(entities : Union[list,tuple],last_id : int):
             "type": "subscribe_trigger",
             "trigger": {
                 "platform": "state",
-                "entity_id": entity #entity["entity_id"]
+                "entity_id": entity
             }, }
         headers.append(subscribe_header)
         entity_list.append((entity))
@@ -158,7 +158,6 @@ class HAclient:
         if self.websocket == None or self.connectionTask.done():
             return "disconnected"
         else:
-            # if self.connectionTask.done() and self.reconnect_task.done():
             if self.connection:
                 return "connected"
             else:
@@ -239,25 +238,6 @@ class HAclient:
     async def disconnect_client(self):
         "Disconnects from the Home Assistant client."
         await self.websocket.close()
-        async with self.websocketCondition:
-            self.websocketCondition.notify_all()
-
-    async def start_client(self):
-        """Starts the infinite loops to manage the Home Assistant connection (listener, commander and ping-pong)"""
-        raise NotImplementedError("Don't call me anymore")
-        if not self.connection:
-            _LOGGER.warning("Not connected to client, cannot start.")
-            return
-        
-        # if self.listenerTask.done():
-        #         self.listenerTask = self.loop.create_task(self.__async_listen())
-        # if self.commanderTask.done():
-        #         self.commanderTask = self.loop.create_task(self.__async_command())
-        # if self.pingpongTask.done():
-        #         self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
-        
-
-        
         async with self.websocketCondition:
             self.websocketCondition.notify_all()
 
@@ -383,8 +363,6 @@ class HAclient:
 
                 self.listenerTask = self.loop.create_task(self.__async_listen())
                 self.commanderTask = self.loop.create_task(self.__async_command())
-                # self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
-
                 runners = [self.listenerTask, self.commanderTask]
 
                 self._longrunningTasks = asyncio.gather(*runners, return_exceptions=True)
@@ -537,11 +515,9 @@ class HAclient:
                         msg_id = cmd["id"]
                         if msg_id < self.__last_id:
                             _LOGGER.debug(f"{msg_id} was already used for a websocket message. Increasing id of command {cmd}")
-                            # self.last_id += 1
                             new_id = self.next_id
                             cmd["id"] = new_id
                             if msg_id in self._callback_queues:
-                                # queue = self._callback_queues.pop(msg_id)
                                 _LOGGER.debug(f"Message {msg_id} has a callback. Removing object from key {msg_id} and putting it in {new_id}.")
                                 self._callback_queues[new_id] = self._callback_queues.pop(msg_id)
 
@@ -569,25 +545,19 @@ class HAclient:
         Sends pings and receives the pongs from the Home Assistant Server
         '''
         _LOGGER.info("Starting ping-pong script")
-        #await asyncio.sleep(3)
         pong_timeout = 10
         pongs_missed = 0
         missed_max = MAX_PONGS_MISSED
-        while self.connection:
-        #for i in range(10):  
+        while self.connection:  
             await asyncio.sleep(self.ping_interval)  
             # self.last_id += 1
             ping_id = self.next_id
             ping_dict = {"id": ping_id, "type": "ping"}
-            # queue = asyncio.Queue(1)
-            # self._callback_queues[ping_id] = queue
             pong_task = self.add_callback(ping_id)
 
             _LOGGER.debug(f"Sending Ping id {ping_id}")
             try:
-                #await asyncio.wait_for(self.websocket.send(json.dumps(ping_dict)), timeout=pong_timeout)
                 await self.messageQueue.put(ping_dict)
-                # res = await asyncio.wait_for(queue.get(), timeout=pong_timeout) #@IgnoreException
                 res = await asyncio.wait_for(pong_task, timeout=pong_timeout) #@IgnoreException
                 ping_id = res["id"] ##Update the ping_id in case the commander increased it
                 pongs_missed = 0
@@ -814,12 +784,6 @@ class HAclient:
                         call_after_add (bool): after adding the function to the dict, run the function (true) or not (false). If starting up the dashboard, this will decide if the function is called after all states have been processed. 
         '''
 
-        # if not isinstance(call_function, Callable):
-        #     logger.error(f"{call_function} is not a function, has type {type(call_function)}")
-        #     return
-        
-
-        # for entity_id in entities: 
         for func_tuple in call_functions:
             if isinstance(func_tuple, (tuple,list)):
                 func, call_after_add = func_tuple
@@ -832,7 +796,6 @@ class HAclient:
             
             if isinstance(func,str):
                 func = self.pssmScreen.parse_shorthand_function(func)
-            # func_tuple = (func, call_after_add)
 
             if isinstance(entity_id,str):
                 if entity_id not in all_entities:
@@ -852,7 +815,6 @@ class HAclient:
         "Updates the clients state dict from the trigger. Calls any update functions (elements and general functions) associated with the entity as well."
         updated_entity = trigger["event"]["variables"]["trigger"]["entity_id"]
         to_state = trigger["event"]["variables"]["trigger"]["to_state"]
-        from_state = trigger["event"]["variables"]["trigger"]["to_state"]
 
         trigger_dict = trigger["event"]["variables"]["trigger"]
         trigger_dict["context"] = trigger["event"]["context"]
@@ -867,10 +829,8 @@ class HAclient:
             for (func, __) in self.functionDict[updated_entity]:
                 func_list.append(func)
                 coro_list.append(tools.wrap_to_coroutine(func, trigger_dict, self))
-                    # func(trigger_dict=trigger, state_dict=self.stateDict)
 
         if self.connection and self.authenthicated:
-            #self.client_update_elements(updated_entity, internalbatch=False)
             if not self.updatingAll:
                 ent_elts = self.elementDict.get(updated_entity,[])
                 _LOGGER.debug(f"Updating {updated_entity} elements: {ent_elts}")
@@ -886,7 +846,6 @@ class HAclient:
         
         if coro_list:
             L = await asyncio.gather(*coro_list, return_exceptions=True) #, return_exceptions=True)
-            #self.add_running_task(L)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
                     _LOGGER.error(f"{func_list[i]} returned an exception: {res} ")
@@ -1125,9 +1084,7 @@ class HAclient:
         #self.next_message = service_header
         await self.messageQueue.put(message)
         _LOGGER.debug(f"Waiting for service response from id {message_id}")
-        # response = await resp_queue.get()
         response = await task
-        # await task
         _LOGGER.debug(f"Message {message_id} returned service response.")
         if not response.get("success",False):
             _LOGGER.error(f"Error getting a service action response. Received {response}")
@@ -1171,7 +1128,6 @@ class HAclient:
                 coro_list.extend(
                     await self.client_update_elements(entity_id=entity,internalbatch=False))
             if coro_list:
-                # L = await asyncio.gather(*coro_list, return_exceptions=True) #, return_exceptions=True)
                 try:
                     done, pending = await asyncio.wait(coro_list,loop=self.pssmScreen.mainLoop,timeout=timeout)
                 except Exception as exce:
@@ -1215,16 +1171,12 @@ class HAclient:
                         if task.exception() != None:
                             coro = task.get_coro()
                             vars = getattr(coro.cr_frame,"f_locals", {})
-                            # vars = coro.cr_frame.f_locals
                             if "self" in vars:
                                 elt = vars["self"]
-                                # func = getattr(elt,"trigger_function",None)
                             elif "element" in vars:
                                 elt = vars["element"]
-                                # func = getattr(elt,"trigger_function",None)
                             else:
                                 elt = getattr(vars,"args", [None])[0]
-                                # func = getattr(vars,"func",None)
 
                             _LOGGER.warning(f"Element {elt} raised an error in it's trigger_function {getattr(coro,'__qualname__','unknown_function_name')}")
                     
@@ -1240,14 +1192,10 @@ class HAclient:
                         element : HAelement
                         func = False
                         to_state = self.stateDict[entity_id]
-                        # from_state = False
-
                         ent_dict = {"entity_id": entity_id, "to_state": to_state, 'from_state': None, 'context': None}
                         ent_dict = triggerDictType(**ent_dict)
-                        
-                        #el_type = str(type(element))
+
                         if isinstance(element,elements.Slider) and hasattr(element,"trigger_function"):
-                        #if "Slider" in el_type:
                             #The slider update would jump around a bit since the lights fade. It updates on touch, and then has a delayed callback to update the indicator precisely
                             #The delay is thus not called if the service was not called recently (so when fading it from your phone eg)
                             
@@ -1255,29 +1203,19 @@ class HAclient:
                             if element.serviceCallTime != None and (datetime.now() - element.serviceCallTime).total_seconds() < 5:
                                 self.loop.create_task(self.__async_update_later(entity_id=entity_id, element=element))
                             else:
-                                # element.trigger_function(element,new_state)
                                 func = element.trigger_function
-                                # element.trigger_function(element,ent_dict)
-                        elif hasattr(element,"trigger_function"): #isinstance(element,elements.Button) or isinstance(element,elements.Icon) or isinstance(element,HAelements.MediaPlayer):
-                        #elif "Icon" or "Button"in el_type:
-                            # print(f"Element {element} has trigger_function {element.trigger_function}")
-                            # element.trigger_function(element,new_state)
-                            # element.trigger_function(element,ent_dict)
+                        elif hasattr(element,"trigger_function"):
                             func = element.trigger_function
                             if isinstance(element,elements.Icon):
                                 if element.fileError:
                                     msg = " Error updating {} icon for state {}: image {} does not exist".format(entity_id,to_state,element.icon)
                                     _LOGGER.warning(msg)
-                                    # self.addtoLog(msg)
-                        # elif isinstance(element,function):
-                        #     logger.debug(f"{entity_id} has seperate update function")
 
                         else:
                             _LOGGER.warning("{}: Wanted to update unknown element type: {}".format(entity_id, element))
                     
                         if func:
-                            # if asyncio.iscoroutine(func):
-                            if asyncio.iscoroutinefunction(func): # or asyncio.iscoroutine(func):
+                            if asyncio.iscoroutinefunction(func):
                                 coro_list.append(func(element,ent_dict))
                             else:
                                 coro_list.append(asyncio.to_thread(
@@ -1289,19 +1227,6 @@ class HAclient:
                 _LOGGER.error(f"Caught error updating elements: {exce}")
                 _LOGGER.debug(msg)
                 return []
-                # if RAISE: raise exce
-                        # except (TypeError, KeyError, IndexError, OSError, RuntimeError) as exce:
-                        #     if not self.updatingAll:
-                        #         logger.warning("{} {}: {}".format(entity_id, element, exce))
-                        #     else:
-                        #         raise exce
-                            
-            # except (TypeError, KeyError, IndexError, OSError, RuntimeError) as exce:
-            #     logger.error("{} Caught Exception".format(entity_id), exc_info=True)
-            #     if RAISE: raise exce
-                # raise exce  ##Maybe place a not keyerror in the genereic update dict; pass a trigger dict with new and old state. Than catch out keyerrors
-            # else:
-            #     return [func]
         
     async def __async_update_later(self, entity_id, element, wait_time=5):
         await asyncio.sleep(wait_time)
@@ -1314,7 +1239,6 @@ class HAclient:
         else:
             cur_state =  self.stateDict[entity_id]
         if cur_state == "off":
-            #print("State is off")
             cur_state_perc = 0
         else:
             try:
@@ -1372,14 +1296,11 @@ class dummyClient:
         In general, use this only to signify a callback. The Queue
         """
 
-        self.entity_queues = {} #asyncio.Queue()
+        self.entity_queues = {}
         "Dict with [entity_id]: asyncio.Queue; when the entity is updated, the trigger dict is put in the queue"
 
         self.functionDict = {}
         "Dict with [entity_id]: function; calls the function when the entity updates, and on connecting"
-
-    # @property
-    # def _callback_queues(self):
 
     @property
     def next_id(self) -> int:
@@ -1395,19 +1316,17 @@ class dummyClient:
     async def start_client(self):
         """Starts the infinite loops to manage the Home Assistant connection (listener, commander and ping-pong)"""
         _LOGGER.debug("Starting Dummy HA Client")
-        # raise Exception
         if self.listenerTask.done():
                 self.listenerTask = self.loop.create_task(self.__async_listen())
         if self.commanderTask.done():
                 self.commanderTask = self.loop.create_task(self.__async_command())
-        #self.loop.create_task(self.__async_ping_pong())
 
     async def __async__connect(self, url: str, auth_token: str):
         """Sets up a websocket connection to Home Assistant"""
         
         hass_data = self.hass_data
         uri = "ws://{}/api/websocket".format(url)
-        token = auth_token #hass_data["token"]
+        token = auth_token
         auth_header =    {
             "type": "auth",
             "access_token": token     }
@@ -1426,11 +1345,9 @@ class dummyClient:
                 _LOGGER.info(f"Connected to Home Assistant {auth_res}")
             else:
                 _LOGGER.error(f"Authentication failed {auth_res}")
-                #self.loglist.append("{} Authentication failed: {}".format(datetime.now().strftime("%H:%M"), auth_res))
                 pass
 
             #This gets literally ALL states, but it seems to handle fine. May however cause problems in large setups.
-            # self.last_id += 1
             states_header = {"id": self.next_id, "type": "get_states" } 
 
             await self.websocket.send(json.dumps(states_header))
@@ -1446,7 +1363,7 @@ class dummyClient:
 
                 self.stateDict = initial_dict
                 
-                _LOGGER.debug(f"Updating functions in function dict") #{self.functionDict}")
+                _LOGGER.debug(f"Updating functions in function dict")
                 called_functions = []
                 for func_entity in self.functionDict:
                     for func_tuple in self.functionDict[func_entity]:
@@ -1458,12 +1375,9 @@ class dummyClient:
                             except FuncExceptions as exce:
                                 _LOGGER.warning(f"Error calling function {func} for entity {func_entity}: {exce}, removed from function dict")
                                 self.functionDict[func_entity].remove(func_tuple)
-                #init_elements(initial_dict,self.pssm_screen,self.elementDict)
             else:
                 _LOGGER.error(f"Failed to get states {all_states}")
-                #self.loglist.append("{} Failed to get the initial states: {}".format(datetime.now().strftime("%H:%M"), all_states["error"]["message"]))
 
-            #subscribe_headers = trigger_headers(config["entities"],self.last_id)
             subscribe_headers = trigger_headers(all_entities,self.__last_id)
             subscribe_fails = 0
             for header in subscribe_headers:
@@ -1476,7 +1390,6 @@ class dummyClient:
                 elif subscr_resp["type"] != "event":
                     if not subscr_resp["success"]:
                         _LOGGER.error(f'Failed to subscribe to {header["trigger"]["entity_id"]}, server responded with {subscr_resp}')
-                        #self.loglist.append("{} failed to subscribe to {}: {}".format(datetime.now().strftime("%H:%M"), header["trigger"]["entity_id"],subscr_resp["error"]["message"]))
                         subscribe_fails += 1
             if subscribe_fails == 0:
                 _LOGGER.info("Succesfully subscribed to all entities")
@@ -1484,7 +1397,6 @@ class dummyClient:
             self.__last_id = header["id"]
         except TimeoutError:
             _LOGGER.error(f'Failed to establish connection to {self.hass_data["url"]}')
-            #self.loglist = ["[HAClient]: Failed to establish connection to {}".format(self.hass_data["url"])]
         except FuncExceptions as exce:
             _LOGGER.error(f"Couldn't connect {exce}")
         return        
@@ -1515,18 +1427,15 @@ class dummyClient:
                 if message.get("type") == "event":
                     # [ ]: remove this try once the illegal instruction error is fixed
                     _LOGGER.debug(message)
-                    # if "trigger" in message["event"]["variables"]:
                     ent = message["event"]["variables"]["trigger"].get("entity_id", False)
                     if ent and ent in self.entity_queues:
                         await self.entity_queues[ent].put(message)
                 elif message.get("type") == "result":
                     if not message.get("succes", True):
                         _LOGGER.warning("Unsuccesful request: {}".format(message))
-                        #self.loglist.append("{} Unsuccesful request: {}".format(datetime.now().strftime("%H:%M"), message["error"]["message"]))
                         self.update_Icon()
                 ##Catch all other message types that are not pongs
                 elif message.get("type") != "pong":
-                    #print("Message seems unfamiliar: {}".format(message))
                     _LOGGER.warning("Message seems unfamiliar: {}".format(message))
         
         except websockets.exceptions.ConnectionClosedError as exce:
@@ -1554,11 +1463,9 @@ class dummyClient:
                     msg_id = cmd["id"]
                     if msg_id < self.__last_id:
                         _LOGGER.debug(f"{msg_id} was already used for a websocket message. Increasing id of command {cmd}")
-                        # self.last_id += 1
                         new_id = self.next_id
                         cmd["id"] = new_id
                         if msg_id in self._callback_queues:
-                            # queue = self._callback_queues.pop(msg_id)
                             _LOGGER.debug(f"Message {msg_id} has a callback. Removing object from key {msg_id} and putting it in {new_id}.")
                             self._callback_queues[new_id] = self._callback_queues.pop(msg_id)
 
@@ -1567,11 +1474,8 @@ class dummyClient:
                 _LOGGER.verbose(cmd)
             except TimeoutError:
                 _LOGGER.warning("Calling {}.{} timed out".format(cmd["domain"],cmd["service"]))
-                #self.loglist.append("{}: Calling {}.{} timed out".format(datetime.now().strftime("%H:%M"), self.cmd["domain"],self.cmd["service"]))
             except FuncExceptions as exce:
                 _LOGGER.error(f"Exception occured in commander:{exce}")
-            
-            #await asyncio.sleep(0)
 
         _LOGGER.error("Commander stopped")
 
@@ -1633,6 +1537,5 @@ class dummyClient:
         queue = asyncio.Queue(1)
         self.entity_queues[entity] = queue
         trigger = await queue.get()
-        # raise Exception("Got value")
         self.entity_queues.pop(entity)
         return trigger
