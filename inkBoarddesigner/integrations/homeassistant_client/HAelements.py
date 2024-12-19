@@ -20,8 +20,8 @@ from PIL import Image
 
 from PythonScreenStackManager import elements
 from PythonScreenStackManager.elements import baseelements as base, colorproperty
-from PythonScreenStackManager.elements.baseelements import DEFAULT_FONT_BOLD, Style
-from PythonScreenStackManager.elements.constants import DEFAULT_BACKGROUND_COLOR, DEFAULT_FOREGROUND_COLOR,\
+from PythonScreenStackManager.elements.baseelements import  Style
+from PythonScreenStackManager.elements.constants import DEFAULT_BACKGROUND_COLOR, DEFAULT_FOREGROUND_COLOR, \
                                                     DEFAULT_FONT, DEFAULT_FONT_HEADER, DEFAULT_ACCENT_COLOR
 from PythonScreenStackManager import tools
 from PythonScreenStackManager.tools import DummyTask, parse_weather_icon
