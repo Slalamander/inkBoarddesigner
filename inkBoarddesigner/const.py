@@ -71,7 +71,7 @@ FEATURE_FRAME_STYLE = ttk.PRIMARY
 LOADBAR_LABEL_STYLE = "loadbar.TLabel"
 
 BUTTON_STYLE = "custom.TButton"
-TOOLTIP_STYLE = (ttk.DARK, ttk.INVERSE) #("dark","inverse")
+TOOLTIP_STYLE = (ttk.DARK, ttk.INVERSE)
 
 INTERACT_CURSOR = "hand2"
 
@@ -90,8 +90,6 @@ BUTTON_HEIGHT = 30
 BUTTON_FONT_SIZE = 16
 BUTTON_WIDTH = int(INTERFACE_WIDTH*0.36)
 BUTTON_ICON_COLOR = ICON_COLOR
-
-
 
 SETTINGS_HEIGHT = int(INTERFACE_WIDTH*0.3)
 SETTINGS_WIDTH = int(INTERFACE_WIDTH/4)
@@ -120,13 +118,9 @@ TREE_REFRESH_TIP = "Refresh the current treeview"
 CONFIG_OPTIONS_TIP = "Info on the currently opened config (if any), or open a new config."
 DEVICE_TIP = "Info on the currently running device (if any), as well as some settings to alter emulation behaviour."
 
-##Make an inkBoard-light color (Somewhere between inkBoard and like, steelblue)
 DEFAULT_ELEMENT_ICON = "mdi:shape"
 TREEVIEW_ICON_SIZE = (15,15)
 
 HIGHLIGHT_DASH = (5,2)
 HIGHLIGHT_WIDTH = 5
 HIGHLIGHT_COLOR = "red"
-
-
-##Themes should use inkBoard colors i.e. for some of the blue colors?

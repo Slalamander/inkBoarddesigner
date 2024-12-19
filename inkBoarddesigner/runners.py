@@ -13,21 +13,18 @@ import threading
 import sys
 from pathlib import Path
 
-
 import ttkbootstrap as ttk
 
 import inkBoard
 from inkBoard import constants as ib_const, core as CORE
 from inkBoard.helpers import QuitInkboard, ConfigError, DashboardError, DeviceError, ScreenError
 
-import PythonScreenStackManager as pssm
-
 from . import util, const, _LOGGER
-from .settings import EM_SETTINGS, save_settings
+from .settings import save_settings
 
 from .tkinter import window, functions as tk_functions
 from .tkinter.builders import build_window
-from .tkinter.functions import open_device_window, stop_emulator
+from .tkinter.functions import stop_emulator
 
 if TYPE_CHECKING:
     import inkBoard.bootstrap

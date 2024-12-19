@@ -6,14 +6,11 @@ import tkinter as tk
 
 
 import ttkbootstrap as ttk
-from ttkbootstrap import colorutils
 from ttkbootstrap.tooltip import ToolTip
 
-from PIL import Image
 from mdi_pil.ttkbootstrap_mdi import MDIIcon, MDIButton
 
 from .. import const
-from ..const import THEME_DARK, THEME_LIGHT
 from ..settings import EM_SETTINGS
 
 from . import window

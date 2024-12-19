@@ -8,8 +8,6 @@ Usage: `from fbink import API as FBInk`
 from typing import * 
 import functools, os, subprocess, time, logging
 
-
-
 if TYPE_CHECKING:
     from .fbink_mock import ffi, lib as FBInk
     from PIL import Image
@@ -99,7 +97,6 @@ class API:
                     val = val.decode("ascii")
             attr_name = f"_{attr}"
             setattr(cls,attr_name, val)
-            # print(f"{attr}: {getattr(cls, attr_name)}")
         cls._state = state
     
     @classmethod

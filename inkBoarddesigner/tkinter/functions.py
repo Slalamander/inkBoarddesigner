@@ -20,8 +20,6 @@ from inkBoard.helpers import QuitInkboard
 ##Suspect this one won't work here.
 ##Seems to at least with quit? Check with screenshot too though.
 
-
-
 from .. import const
 from ..const import THEME_DARK, THEME_LIGHT
 from ..settings import EM_SETTINGS
@@ -34,8 +32,6 @@ if TYPE_CHECKING:
     from .. import runners
 
 window: "DesignerWindow"
-
-
 
 _LOGGER = logging.getLogger(__name__)
 

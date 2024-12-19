@@ -2,7 +2,6 @@
 Handler to load inkBoard integrations present in the designer etc. folder.
 """
 
-import os
 import importlib.util
 from typing import Callable, TYPE_CHECKING, Literal, Any
 from types import MappingProxyType
@@ -12,7 +11,7 @@ import sys
 import asyncio
 import json
 
-from inkBoard import constants as ib_const, loaders
+from inkBoard import constants as loaders
 from inkBoard.helpers import classproperty, reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
@@ -151,10 +150,10 @@ class IntegrationLoader(loaders.IntegrationLoader):
         
         designer_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(designer_module) ##This step takes quite some time.
-        base_module = designer_module.__name__.removesuffix(".designer") #strip(".designer")
+        base_module = designer_module.__name__.removesuffix(".designer")
         base_module = sys.modules.get(base_module)
         
-        if hasattr(designer_module,"async_setup"): # and not hasattr(designer_module,"setup"):
+        if hasattr(designer_module,"async_setup"):
             base_module.async_setup = designer_module.async_setup
         elif hasattr(designer_module, "setup"):
             ##Whilst it would be possible to make the designer setup etc. have priority even over base async_setup,
@@ -249,7 +248,6 @@ class IntegrationLoader(loaders.IntegrationLoader):
         cls._pending_setups = {}
 
         config = core.config
-        screen = core.screen
 
         coro_list = set()
         for integration, module in cls._imported_modules.items():
@@ -320,9 +318,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
         ----------
         core : CORE
             The inkBoard core module
-        """    
-        screen = core.screen
-
+        """
         coro_list = set()
 
         async def await_setup(pkg, runner : asyncio.Task):

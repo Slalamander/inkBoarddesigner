@@ -24,7 +24,6 @@ _section = "SETTINGS"
 "Section for using EM_SETTING.get(SEC) (So you don't need to write SETTINGS each time.)"
 
 EM_CONFIG = ConfigParser(DEFAULT_EM_SETTINGS, default_section=_section)
-# EM_SETTINGS.add_section("SETTINGS")
 EM_CONFIG.read(EM_SETTINGS_FILE)
 
 EM_SETTINGS = EM_CONFIG["SETTINGS"]

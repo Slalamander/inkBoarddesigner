@@ -4,21 +4,17 @@ from typing import *
 import tkinter as tk
 import logging
 from pathlib import Path
-
-import tkthread
-
 from PIL import Image, ImageOps
 
 from mdi_pil import mdiType
 from mdi_pil.ttkbootstrap_mdi import PhotoIcon, MDIIcon
 
 import ttkbootstrap as ttk
-from ttkbootstrap import constants as ttkconst
-from ttkbootstrap.style import Keywords, Bootstyle, StyleBuilderTTK, Colors
+from ttkbootstrap.style import Bootstyle
 from ttkbootstrap.tooltip import ToolTip
 
 from . import functions as tk_functions
-from .. import const, util
+from .. import const
 from ..util import iidType
 
 if TYPE_CHECKING:
@@ -55,7 +51,7 @@ class LabelToggle(ttk.Labelframe):
         if not bootstyle: bootstyle="primary"
 
         self.CheckButton = ttk.Checkbutton(self,
-                onvalue = 1, offvalue = 0, bootstyle=f"{bootstyle}-round-toggle", #style='Roundtoggle.Toolbutton', 
+                onvalue = 1, offvalue = 0, bootstyle=f"{bootstyle}-round-toggle",
                 variable=self.variable, command=command, cursor=cursor)
         self.CheckButton.grid(row=0,column=1, sticky=tk.E)
         self.bind(sequence="<Button-1>",func=self.toggle)

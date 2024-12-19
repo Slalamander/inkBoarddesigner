@@ -107,5 +107,3 @@ class ThreadSafePhotoImage(ImageTk.PhotoImage, metaclass=ThreadSafeWidgetMeta):
     def __init__(self, image = None, size = None, **kw):
         call_in_main_thread(super().__init__,
                             (image, size), kw)
-
-# ImageTk.PhotoImage = ThreadSafePhotoImage

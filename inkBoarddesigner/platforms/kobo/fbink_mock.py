@@ -104,7 +104,6 @@ class lib():
     
     @staticmethod
     def fbink_print_image(arg1, image_path, arg3, arg4, arg5):
-        # img = Image.open(r"{}".format(image_path))
         img = Image.open(image_path)
         img.show()
 

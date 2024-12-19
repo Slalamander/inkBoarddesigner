@@ -9,20 +9,19 @@ import threading
 
 import tkthread
 
-from PIL import Image, ImageTk, ImageOps
+from PIL import Image
 
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
 from PythonScreenStackManager.devices import FEATURES
 
-from .widgets import Treeview, PSSMCanvas, BatteryFrame, BacklightFrame, CanvasBackground
+from .widgets import Treeview, PSSMCanvas, BatteryFrame, BacklightFrame
 from . import functions as tk_functions
 
 from .. import const, util
 from ..settings import EM_SETTINGS
 from ..const import REFRESH_RATE
-from ..util import iidType
 
 if TYPE_CHECKING:
     from PythonScreenStackManager.elements import Element
@@ -613,8 +612,6 @@ class ElementWindow(_AdditionalWindow):
         text_widget.insert("0.0", elt_text)
         text_widget.configure(state=ttk.DISABLED)
         text_widget.grid(row=0, column=0, columnspan=2)
-        # text_widget.pack(fill=tk.X)
-
         img_button = ttk.Button(self,text="Show Image", command=self.show_element_image)
         img_button.grid(row=1, column=0)
         ToolTip(img_button,const.SHOW_IMAGE_TIP, const.TOOLTIP_STYLE)
@@ -760,8 +757,7 @@ class ConfigWindow(_AdditionalWindow):
         if not hasattr(self._core, "config"):
             text = "No config loaded"
             return text
-        
-        # text = self._core.integration_loader._loaded_integrations
+
         text = self._core.config.filePath.name
         return text
 
