@@ -62,7 +62,7 @@ class Device(BaseDevice, windowed.Device):
     interactive : bool, optional
         Whether the dashboard can be interacted with, by default True
     network : bool, optional
-        Whether to use network_features, by default False
+        Whether to use network_features, by default True
         This indicates the device can access the internet and periodically pols the network properties. Setting it to False does not actually block off internet access to the programme.
     backlight : bool, optional
         Whether to simulate screen brightness, i.e. print a transparent black rectangle over the dashboard, by default False. May affect performance when used.
