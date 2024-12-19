@@ -2,15 +2,11 @@
 
 import logging
 from typing import TYPE_CHECKING, Optional
-from types import MappingProxyType
 import tkinter as tk
-import asyncio
 import tkthread
 
 
-from PIL import Image, ImageTk
-import mdi_pil as mdi
-from mdi_pil import ttkbootstrap_mdi as ttk_mdi
+from PIL import ImageTk
 
 import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
@@ -19,7 +15,6 @@ import inkBoard
 from inkBoard import core as CORE
 
 from PythonScreenStackManager import elements
-from PythonScreenStackManager.tools import DummyTask
 
 from .. import const
 from ..settings import EM_SETTINGS
@@ -176,61 +171,6 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
     treeview.enable()
     return
 
-# @tkthread.called_on_main
-# def build_entity_tree():
-#     if "home_assistant" not in CORE.integration_objects:
-#         return
-    
-#     client: "HAclient" = CORE.integration_objects["home_assistant"]
-
-#     elts = client.elementDict
-#     states = client.stateDict
-
-#     treeview = tree_frame.entity_tree
-
-#     open_init = True
-
-#     for id, state in states.items():
-#         ##Show what state or attribute is connected to an element
-#         if not treeview.exists(id):
-#             dom = id.split(".")[0]
-#             icon = ENTITY_ICONS_TK.get(dom, ENTITY_ICONS_TK["default"])
-#             name = state["attributes"].get("friendly_name", id)
-#             treeview.insert(
-#                 "",
-#                 tk.END,
-#                 iid = id,
-#                 text=name,
-#                 values=(state["state"]),
-#                 image=icon,
-#                 open=open_init
-#             )
-#         if id in elts:
-#             for elt in elts[id]:
-#                 elttype = str(elt.__class__.__name__)
-#                 if elttype not in ELEMENT_ICONS_TK:
-#                     add_element_icon(elt)
-#                 icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
-#                 iid = elt.id #f"{id}_{eltname}_{elt.id}"
-#                 if not treeview.exists(iid):
-#                     treeview.insert(
-#                         id,
-#                         tk.END,
-#                         iid = iid,
-#                         text=elttype,
-#                         image=icon,
-#                         open=open_init
-#                     )
-#                 else:
-#                     if iid in treeview.get_children(id):
-#                         pass
-#                     else:
-#                         treeview.reattach(iid, id, tk.END)
-
-#                 _ELEMENT_DICT[iid] = elt
-#     return
-
-
 def element_tree_selected(tree: Treeview, event, iid):
     "Figure out which element was selected in the element tree, and pass it on to the indicator function"
     if not EM_SETTINGS.getboolean(const.HIGHLIGHT_VAR_NAME):
@@ -364,10 +304,4 @@ def import_funcs():
     element_tree.on_double_click = tree_double_click
     element_tree.on_hover = show_element_tip
 
-    
-
 window.call_in_main_thread(import_funcs)
-
-
-
-##Bind treeview functions

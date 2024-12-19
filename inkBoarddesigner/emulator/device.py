@@ -15,7 +15,6 @@ import tkthread
 import tkinter as tk
 
 from PIL import Image, ImageTk
-import ttkbootstrap as ttk
 
 from inkBoarddesigner.platforms.desktop import device
 from inkBoard.platforms.basedevice import InkboardDeviceFeatures, FEATURES
@@ -167,8 +166,6 @@ class Device(device.Device):
         name = config.device.get("name", None)
         if not name: name = "inkBoard Emulator"
 
-        # self.window = window
-        # self._canvas = self.window.screenCanvas
         self.window.title(f"inkBoard Designer - {self._model}")
 
         emulator_conf = {}
