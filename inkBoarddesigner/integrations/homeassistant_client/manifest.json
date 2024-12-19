@@ -4,6 +4,6 @@
     "codeowners": [],
     "documentation": "https://www.example.com",
     "requirements": ["websockets","requests"],
-    
-    "version": "0.1.0"
+
+    "version": "0.2.0"
 }
