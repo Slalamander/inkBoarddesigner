@@ -849,7 +849,6 @@ class HAclient:
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
                     _LOGGER.error(f"{func_list[i]} returned an exception: {res} ")
-                    if inkBoard.RAISE: raise res
 
     async def subscribe_to_trigger(self, entity: Union[str,list[str]] = None, trigger: dict = None):
         if entity == None and trigger == None:
