@@ -259,10 +259,13 @@ def reload_config(*args):
 
 
 def stop_emulator(*args, exce=None, new_state=None):
-    window.set_inkboard_state(new_state)
+    try:
+        window.set_inkboard_state(new_state)
 
-    if new_state == None:
-        window.update()
+        if new_state == None:
+            window.update()
+    except tk.TclError:
+        pass
 
     if not window._inkBoard_thread.is_alive():
         return

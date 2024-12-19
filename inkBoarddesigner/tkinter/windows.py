@@ -367,7 +367,7 @@ class DesignerWindow(ttk.Window):
             button_state = state
 
         for button in set_buttons:
-            button.configure(state=button_state)
+            button.configure(state=button_state)    #@IgnoreException
 
         self.treeFrame.list_menu.configure(state=button_state)
         self._set_config_label(self, state)

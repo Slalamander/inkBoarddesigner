@@ -50,13 +50,18 @@ def run_designer(args):
 
     ##Also don't forget, when running a new config to i.e. rebuild the icons and stuff
 
-    from .runners import async_run_designer
+    from .runners import async_run_designer, async_stop_designer
     from inkBoard import logging as ib_logging
 
     ib_logging.init_logging()
 
-
-    asyncio.run(async_run_designer(args))
+    try:
+        asyncio.run(async_run_designer(args))
+    except KeyboardInterrupt:
+        try:
+            asyncio.run(async_stop_designer())
+        except:
+            pass
 
     check_threads()
     return 0

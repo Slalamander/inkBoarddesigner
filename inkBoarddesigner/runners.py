@@ -40,11 +40,16 @@ def stop_designer():
 async def async_stop_designer():
     save_settings()
     if hasattr(CORE,"screen"):
-        stop_emulator(exce=SystemExit("Closing Designer"))
+        try:
+            stop_emulator(exce=SystemExit("Closing Designer"))
+        except:
+            pass
     
     if window._inkBoard_thread:
-        window._inkBoard_thread.join()
+        window._inkBoard_thread.join(timeout=5)
     await asyncio.sleep(0)
+    for task in asyncio.all_tasks():
+        task.cancel()
     window.stop_update_loop()
     await asyncio.sleep(0)
     return
@@ -219,6 +224,8 @@ async def run_inkboard_thread(config_file):
         except SystemExit:
             window._inkBoard_lock.release() #Keeping this here to catch out the errors in IDE
             reload_finally = False
+        except KeyboardInterrupt:
+            stop_designer()
             
         except RuntimeError:
             pass

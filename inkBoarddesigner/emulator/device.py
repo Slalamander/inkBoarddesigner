@@ -336,7 +336,10 @@ class Device(device.Device):
 
     def _quit(self):
         for widget, seq, funcid in self._bound:
-            widget.unbind(seq,funcid)
+            try:
+                widget.unbind(seq,funcid)
+            except tk.TclError:
+                continue
         return
 
     async def _update_canvas(self, img: Image.Image = None):
