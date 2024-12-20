@@ -31,6 +31,7 @@ from PythonScreenStackManager.tools import DummyTask, TouchEvent
 from PythonScreenStackManager.pssm_types import *
 from PythonScreenStackManager.pssm.util import elementactionwrapper
 
+import inkBoard.constants
 from inkBoard.platforms.basedevice import BaseDevice, BaseConnectionNetwork, InkboardDeviceFeatures, FEATURES
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
@@ -49,7 +50,7 @@ class Device(BaseDevice, pssm_device.Device):
 	def __init__(self, name: str = pssm_device.full_device_name, rotation: RotationValues = "UR", kill_os: bool = True, refresh_rate: DurationType = "30min",
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		
-		features = [FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_NETWORK, FEATURES.FEATURE_BATTERY]
+		features = pssm_device.feature_list.copy()
 
 		if pywifi:
 			self._network = ConnectionNetwork()
@@ -76,6 +77,9 @@ class Device(BaseDevice, pssm_device.Device):
 		self._refreshRate = refresh_rate
 
 		FBInk.rotate_screen(rotation)
+		splashscreen = inkBoard.constants.INKBOARD_FOLDER / "files" / "images" / "default_background.png"
+		splash_img = ImageOps.fit(Image.open(splashscreen),(self.screenWidth,self.screenHeight))
+		FBInk.fbink_print_pil(splash_img)
 
 	#region
 	##Redefining a few properties to prevent having to call the basedevice
@@ -129,9 +133,6 @@ class Device(BaseDevice, pssm_device.Device):
 				await touch_queue.put(TouchEvent(x,y,touch_action))
 		return
 
-	def _quit(self):
-		self.close_print_handler()
-
 	async def refresh_loop(self):
 		wait_time = tools.parse_duration_string(self.refreshRate)
 		while self.Screen.printing:
@@ -140,10 +141,6 @@ class Device(BaseDevice, pssm_device.Device):
 				self.refresh_screen()
 			except asyncio.CancelledError:
 				return
-
-	@staticmethod
-	def close_print_handler():
-		FBInk.close()
 		
 	async def _rotate(self, rotation=None):
 		await asyncio.to_thread(FBInk.rotate_screen(rotation))
