@@ -42,7 +42,10 @@ from .fbink import API as FBInk
 _LOGGER = logging.getLogger(__name__)
 
 class Device(BaseDevice, pssm_device.Device):
-	##Use pssm_device as base class but do not call it's init. work from inkboard base device for it.
+	"""Base class for inkBoard on kobos.
+
+	Optionally can control the wifi interface.
+	"""
 	def __init__(self, name: str = pssm_device.full_device_name, kill_os: bool = True, refresh_rate: DurationType = "30min",
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		
@@ -167,7 +170,7 @@ class Device(BaseDevice, pssm_device.Device):
 	
 
 
-class ConnectionNetwork(pssm_device.BaseNetwork, BaseConnectionNetwork):
+class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 	def __init__(self):
 		
 		wifi = pywifi.PyWiFi()

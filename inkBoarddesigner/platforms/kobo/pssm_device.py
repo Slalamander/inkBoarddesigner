@@ -78,12 +78,31 @@ Image.Resampling = ResamplingWrapper
 full_device_name = f"{FBInk.platform} {FBInk.device_name}"
 
 class Device(basedevice.PSSMdevice):
-	
+
 	def __init__(self, name: str = full_device_name, kill_os: bool = True,
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
+		"""A base device to run with PSSM. Importing applies some fixes to PIL as well.
+
+		There is support for long touches, however the input library is unable to descern the coordinates of the initial touch.
+
+		Parameters
+		----------
+		name : str, optional
+			The name of the device, by default full_device_name as gotten from fbink
+		kill_os : bool, optional
+			This kills most of the running kobo processes when the device is initalised, by default True
+			This should prevent the device going into sleep mode, for example.
+		touch_debounce_time : DurationType, optional
+			The default time to allow a full touch to be registered, by default aioKIP.DEFAULT_DEBOUNCE_TIME
+		hold_touch_time : DurationType, optional
+			The minimum time to hold a touch for it to be passed as being held, by default aioKIP.DEFAULT_HOLD_TIME
+		input_device_path : str, optional
+			Optionally the path to the touchscreen input, by default aioKIP.DEFAULT_INPUT_DEVICE
+		"""	
+
 		features = basedevice.DeviceFeatures(interactive=True, 
 									battery=True, backlight=True, network=True)
-
+		
 		if kill_os:
 			util.kill_os()
 
@@ -196,7 +215,7 @@ class Device(basedevice.PSSMdevice):
 
 	def set_waveform(self, mode):
 		FBInk.set_waveform(mode)
-	
+
 
 
 # #################### - Hardware etc. - #############################################
