@@ -31,7 +31,7 @@ from PythonScreenStackManager.tools import DummyTask, TouchEvent
 from PythonScreenStackManager.pssm_types import *
 from PythonScreenStackManager.pssm.util import elementactionwrapper
 
-from inkBoard.platforms.basedevice import BaseDevice, BaseConnectionNetwork, InkboardDeviceFeatures
+from inkBoard.platforms.basedevice import BaseDevice, BaseConnectionNetwork, InkboardDeviceFeatures, FEATURES
 
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
@@ -46,23 +46,14 @@ class Device(BaseDevice, pssm_device.Device):
 
 	Optionally can control the wifi interface.
 	"""
-	def __init__(self, name: str = pssm_device.full_device_name, kill_os: bool = True, refresh_rate: DurationType = "30min",
+	def __init__(self, name: str = pssm_device.full_device_name, rotation: RotationValues = "UR", kill_os: bool = True, refresh_rate: DurationType = "30min",
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		
-		features = InkboardDeviceFeatures(interactive=True, 
-									battery=True, backlight=True, 
-									network=True)
-		features = {"interactive": True,
-					"battery": True,
-					"network": True,
-					"backlight": True,
-					"power": True,		##Test these too
-					"rotation": True	##Test out rotation
-					}
+		features = [FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_NETWORK, FEATURES.FEATURE_BATTERY]
 
 		if pywifi:
 			self._network = ConnectionNetwork()
-			features["connection"] = True
+			features.append(FEATURES.FEATURE_CONNECTION)
 		else:
 			self._network = pssm_device.Network()
 
@@ -73,12 +64,18 @@ class Device(BaseDevice, pssm_device.Device):
 
 		self._model = pssm_device.full_device_name
 		self._name = name
+		self._features = InkboardDeviceFeatures(*features)
+
+		self._battery = pssm_device.Battery()
+		self._backlight = pssm_device.Backlight(self)
 
 		if kill_os:
 			util.kill_os()
 		
 		tools.parse_duration_string(refresh_rate)
 		self._refreshRate = refresh_rate
+
+		FBInk.rotate_screen(rotation)
 
 	#region
 	##Redefining a few properties to prevent having to call the basedevice
@@ -168,11 +165,10 @@ class Device(BaseDevice, pssm_device.Device):
 	def set_waveform(self, mode):
 		FBInk.set_waveform(mode)
 	
-
-
 class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 	def __init__(self):
-		
+		wifilogger = logging.getLogger(pywifi.__name__)
+		wifilogger.setLevel(logging.WARNING)
 		wifi = pywifi.PyWiFi()
 		self._iface: pywifi.iface.Interface = wifi.interfaces()[0]
 		profiles = self._iface.network_profiles()

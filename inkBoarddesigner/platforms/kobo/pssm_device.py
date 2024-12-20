@@ -35,6 +35,9 @@ batteryCapacityFile = "/sys/devices/platform/pmic_battery.1/power_supply/mc13892
 batteryStatusFile   = "/sys/devices/platform/pmic_battery.1/power_supply/mc13892_bat/status"
 
 original_truetype = ImageFont.truetype
+
+FEATURES = basedevice.FEATURES
+
 def truetype_wrapper(font = None, size: int = 10, index: int = 0, encoding: str = "", layout_engine = None):
 	"Wrapper for truetype fonts to accept Path instance as font value"
 	if isinstance(font,Path):
@@ -79,7 +82,7 @@ full_device_name = f"{FBInk.platform} {FBInk.device_name}"
 
 class Device(basedevice.PSSMdevice):
 
-	def __init__(self, name: str = full_device_name, kill_os: bool = True,
+	def __init__(self, name: str = full_device_name, rotation: RotationValues = "UR", kill_os: bool = True,
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		"""A base device to run with PSSM. Importing applies some fixes to PIL as well.
 
@@ -100,8 +103,7 @@ class Device(basedevice.PSSMdevice):
 			Optionally the path to the touchscreen input, by default aioKIP.DEFAULT_INPUT_DEVICE
 		"""	
 
-		features = basedevice.DeviceFeatures(interactive=True, 
-									battery=True, backlight=True, network=True)
+		features = basedevice.DeviceFeatures(FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_BATTERY, FEATURES.FEATURE_NETWORK)
 		
 		if kill_os:
 			util.kill_os()
@@ -118,6 +120,7 @@ class Device(basedevice.PSSMdevice):
 		self.__KIPargs = {"input_device": input_device_path}
 		self.__KIPargs["debounce_time"] = tools.parse_duration_string(touch_debounce_time)
 		self.__KIPargs["long_click_time"] = tools.parse_duration_string(hold_touch_time)
+		FBInk.rotate_screen(rotation)
 
 	#region
 	@property
@@ -286,7 +289,7 @@ class Backlight(basedevice.Backlight):
 			return
 		
 		##Do not change this for file reading or whatever. It messes up the file and breaks the frontlight (at least for the python implementation)
-		cmd = path_to_pssm_device + "/files/frontlight" + f" {level}"
+		cmd = path_to_pssm_device + "/scripts/frontlight" + f" {level}"
 		os.system(cmd)
 		self._level = level
 
@@ -430,7 +433,7 @@ class Battery(basedevice.Battery):
 	async def async_update_battery_state(self):
 		charge = await asyncio.to_thread(self.readBatteryPercentage())
 		state = await asyncio.to_thread(self.readBatteryState())
-		self._update_properties((charge,state))
+		self._update_properties((charge, state.lower()))
 
 	def readBatteryPercentage(self) -> str:
 		with open(batteryCapacityFile) as state:
@@ -450,7 +453,7 @@ class Battery(basedevice.Battery):
 					res += str(line).rstrip()
 					isFirst=False
 		
-		return res
+		return res.lower()
 
 class Network(basedevice.Network):
 	'''
