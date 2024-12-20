@@ -253,7 +253,7 @@ class API:
     @classmethod
     def fbink_print_image(cls, image_file: str, x_off: int, y_off: int):
         "Prints the image file onto the screen"
-        FBInk.fbink_print_image(cls._fbfd, image_file, x_off, y_off, cls._fbink_cfg)
+        FBInk.fbink_print_image(cls._fbfd, bytes(image_file, "utf-8"), x_off, y_off, cls._fbink_cfg)
 
     @classmethod
     def fbink_print_raw_data(cls, data: str, w: int, h: int, length, x_off: int, y_off: int):
