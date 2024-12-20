@@ -21,8 +21,7 @@ Here you can download NiLuJe's package that allows installing python on the devi
  - Pip needs to be installed to take care of installing all requirements. Run `python3.9 -m ensurepip`. You should have seen the warning after compiling Python, so be sure that you want to continue. Mainly, if python is updated on the device, you will need to install inkBoard again. The packaging process is partially meant to alleviate this.
  - Optionally add pip to path, but this should not necessarily be required. Run `python3.9 -m pip install inkBoard`
  - If you want to be able to invoke inkBoard without the python prefix (i.e. `inkBoard version` instead of `python3.9 -m inkBoard version`), run the command `ln -sf /mnt/onboard/.niluje/python3/bin/inkBoard /usr/bin/inkBoard`. Check if it worked by running `inkBoard version`.
- - It is best to create a seperate folder for your configuration. common practice is to do so in a folder called .adds. In there, make a folder called i.e. inkBoard.
- - Depen
+ - 
 
 
 
