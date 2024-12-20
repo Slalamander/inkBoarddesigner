@@ -25,7 +25,7 @@ def get_ip() -> Optional[str]:
         s.close()
     return IP
 
-async def get_SSID() -> Optional[str]:
+def get_SSID() -> Optional[str]:
     """Gets the name of the connected wifi network. Returns Wifi off if Wifi is off """
     
     if is_wifi_connected():
@@ -34,7 +34,7 @@ async def get_SSID() -> Optional[str]:
     else:
         return None
 
-async def get_mac() -> str:
+def get_mac() -> str:
     """Gets the devices mac adress"""
     ifconfig = (os.popen("ifconfig | grep eth0").read()).split()
     mac = ifconfig[-1]
