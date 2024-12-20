@@ -155,6 +155,10 @@ class InputQueue(asyncio.Queue):
         
 
     def __del__(self):
+        self.release_input_grab()
+
+    def release_input_grab(self):
+        "Releases the input device"
         ioctl(self._fileobject, grabber.EVIOCGRAB(1), False)
         self._fileobject.close()
         print("Input device file closed")
