@@ -83,7 +83,7 @@ class Device(BaseDevice, windowed.Device):
                 ):
 
         self._model = None
-
+        
         feature_dict = {FEATURES.FEATURE_INTERACTIVE: interactive, FEATURES.FEATURE_PRESS_RELEASE: interactive,
                         FEATURES.FEATURE_BACKLIGHT: backlight, FEATURES.FEATURE_NETWORK: network,}
         if plyer:
