@@ -24,7 +24,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "inkBoard>=0.2.0", "ttkbootstrap", "tkthread", "packaging"
+    "inkBoard>=0.2.6", "ttkbootstrap", "tkthread", "packaging"
 ]
 dynamic = ["version"]
 

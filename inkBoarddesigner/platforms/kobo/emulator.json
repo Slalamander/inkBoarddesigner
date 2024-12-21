@@ -1,13 +1,54 @@
 {
-    "features": ["network", "battery", "backlight", "interactive"],
+    "features": {
+        "FEATURE_POWER": true,
+        "FEATURE_INTERACTIVE": true,
+        "FEATURE_BACKLIGHT": true,
+        "FEATURE_NETWORK": true,
+        "FEATURE_BATTERY": true,
+        "FEATURE_RESIZE": false,
+        "FEATURE_ROTATION": false,
+        "FEATURE_PRESS_RELEASE": false,
+        "FEATURE_CONNECTION": true
+    },
     "refresh_rate": 15,
     "screen_type": "E-ink",
-    "models":
-        {
-        "Kobo Glo HD": 
-            {
-                "width": 1072,
-                "height": 1448
+    "models": {
+        "Kobo Glo HD": {
+            "width": 1072,
+            "height": 1448
+        }
+    },
+    "__init__": {
+        "required": {},
+        "optional": {
+            "name": {
+                "default": "Kobo Glo HD",
+                "type_hint": "str"
+            },
+            "rotation": {
+                "default": "UR",
+                "type_hint": "typing.Literal['UR', 'CW', 'UD', 'CCW']"
+            },
+            "kill_os": {
+                "default": true,
+                "type_hint": "bool"
+            },
+            "refresh_rate": {
+                "default": "30min",
+                "type_hint": "duration"
+            },
+            "touch_debounce_time": {
+                "default": 0.01,
+                "type_hint": "duration"
+            },
+            "hold_touch_time": {
+                "default": 0.5,
+                "type_hint": "duration"
+            },
+            "input_device_path": {
+                "default": "/dev/input/event1",
+                "type_hint": "str"
             }
         }
+    }
 }

@@ -34,6 +34,8 @@ class classproperty(Generic[T]):
             cls = type(obj)
         return self.method(cls)
 
+rotation_map = {"UR": 0, "CW": 1, "UD": 2, "CCW": 3}
+
 class API:
     """Wrapper around the FBInk lib class with doc strings and type hints were possible.
 
@@ -251,7 +253,7 @@ class API:
     @classmethod
     def fbink_print_image(cls, image_file: str, x_off: int, y_off: int):
         "Prints the image file onto the screen"
-        FBInk.fbink_print_image(cls._fbfd, image_file, x_off, y_off, cls._fbink_cfg)
+        FBInk.fbink_print_image(cls._fbfd, bytes(image_file, "utf-8"), x_off, y_off, cls._fbink_cfg)
 
     @classmethod
     def fbink_print_raw_data(cls, data: str, w: int, h: int, length, x_off: int, y_off: int):
@@ -337,12 +339,19 @@ class API:
             cls._fbink_cfg.wfm_mode = FBInk.WFM_AUTO
 
     @classmethod
-    def rotate_screen(cls, rota: int = None):
+    def rotate_screen(cls, rota: Union[int,str] = None):
         """Rotates the screen. 
         
         If rota is not passed, will rotate 90 degrees clockwise.
         Passes the command 'fbdepth -R' to the os, since rotation via the Python bindings seemed impossible.
         """
+
+        if isinstance(rota, str):
+            if not rota in rotation_map:
+                _LOGGER.warning(f"{rota} is not a valid rotation value. Use {rotation_map.keys()}")
+                return
+            rota = rotation_map[rota]
+
         if rota == cls.current_rota_canonical:
             return
         

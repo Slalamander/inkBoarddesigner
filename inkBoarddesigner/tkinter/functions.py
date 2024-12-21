@@ -225,7 +225,30 @@ def save_image(img: Image.Image, base_name: str = "Inkboard_Screenshot_"):
 
 def make_package(*args):
     ##Will extend this later to include dealing saveas screens etc.
-    packaging.create_core_package(CORE, pack_all=True)
+
+    if (not hasattr(CORE,"config") 
+        or not hasattr(CORE,"device")
+        or not hasattr(CORE,"screen")
+        ): 
+        _LOGGER.warning("Cannot create package without a complete CORE")
+        return
+
+    file = asksaveasfile(
+        confirmoverwrite=True,
+        filetypes=[("ZIP", "*.zip")],
+        defaultextension=[("ZIP", "*.zip")],
+        initialdir=CORE.config.baseFolder,
+        initialfile=f'inkBoard_package_{CORE.device.emulated_platform}_{CORE.config.filePath.stem}'
+    )
+    if file == None:
+        return
+
+    file = Path(file.name)
+    filename = file.stem
+    folder = file.parent
+
+    packaging.Packager(CORE, folder).create_package(filename)
+    return
 
 
 def open_device_window(event):

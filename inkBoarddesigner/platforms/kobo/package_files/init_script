@@ -1,0 +1,7 @@
+#!/bin/sh
+
+echo "Starting inkBoard in 60 seconds..."
+sleep 60
+/mnt/onboard/.adds/inkBoard/files/auto_start.sh
+
+#If this stops working, run dos2unix on it. Windows sometimes mangles file endings.
