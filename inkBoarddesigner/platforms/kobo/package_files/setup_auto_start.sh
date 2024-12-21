@@ -27,6 +27,8 @@ fi
 
 cd $APP_FOLDER
 
+dos2unix $INIT_SCRIPT_LOCAL
+
 # copy the automatic initializer
 cp $INIT_SCRIPT_LOCAL $INIT_SCRIPT_REMOTE
 chmod a+x $INIT_SCRIPT_REMOTE
