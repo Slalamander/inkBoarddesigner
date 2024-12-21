@@ -4,5 +4,5 @@
     "optional_requirements": {
         "connection": ["pywifi"]
     },
-    "inkboard_requirements": {}
+    "inkboard_requirements": {"inkboard_version": ">=0.2.7"}
 }
