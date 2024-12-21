@@ -24,9 +24,7 @@ Here you can download NiLuJe's package that allows installing python on the devi
  - Create the virtual environment: `python3.9 -m venv .venv --system-site-packages`. The `--system-site-packages` flag ensures the environment does have access to the packages already provided by the python package. Activate it by running `source ./.venv/bin/activate`.
  - Run `pip install inkBoard` to install inkBoard. Inside the environment, there is access to pip.
  - If you want to be able to invoke inkBoard without the python prefix (i.e. `inkBoard version` instead of activating the venv and then running `inkBoard version`), run the command `ln -sf /mnt/onboard/.adds/inkBoard/.venv/bin/inkBoard /usr/bin/inkBoard`. Check if it worked by running `inkBoard version`.
- - If you created a package, in the configuration folder or the base folder, there should be a script called `setup.sh`. If you run it, it should setup the setting to keep the wifi on as well, and include a script that will automatically start inkBoard when the device boots.
-
-
+ - If you created a package, in the configuration folder or the base folder, there should be a script called `setup_auto_start.sh`. This will copy the file `init_script` to `/etc/init.d` and add to the commands to run at boot. The script calls `auto_start.sh` 60 seconds after booting up, which runs inkBoard. By default, it runs the file "configuration.yaml", but the filename can be changed in `kobo_settings.json`. The "auto_start" entry in there can also be changed if automatically starting inkBoard is not desired anymore.
 
 ## Configuration
 
@@ -59,3 +57,4 @@ Some notes and reminders regarding the installation process:
 - Symlinking pip into PATH: `ln -sf /mnt/onboard/.niluje/python3/bin/pip /usr/bin/pip`
 - Due to a quirk in touch handling, in order to implement the hold functionality, the first touch is never registered as valid. 
 - In case your device breaks, I was able to reset the firmware by holding the top button, and pressing both corners of the screen at the same time. This was on a Kobo Glod HD, and the process may differ on other devices.
+- If preffered, the setup script can encompass every step after installing python on the device. However due to the notes and stuff in it, I do think it is better to have people just follow the readme entirely, so they also have an idea of how to maybe fix stuff if it breaks.
