@@ -334,7 +334,7 @@ class Device(device.Device):
             self.backlight.set_tkinter_settings()
         return
 
-    def _quit(self):
+    def _quit(self, exce):
         for widget, seq, funcid in self._bound:
             try:
                 widget.unbind(seq,funcid)
@@ -440,6 +440,16 @@ class Device(device.Device):
         await self.parentPSSMScreen.print_stack()
         tkthread.call_nosync(self.__print_on_canvas, self.last_printed_PIL.copy())
         return
+
+    def power_off(self, *args):
+        if not self.has_feature(FEATURES.FEATURE_POWER):
+            _LOGGER.error(f"Platform {self.emulated_platform} does not support the power feature")
+        _LOGGER.info("This would have powered off the device")
+
+    def reboot(self, *args):
+        if not self.has_feature(FEATURES.FEATURE_POWER):
+            _LOGGER.error(f"Platform {self.emulated_platform} does not support the power feature")
+        _LOGGER.info("This would have rebooted the device")
 
 class Battery(device.BaseBattery):
     

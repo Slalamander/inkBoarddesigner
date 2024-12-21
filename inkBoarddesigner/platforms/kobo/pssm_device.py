@@ -4,6 +4,7 @@
 #!/usr/bin/env python
 import sys
 import os
+import subprocess
 import socket
 import asyncio
 import logging
@@ -16,7 +17,7 @@ from contextlib import suppress
 #Fbink functions etc. can best be checked here: https://github.com/NiLuJe/FBInk/blob/master/fbink.h
 #But this is all in C, so some translating may be needed -> yawk has an fbink mock
 
-from PythonScreenStackManager import constants as const, devices as basedevice, tools
+from PythonScreenStackManager import constants as const, devices as basedevice, tools, exceptions as pssm_exceptions, elements
 from PythonScreenStackManager.tools import DummyTask, TouchEvent
 from PythonScreenStackManager.pssm_types import *
 
@@ -35,6 +36,9 @@ batteryCapacityFile = "/sys/devices/platform/pmic_battery.1/power_supply/mc13892
 batteryStatusFile   = "/sys/devices/platform/pmic_battery.1/power_supply/mc13892_bat/status"
 
 original_truetype = ImageFont.truetype
+
+FEATURES = basedevice.FEATURES
+
 def truetype_wrapper(font = None, size: int = 10, index: int = 0, encoding: str = "", layout_engine = None):
 	"Wrapper for truetype fonts to accept Path instance as font value"
 	if isinstance(font,Path):
@@ -74,16 +78,34 @@ class ResamplingWrapper:
 
 Image.Resampling = ResamplingWrapper
 
-
+feature_list = [FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_BATTERY, FEATURES.FEATURE_NETWORK, FEATURES.FEATURE_POWER]
 full_device_name = f"{FBInk.platform} {FBInk.device_name}"
 
 class Device(basedevice.PSSMdevice):
-	
-	def __init__(self, name: str = full_device_name, kill_os: bool = True,
-			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
-		features = basedevice.DeviceFeatures(interactive=True, 
-									battery=True, backlight=True, network=True)
 
+	def __init__(self, name: str = full_device_name, rotation: RotationValues = "UR", kill_os: bool = True,
+			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
+		"""A base device to run with PSSM. Importing applies some fixes to PIL as well.
+
+		There is support for long touches, however the input library is unable to descern the coordinates of the initial touch.
+
+		Parameters
+		----------
+		name : str, optional
+			The name of the device, by default full_device_name as gotten from fbink
+		kill_os : bool, optional
+			This kills most of the running kobo processes when the device is initalised, by default True
+			This should prevent the device going into sleep mode, for example.
+		touch_debounce_time : DurationType, optional
+			The default time to allow a full touch to be registered, by default aioKIP.DEFAULT_DEBOUNCE_TIME
+		hold_touch_time : DurationType, optional
+			The minimum time to hold a touch for it to be passed as being held, by default aioKIP.DEFAULT_HOLD_TIME
+		input_device_path : str, optional
+			Optionally the path to the touchscreen input, by default aioKIP.DEFAULT_INPUT_DEVICE
+		"""	
+
+		features = basedevice.DeviceFeatures(*feature_list)
+		
 		if kill_os:
 			util.kill_os()
 
@@ -99,6 +121,7 @@ class Device(basedevice.PSSMdevice):
 		self.__KIPargs = {"input_device": input_device_path}
 		self.__KIPargs["debounce_time"] = tools.parse_duration_string(touch_debounce_time)
 		self.__KIPargs["long_click_time"] = tools.parse_duration_string(hold_touch_time)
+		FBInk.rotate_screen(rotation)
 
 	#region
 	@property
@@ -168,11 +191,14 @@ class Device(basedevice.PSSMdevice):
 				await touch_queue.put(TouchEvent(x,y,touch_action))
 		return
 
-	def _quit(self):
-		self.close_print_handler()
+	def _quit(self, exce=None):
+		self._eventQueue.release_input_grab()
+		if not isinstance(exce,pssm_exceptions.ReloadWarning):
+			self.close_print_handler()
 
 	@staticmethod
 	def close_print_handler():
+		_LOGGER.info("Closing FBInk")
 		FBInk.close()
 		
 	async def _rotate(self, rotation=None):
@@ -196,8 +222,28 @@ class Device(basedevice.PSSMdevice):
 
 	def set_waveform(self, mode):
 		FBInk.set_waveform(mode)
-	
 
+	def reboot(self, *args):
+		_LOGGER.info("Rebooting device")
+		FBInk.screen_clear()
+		FBInk.fbink_print("Rebooting...")
+		self.power_off_screen("Rebooting...")
+		self.Screen.quit()
+		os.system("reboot")
+
+	def power_off(self, *args):
+		_LOGGER.info("Powering off device")
+		FBInk.screen_clear()
+		FBInk.fbink_print("Powering Off")
+		self.power_off_screen("Powered Off")
+		self.Screen.quit()
+		os.system("poweroff")
+
+	def power_off_screen(self, text: str):
+		splashBtn = elements.Button(text, text_x_position='left', font_color="white", font="default-bold", font_size=0, fit_text=True)
+		splashLayout = [["h*0.7", (None,"w")], ["h*0.2", (None, "?"), (splashBtn,"0.85*w")]]
+		img = elements.Layout(splashLayout, background_color="black").generator([(0,0),(self.viewWidth,self.viewHeight)])
+		FBInk.fbink_print_pil(img)
 
 # #################### - Hardware etc. - #############################################
 class Backlight(basedevice.Backlight):
@@ -267,7 +313,7 @@ class Backlight(basedevice.Backlight):
 			return
 		
 		##Do not change this for file reading or whatever. It messes up the file and breaks the frontlight (at least for the python implementation)
-		cmd = path_to_pssm_device + "/files/frontlight" + f" {level}"
+		cmd = path_to_pssm_device + "/scripts/frontlight" + f" {level}"
 		os.system(cmd)
 		self._level = level
 
@@ -411,7 +457,7 @@ class Battery(basedevice.Battery):
 	async def async_update_battery_state(self):
 		charge = await asyncio.to_thread(self.readBatteryPercentage())
 		state = await asyncio.to_thread(self.readBatteryState())
-		self._update_properties((charge,state))
+		self._update_properties((charge, state.lower()))
 
 	def readBatteryPercentage(self) -> str:
 		with open(batteryCapacityFile) as state:
@@ -431,6 +477,9 @@ class Battery(basedevice.Battery):
 					res += str(line).rstrip()
 					isFirst=False
 		
+		res = res.lower()
+		if res == "not charging":
+			res = "discharging"
 		return res
 
 class Network(basedevice.Network):
@@ -466,6 +515,11 @@ class Network(basedevice.Network):
 	def macAddr(self) -> str:
 		"""Returns the mac adress of the device"""
 		return self._macAddr
+	
+	@property
+	def signal(self) -> int:
+		"Wifi signal percentage, from 0-100, or None if unavailable."
+		return None
 
 	async def async_update_network_properties(self):
 		await asyncio.to_thread(self._update_network_properties)
