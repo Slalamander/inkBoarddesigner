@@ -334,7 +334,7 @@ class Device(device.Device):
             self.backlight.set_tkinter_settings()
         return
 
-    def _quit(self):
+    def _quit(self, exce):
         for widget, seq, funcid in self._bound:
             try:
                 widget.unbind(seq,funcid)
