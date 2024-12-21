@@ -21,11 +21,6 @@ from contextlib import suppress
 #But this is all in C, so some translating may be needed -> yawk has an fbink mock
 # Load Pillow
 
-try:
-	import pywifi ##Implement pywifi rn but for the bare pssm implementation don't implement it.
-except ModuleNotFoundError:
-	pyfwifi = False
-
 from PythonScreenStackManager import constants as const, devices as basedevice, tools
 from PythonScreenStackManager.tools import DummyTask, TouchEvent
 from PythonScreenStackManager.pssm_types import *
@@ -42,6 +37,14 @@ from .fbink import API as FBInk
 
 _LOGGER = logging.getLogger(__name__)
 
+
+try:
+	import pywifi ##Implement pywifi rn but for the bare pssm implementation don't implement it.
+	pywifi_installed = True
+	_LOGGER.debug("Using pywifi")
+except ModuleNotFoundError:
+	pywifi_installed = False
+
 class Device(BaseDevice, pssm_device.Device):
 	"""Base class for inkBoard on kobos.
 
@@ -51,11 +54,12 @@ class Device(BaseDevice, pssm_device.Device):
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		
 		features = pssm_device.feature_list.copy()
-
-		if pywifi:
+		if pywifi_installed:
+			_LOGGER.debug("Setting up connection Network")
 			self._network = ConnectionNetwork()
 			features.append(FEATURES.FEATURE_CONNECTION)
 		else:
+			_LOGGER.debug("Setting up Base Network")
 			self._network = pssm_device.Network()
 
 		##Check if these are correctly parsed when calling event bindings
@@ -214,7 +218,7 @@ class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 	def connect(self, ssid: str = None, password: str = None):
 		asyncio.create_task(self.async_connect(ssid,password))
 
-	def __wifi_connect(self, profile: pywifi.Profile):
+	def __wifi_connect(self, profile: "pywifi.Profile"):
 
 		if profile != self._baseprofile:
 			self._baseprofile = profile
