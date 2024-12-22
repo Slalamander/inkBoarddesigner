@@ -365,7 +365,7 @@ class Backlight(basedevice.Backlight):
 		
 		await self.notify_condition()
 
-	async def turn_on_async(self, brightness : int, transition: float):
+	async def turn_on_async(self, brightness : int = None, transition: float = None):
 		"""Async function to provide support for transitions at turn on. Does NOT perform sanity checks"""
 		_LOGGER.verbose("Async turning on")
 		if self.brightness == brightness:
