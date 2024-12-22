@@ -2801,11 +2801,9 @@ class WeatherElement(_EntityLayout, base._TileBase):
             
         
         HAelement.__init__(self)
-        t = tap_action
         base._TileBase.__init__(self, tile_layout, hide=hide,
                                 vertical_sizes=vertical_sizes,  horizontal_sizes=horizontal_sizes,
                                 element_properties=set_element_properties, tap_action=tap_action, **kwargs)
-
         if not self._isForecast:
             self.element_properties
         ##Data properties should work ok like this?
@@ -2829,6 +2827,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
         
         default_data_properties.update(weather_data_properties)
         self.weather_data_properties = default_data_properties
+        self.hide = hide
 
         self._rebuild_layout = True
         "Set this to rebuild the layout the next time the generator is called."
@@ -3197,7 +3196,9 @@ class WeatherElement(_EntityLayout, base._TileBase):
             if self.parentPSSMScreen.mainLoop.is_running():
                 self.parentPSSMScreen.mainLoop.create_task(self.trigger_function(None, trigger))
 
+        # base._TileBase().build_layout()
         self._rebuild_layout = False
+        self._reparse_layout = True
         return
         ##TileLayout for the full thing too? yeah sure. With a default, which automatically returns a vertical layout
         ##Should also make parsing them easier.
