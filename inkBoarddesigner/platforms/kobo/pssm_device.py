@@ -79,7 +79,7 @@ class ResamplingWrapper:
 
 Image.Resampling = ResamplingWrapper
 
-feature_list = [FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_BATTERY, FEATURES.FEATURE_NETWORK, FEATURES.FEATURE_POWER]
+feature_list = [FEATURES.FEATURE_INTERACTIVE, FEATURES.FEATURE_BACKLIGHT, FEATURES.FEATURE_BATTERY, FEATURES.FEATURE_NETWORK, FEATURES.FEATURE_POWER, FEATURES.FEATURE_ROTATION]
 full_device_name = f"{FBInk.platform} {FBInk.device_name}"
 
 class Device(basedevice.PSSMdevice):
@@ -97,6 +97,8 @@ class Device(basedevice.PSSMdevice):
 		kill_os : bool, optional
 			This kills most of the running kobo processes when the device is initalised, by default True
 			This should prevent the device going into sleep mode, for example.
+		rotation: RotationValues
+			The orientation the screen will start in
 		touch_debounce_time : DurationType, optional
 			The default time to allow a full touch to be registered, by default aioKIP.DEFAULT_DEBOUNCE_TIME
 		hold_touch_time : DurationType, optional
@@ -123,6 +125,9 @@ class Device(basedevice.PSSMdevice):
 		self.__KIPargs["debounce_time"] = tools.parse_duration_string(touch_debounce_time)
 		self.__KIPargs["long_click_time"] = tools.parse_duration_string(hold_touch_time)
 		FBInk.rotate_screen(rotation)
+
+		if isinstance(rotation, int):
+			rotation = RotationValues.__args__[rotation]
 
 	#region
 	@property
@@ -195,6 +200,11 @@ class Device(basedevice.PSSMdevice):
 	def _set_screen(self):
 		self.Screen.add_shorthand_function("refresh-screen", self.refresh_screen)
 
+		rota = FBInk.current_rota_canonical
+		rotation_val = RotationValues.__args__[rota]
+		s = self.Screen._SETTINGS
+		self.Screen._SETTINGS["screen"]["rotation"] = rotation_val
+
 	def _quit(self, exce=None):
 		self._eventQueue.release_input_grab()
 		if not isinstance(exce,pssm_exceptions.ReloadWarning):
@@ -206,11 +216,12 @@ class Device(basedevice.PSSMdevice):
 		FBInk.close()
 		
 	async def _rotate(self, rotation=None):
+		_LOGGER.info(f"Rotating device to {rotation}")
 		if isinstance(rotation, str):
 			rotation = get_args(RotationValues).index(rotation)
-		await asyncio.to_thread(FBInk.rotate_screen(rotation))
+		await asyncio.to_thread(FBInk.rotate_screen,rotation)
 		await self.Screen._screen_resized()
-		await asyncio.to_thread(FBInk.screen_refresh())
+		await asyncio.to_thread(self.refresh_screen)
 
 	@elementactionwrapper.method
 	def clear_screen(self):
@@ -450,6 +461,12 @@ class Battery(basedevice.Battery):
 	The battery of the device. Provides callbacks to get the battery state and charge level, as well as update it.
 	'''
 	def __init__(self):
+
+		##Ensuring the backlight is off when the dashboard starts, so the brightness and state are correct
+		# charge = self.readBatteryPercentage()
+		# state = self.readBatteryState()
+
+		# self._update_properties((charge,state))
 		self.update_battery_state()
 
 	@property
@@ -473,7 +490,6 @@ class Battery(basedevice.Battery):
 			state = self.readBatteryState()
 		_LOGGER.debug(f"Reporting battery state {state} with charge {charge}")
 		self._update_properties((charge, state.lower()))
-
 
 	def readBatteryPercentage(self) -> str:
 		with open(batteryCapacityFile) as state:
