@@ -450,12 +450,6 @@ class Battery(basedevice.Battery):
 	The battery of the device. Provides callbacks to get the battery state and charge level, as well as update it.
 	'''
 	def __init__(self):
-
-		##Ensuring the backlight is off when the dashboard starts, so the brightness and state are correct
-		# charge = self.readBatteryPercentage()
-		# state = self.readBatteryState()
-
-		# self._update_properties((charge,state))
 		self.update_battery_state()
 
 	@property
