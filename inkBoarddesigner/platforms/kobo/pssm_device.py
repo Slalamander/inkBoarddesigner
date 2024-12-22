@@ -452,10 +452,11 @@ class Battery(basedevice.Battery):
 	def __init__(self):
 
 		##Ensuring the backlight is off when the dashboard starts, so the brightness and state are correct
-		charge = self.readBatteryPercentage()
-		state = self.readBatteryState()
+		# charge = self.readBatteryPercentage()
+		# state = self.readBatteryState()
 
-		self._update_properties((charge,state))
+		# self._update_properties((charge,state))
+		self.update_battery_state()
 
 	@property
 	def percentage(self):
@@ -468,9 +469,17 @@ class Battery(basedevice.Battery):
 		return self._batteryState
 
 	async def async_update_battery_state(self):
-		charge = await asyncio.to_thread(self.readBatteryPercentage())
-		state = await asyncio.to_thread(self.readBatteryState())
+		await asyncio.to_thread(self.update_battery_state)		
+
+	def update_battery_state(self):
+		charge = self.readBatteryPercentage()
+		if charge == 100:
+			state = "full"
+		else:
+			state = self.readBatteryState()
+		_LOGGER.debug(f"Reporting battery state {state} with charge {charge}")
 		self._update_properties((charge, state.lower()))
+
 
 	def readBatteryPercentage(self) -> str:
 		with open(batteryCapacityFile) as state:
