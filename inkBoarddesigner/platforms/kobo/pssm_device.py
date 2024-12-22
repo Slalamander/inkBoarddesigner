@@ -19,6 +19,7 @@ from contextlib import suppress
 
 from PythonScreenStackManager import constants as const, devices as basedevice, tools, exceptions as pssm_exceptions, elements
 from PythonScreenStackManager.tools import DummyTask, TouchEvent
+from PythonScreenStackManager.pssm.util import elementactionwrapper
 from PythonScreenStackManager.pssm_types import *
 
 from PIL import Image, ImageFont, ImageOps
@@ -191,6 +192,9 @@ class Device(basedevice.PSSMdevice):
 				await touch_queue.put(TouchEvent(x,y,touch_action))
 		return
 
+	def _set_screen(self):
+		self.Screen.add_shorthand_function("refresh-screen", self.refresh_screen)
+
 	def _quit(self, exce=None):
 		self._eventQueue.release_input_grab()
 		if not isinstance(exce,pssm_exceptions.ReloadWarning):
@@ -208,21 +212,28 @@ class Device(basedevice.PSSMdevice):
 		await self.Screen._screen_resized()
 		await asyncio.to_thread(FBInk.screen_refresh())
 
-
+	@elementactionwrapper.method
 	def clear_screen(self):
 		"Clears the entire screen"
 		FBInk.screen_clear()
 	
+	@elementactionwrapper.method
 	def refresh_screen(self, skip_clear: bool = False):
 		"Refreshes the entire screen. By default clears it first"
+		_LOGGER.info("Refreshing screen")
 		if not skip_clear:
 			self.clear_screen()
 		
 		FBInk.screen_refresh()
 
+		self.Screen.mainLoop.create_task(
+			self.Screen.print_stack(forceLayoutGen=True))
+
+	@elementactionwrapper.method
 	def set_waveform(self, mode):
 		FBInk.set_waveform(mode)
 
+	@elementactionwrapper.method
 	def reboot(self, *args):
 		_LOGGER.info("Rebooting device")
 		FBInk.screen_clear()
@@ -231,6 +242,7 @@ class Device(basedevice.PSSMdevice):
 		self.Screen.quit()
 		os.system("reboot")
 
+	@elementactionwrapper.method
 	def power_off(self, *args):
 		_LOGGER.info("Powering off device")
 		FBInk.screen_clear()
@@ -240,7 +252,8 @@ class Device(basedevice.PSSMdevice):
 		os.system("poweroff")
 
 	def power_off_screen(self, text: str):
-		splashBtn = elements.Button(text, text_x_position='left', font_color="white", font="default-bold", font_size=0, fit_text=True)
+		"Prints a screen to indicate the device has powered off or is rebooting"
+		splashBtn = elements.Button(text, text_x_position='left', font_color="white", font="default-bold", font_size=elements.DEFAULT_FONT_SIZE, fit_text=True)
 		splashLayout = [["h*0.7", (None,"w")], ["h*0.2", (None, "?"), (splashBtn,"0.85*w")]]
 		img = elements.Layout(splashLayout, background_color="black").generator([(0,0),(self.viewWidth,self.viewHeight)])
 		FBInk.fbink_print_pil(img)

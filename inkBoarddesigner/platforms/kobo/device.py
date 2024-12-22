@@ -145,26 +145,6 @@ class Device(BaseDevice, pssm_device.Device):
 				self.refresh_screen()
 			except asyncio.CancelledError:
 				return
-		
-	async def _rotate(self, rotation=None):
-		await asyncio.to_thread(FBInk.rotate_screen(rotation))
-		await asyncio.to_thread(FBInk.screen_refresh())
-
-	@elementactionwrapper.method
-	def clear_screen(self):
-		"Clears the entire screen"
-		FBInk.screen_clear()
-	
-	@elementactionwrapper.method
-	def refresh_screen(self, skip_clear: bool = False):
-		"Refreshes the entire screen. By default clears it first"
-		if not skip_clear:
-			self.clear_screen()
-		
-		FBInk.screen_refresh()
-
-	def set_waveform(self, mode):
-		FBInk.set_waveform(mode)
 	
 class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 	def __init__(self):
