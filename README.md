@@ -23,3 +23,6 @@ For the Home Assistant example, you should fill out the `ha_substitutions.yaml` 
 
 Running the examples can be done by selecting the yaml file from the designer ui, or running `inkBoard designer configuration.yaml` from the examples folder.
 
+# With thanks
+Add this
+also try echo with dos2umix -> does not work
