@@ -290,7 +290,9 @@ async def icon_trigger(element: Union["elts.Icon", "HAelement"],trigger_dict : "
         ##Defining an icon in a state overwrites the attribute.
         _LOGGER.debug(f"{element}: Getting entity {element.entity} picture")
         if icon_attr == "entity_picture":
-            if element.iconData[0] != trigger_dict["to_state"]["attributes"]["entity_picture"] or element.iconData[1] != 200:
+            if icon_attr not in trigger_dict["to_state"]["attributes"]:
+                _LOGGER.warning(f"{element}: {trigger_dict['to_state']['attributes']["entity_id"]} does not have attr {icon_attr}")
+            elif element.iconData[0] != trigger_dict["to_state"]["attributes"]["entity_picture"] or element.iconData[1] != 200:
 
                 picture_link =  trigger_dict["to_state"]["attributes"]["entity_picture"]
                 (resp, status) = await get_entity_picture(picture_link, client=element.HAclient)
