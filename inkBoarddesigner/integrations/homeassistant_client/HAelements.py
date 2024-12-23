@@ -3198,7 +3198,6 @@ class WeatherElement(_EntityLayout, base._TileBase):
 
         # base._TileBase().build_layout()
         self._rebuild_layout = False
-        self._reparse_layout = True
         return
         ##TileLayout for the full thing too? yeah sure. With a default, which automatically returns a vertical layout
         ##Should also make parsing them easier.
