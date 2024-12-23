@@ -4417,7 +4417,6 @@ class ClimateElement(HAelement, base._TileBase):
         ##Can't parse it to the active one using 'active' as color but is done automatically for those
         ##simply to use it elsewhere if desired
         styles = {}
-
         tile = EntityTile(self.entity, icon="mdi:thermostat", element_properties={"text":{"entity_attribute": "current_temperature", "prefix_attribute": "state", "prefix_separator": "•"}, "icon": {"icon_attribute": None}}, 
                         state_styles = styles, background_color=None, vertical_sizes = {"outer": 0}, _register = False)
         
@@ -4427,7 +4426,7 @@ class ClimateElement(HAelement, base._TileBase):
 
         temp_count = elements.Counter("horizontal", entity=self.entity)
 
-        mode_layout = base.Layout([["?"]])
+        mode_layout = elements.GridLayout([], rows=1, columns=None)
         base._ElementSelect(mode_layout,{}, allow_deselect=False,
                                         active_properties={}, inactive_properties= {"icon_color": "inactive"}, on_select=self.select_hvac_mode)
 
@@ -4452,6 +4451,8 @@ class ClimateElement(HAelement, base._TileBase):
                     elt_props.setdefault(prop, val)
 
         base._TileBase.__init__(self, tile_layout=tile_layout, element_properties=element_properties, foreground_color=foreground_color, accent_color=accent_color,  **kwargs)
+        if "hide" in kwargs:
+            self.hide = kwargs["hide"]
         return
 
     #region
@@ -4465,7 +4466,7 @@ class ClimateElement(HAelement, base._TileBase):
         return self.__unit
 
     @property
-    def HVACModeLayout(self) -> Union[base.Layout, base._ElementSelect]:
+    def HVACModeLayout(self) -> Union[elements.GridLayout, base._ElementSelect]:
         "The layout with icons to set the hvac mode"
         return self.__HVACModeLayout
     #endregion
@@ -4503,8 +4504,6 @@ class ClimateElement(HAelement, base._TileBase):
 
             update_coros.add(therm.trigger_function(therm, trigger_dict))
             update_coros.add(state_elt.trigger_function(state_elt, trigger_dict))
-            # await therm.trigger_function(therm, trigger_dict)
-
             L = await asyncio.gather(*update_coros,return_exceptions=True)
             for i, res in enumerate(L):
                 if isinstance(res,Exception): 
@@ -4515,19 +4514,15 @@ class ClimateElement(HAelement, base._TileBase):
         return
     
     def make_mode_selectors(self, modes):
-        mode_elts = {}
-        row = ["?"]
         for mode in modes:
             if mode in self.HVACModeLayout.option_elements:
                 elt = self.HVACModeLayout.option_elements[mode]
             else:
                 icon = icon_sets.HVAC_MODES_ICONS.get(mode,"mdi:thermostat")
                 elt = base.Icon(icon)
-                mode_elts[mode] = elt
                 self.HVACModeLayout.add_option(mode, elt)
-            row.append((elt,"?"))
+                self.HVACModeLayout.add_elements(elt)
         
-        self.HVACModeLayout.update({"layout": [row]})
         if self._tile_layout == "compact":
             self.horizontal_sizes = {"hvac-modes": f"r*{len(modes)}"}
 
