@@ -91,6 +91,7 @@ class DesignerWindow(ttk.Window):
         self._width = self.winfo_width()
         self._height = self.winfo_height()
         self.bind("<Configure>", self._configure, add="+")
+        self.bind("<F5>", tk_functions.reload_config)
 
         self._reloading = True
 
