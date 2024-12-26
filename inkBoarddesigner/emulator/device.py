@@ -141,7 +141,9 @@ class Device(device.Device):
         
         emulated_platform: str = config.device["platform"]
 
-        if "/" in emulated_platform or "\\" in emulated_platform:
+        if emulated_platform == "emulator":
+            platform_folder = Path(__file__).parent
+        elif "/" in emulated_platform or "\\" in emulated_platform:
             platform_folder = Path(emulated_platform)
         else:
             platform_folder = const.PLATFORM_FOLDER / emulated_platform
