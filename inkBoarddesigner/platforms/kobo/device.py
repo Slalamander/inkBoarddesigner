@@ -158,6 +158,7 @@ class Device(BaseDevice, pssm_device.Device):
 
 	async def refresh_loop(self):
 		wait_time = tools.parse_duration_string(self.refreshRate)
+		self.refresh_screen()
 		while self.Screen.printing:
 			try:
 				await asyncio.sleep(wait_time)
@@ -251,3 +252,4 @@ class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 
 	def __wifi_disconnect(self):
 		self._iface.disconnect()
+
