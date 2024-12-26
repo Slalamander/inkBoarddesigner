@@ -91,8 +91,8 @@ class Device(BaseDevice, pssm_device.Device):
 		self._refreshRate = refresh_rate
 
 		FBInk.rotate_screen(rotation)
-		splashscreen = inkBoard.constants.INKBOARD_FOLDER / "files" / "images" / "default_background.png"
-		splash_img = ImageOps.fit(Image.open(splashscreen),(self.screenWidth,self.screenHeight))
+		splashscreen = inkBoard.constants.INKBOARD_FOLDER / "files" / "images" / "logo.png"
+		splash_img = ImageOps.pad(Image.open(splashscreen),(self.screenWidth,self.screenHeight), color=self.defaultColor)
 		FBInk.fbink_print_pil(splash_img)
 
 	#region
@@ -110,6 +110,10 @@ class Device(BaseDevice, pssm_device.Device):
 	@property
 	def imgMode(self):
 		return "RGBA"
+	
+	@property
+	def defaultColor(self):
+		return "white"
 
 	@property
 	def screenType(self):
@@ -247,4 +251,3 @@ class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 
 	def __wifi_disconnect(self):
 		self._iface.disconnect()
-
