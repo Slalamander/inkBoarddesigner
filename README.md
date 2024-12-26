@@ -1,4 +1,4 @@
-![inkBoard Designer Logo](https://raw.githubusercontent.com/Slalamander/inkBoarddesigner/cf56abe61008b3364d179e9ebc3719c165555c65/assets/designer_logo.svg)
+![inkBoard Designer Logo](https://raw.githubusercontent.com/Slalamander/inkBoarddesigner/36b5492c6942259405b21d403e570f317b08aff5/.github/assets/designer_logo.svg)
 
 inkBoard Designer is meant to help designing inkBoard dashboards. While working on the software, it could be rather cumbersome trying to test code or dashboards on the platform itself. The designer provides an emulator, so it allows using the same yaml config as you'd use on device within it (as opposed to when you'd run it on the desktop platform). The interface is also meant to aid some steps in the design/install process.
 
