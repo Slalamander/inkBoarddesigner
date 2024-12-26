@@ -13,3 +13,4 @@ settings.json
 inkBoarddesigner/files/settings.ini
 
 examples/*.zip
+examples/*.yaml
