@@ -146,7 +146,7 @@ class Device(device.Device):
         else:
             platform_folder = const.PLATFORM_FOLDER / emulated_platform
 
-        assert platform_folder.exists(), f"Platform {emulated_platform} does not exist or is not installed"
+        assert emulated_platform == "emulator" or platform_folder.exists(), f"Platform {emulated_platform} does not exist or is not installed"
 
         self.__emulated_platform = emulated_platform
         self.__emulated_platform_folder = platform_folder
