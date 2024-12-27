@@ -164,6 +164,9 @@ async def run_inkboard_thread(config_file):
 
         bootstrap.import_custom_elements(CORE)
 
+        window.set_progress_bar(40, "Setting up styles")
+        bootstrap.setup_styles(CORE)
+
         ##Implement error catchers for these as well
         window.set_progress_bar(42, "Setting up emulator device")
         CORE.device = await bootstrap.setup_device(CORE)
@@ -173,8 +176,8 @@ async def run_inkboard_thread(config_file):
         screen = CORE.screen
         screen.add_shorthand_function_group("custom", CORE.parse_custom_function)
 
-        window.set_progress_bar(50, "Setting up styles")
-        bootstrap.setup_styles(CORE)
+        # window.set_progress_bar(50, "Setting up styles")
+        # bootstrap.setup_styles(CORE)
 
         window.set_progress_bar(52, "Setting up integrations")
         max_integration_progress = 70
