@@ -391,7 +391,7 @@ class Device(device.Device):
 
         if self.has_feature(FEATURES.FEATURE_INTERACTIVE):
             self._eventQueue = eventQueue
-            self._interactEvent = asyncio.Event(loop=self.Screen.mainLoop)
+            self._interactEvent = asyncio.Event()
             self.Screen.mainLoop.create_task(self.simple_canvas_event_handler())
         
         self._updateWindowTask = asyncio.create_task(self._update_canvas_loop())
