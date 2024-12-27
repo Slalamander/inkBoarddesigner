@@ -166,6 +166,7 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(40, "Setting up styles")
         bootstrap.setup_styles(CORE)
+        ##May seperate these. One for setting up color shorthands, one for setting up the actual styles.
 
         ##Implement error catchers for these as well
         window.set_progress_bar(42, "Setting up emulator device")
