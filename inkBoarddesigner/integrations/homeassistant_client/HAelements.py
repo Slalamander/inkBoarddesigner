@@ -2268,7 +2268,7 @@ class MediaPlayer(_EntityLayout):
             if self.isUpdating:
                 async with self._updateLock:
                     await asyncio.sleep(0)
-            group = asyncio.gather(*update_coros, return_exceptions=True, loop=self.parentPSSMScreen.mainLoop) #@IgnoreException
+            group = asyncio.gather(*update_coros, return_exceptions=True) #@IgnoreException
             await asyncio.sleep(0)
             if not (new_state["state"] == previous_ent_state == "playing") or gather_cancel:
                 self.__durationFuture = group

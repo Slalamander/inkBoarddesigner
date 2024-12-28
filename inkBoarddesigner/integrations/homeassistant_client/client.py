@@ -1128,7 +1128,7 @@ class HAclient:
                     await self.client_update_elements(entity_id=entity,internalbatch=False))
             if coro_list:
                 try:
-                    done, pending = await asyncio.wait(coro_list,loop=self.pssmScreen.mainLoop,timeout=timeout)
+                    done, pending = await asyncio.wait(coro_list,timeout=timeout)
                 except Exception as exce:
                     _LOGGER.error(exce)
                     pass
