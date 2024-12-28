@@ -338,6 +338,8 @@ class Device(device.Device):
 
     def _quit(self, exce):
         for widget, seq, funcid in self._bound:
+            if funcid in self.window._keep_bound:
+                continue
             try:
                 widget.unbind(seq,funcid)
             except tk.TclError:
