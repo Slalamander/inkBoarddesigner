@@ -277,6 +277,7 @@ async def run_inkboard_config(configuration, **kwargs):
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     window._current_config_file = configuration
     loop = asyncio.new_event_loop()
+    loop.set_exception_handler(inkBoard.helpers.loop_exception_handler)
     thread = threading.Thread(target=loop.run_until_complete, kwargs={"future": run_inkboard_thread(configuration)}, name="inkBoard-thread")
     window._inkBoard_thread = thread
     thread.start()
