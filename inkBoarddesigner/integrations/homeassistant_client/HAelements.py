@@ -2659,7 +2659,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
 
     ALLOWED_DOMAINS = ["weather"]
     
-    _default_layouts : dict = {"vertical": "[condition,title];weather-data", "horizontal": "[condition;title],weather-data"}
+    defaultLayouts : dict = {"vertical": "[condition,title];weather-data", "horizontal": "[condition;title],weather-data"}
 
     _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
@@ -4009,7 +4009,7 @@ class EntityTimer(HAelement, base._TileBase):
 
     ALLOWED_DOMAINS = ["timer"]
 
-    _default_layouts = {"horizontal": "icon,[title;timer]", "vertical": "icon;title;timer"}
+    defaultLayouts = {"horizontal": "icon,[title;timer]", "vertical": "icon;title;timer"}
 
     _restricted_element_properties = {"icon":{"entity"},
                                     "title": {"entity"},
@@ -4394,7 +4394,7 @@ class ClimateElement(HAelement, base._TileBase):
         "Class method to get shorthands for color setters, to allow for parsing their values in element properties. Returns a dict with the [key] being the shorthand to use for element properties and [value] being the tile attribute it links to."
         return {"active": "active_color"} | base._TileBase._color_shorthands
 
-    _default_layouts = {
+    defaultLayouts = {
                 "horizontal": "[state-tile,thermostat];hvac-modes",
                 "vertical": "state-tile;thermostat;modes",
                 "compact": "[state-tile,hvac-modes];thermostat"}
