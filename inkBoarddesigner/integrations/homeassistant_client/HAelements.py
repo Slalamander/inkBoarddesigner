@@ -2605,7 +2605,7 @@ class MediaPlayer(_EntityLayout):
 
 ##Maybe also add a special weather tile? Which simply shows the icon and two attributes
 
-class WeatherElement(_EntityLayout, base._TileBase):
+class WeatherElement(_EntityLayout, base.TileElement):
     """
     A Weather Element. Opens a forecast popup on click (if tap_action is not specified) with a forecast from the entity. \n
     Elements are 'condition' (The condition icon), 'title' (A statebutton which by default shows the friendly name, but is also hidden by default) and 'weather-data', which is the tile_layout holding all the weather_data
@@ -2801,7 +2801,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
             
         
         HAelement.__init__(self)
-        base._TileBase.__init__(self, tile_layout, hide=hide,
+        base.TileElement.__init__(self, tile_layout, hide=hide,
                                 vertical_sizes=vertical_sizes,  horizontal_sizes=horizontal_sizes,
                                 element_properties=set_element_properties, tap_action=tap_action, **kwargs)
         if not self._isForecast:
@@ -3034,7 +3034,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
         self._reparse_colors = True
 
     def _reparse_element_colors(self, elt_name: str = None):
-        base._TileBase._reparse_element_colors(self,elt_name)
+        base.TileElement._reparse_element_colors(self,elt_name)
         new_props = self._parse_weather_data_properties()
         for tile in self.weather_data_Tile.elements.values():
             tile.update(updateAttributes=new_props, skipGen=self.isGenerating, skipPrint=self.isUpdating)
@@ -3146,7 +3146,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
             self.build_layout()
 
 
-        img = base._TileBase.generator(self,area,skipNonLayoutGen)
+        img = base.TileElement.generator(self,area,skipNonLayoutGen)
         return img
 
     async def async_generate(self, area=None, skipNonLayoutGen=False):
@@ -3315,7 +3315,7 @@ class WeatherElement(_EntityLayout, base._TileBase):
             await self.__ForecastElement.get_forecasts()
         await self.__ForecastPopup.async_show()
 
-class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
+class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
     """
     An element that shows the weather forecast of the connected entity using a stack of `WeatherElements`.
     Does _NOT_ accept Tile like layout strings, but does accept the same color properties.
@@ -3414,7 +3414,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         base._IntervalUpdate.__init__(self,False,False,False, update_every=None, update_interval=update_interval)
 
         ##Test if this can be moved further down?
-        base._TileBase.__init__(self,[["?"]],**kwargs)
+        base.TileElement.__init__(self,[["?"]],**kwargs)
         
         self.background_color = background_color
         self.foreground_color = foreground_color
@@ -3459,7 +3459,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
     def elements(self) -> dict[int,WeatherElement]:
         return self.__elements
 
-    @base._TileBase.foreground_color.setter
+    @base.TileElement.foreground_color.setter
     def foreground_color(self, value):
         
         color_list = self.__make_color_list(value, "foreground_color")
@@ -3468,9 +3468,9 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
         self._reparse_colors = True
         self._foreground_colorList = color_list
-        base._TileBase.foreground_color.fset(self, set_value)
+        base.TileElement.foreground_color.fset(self, set_value)
     
-    @base._TileBase.accent_color.setter
+    @base.TileElement.accent_color.setter
     def accent_color(self, value):       
         color_list = self.__make_color_list(value, "accent_color")
 
@@ -3480,9 +3480,9 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         set_value = color_list[0]
         self._reparse_colors = True
         self._accent_colorList = color_list
-        base._TileBase.accent_color.fset(self, set_value)
+        base.TileElement.accent_color.fset(self, set_value)
 
-    @base._TileBase.background_color.setter
+    @base.TileElement.background_color.setter
     def background_color(self, value: Union[str,list]):       
         color_list = self.__make_color_list(value, "background_color")
 
@@ -3496,9 +3496,9 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
         self._reparse_colors = True
         self._background_colorList = color_list
-        base._TileBase.background_color.fset(self, set_value)
+        base.TileElement.background_color.fset(self, set_value)
 
-    @base._TileBase.outline_color.setter
+    @base.TileElement.outline_color.setter
     def outline_color(self, value):
         color_list = self.__make_color_list(value, "outline_color")
 
@@ -3513,7 +3513,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
         set_value = color_list[0]
         self._reparse_colors = True
         self._outline_colorList = color_list
-        base._TileBase.outline_color.fset(self, set_value)
+        base.TileElement.outline_color.fset(self, set_value)
 
     @property
     def element_properties(self) -> dict[str,dict]:
@@ -3969,7 +3969,7 @@ class WeatherForecast(HAelement, base._TileBase, base._IntervalUpdate):
 
 ##Apparently seting HAelement as the second parentclass caused issues lol
 ##So it needs to be in front
-class EntityTimer(HAelement, base._TileBase):
+class EntityTimer(HAelement, base.TileElement):
     """
     A tile based element for timer entities.
     Provided tiles are 'icon', 'title', 'timer', 'timer-slider', 'timer-countdown' and 'duration'. (See tile_layout below for more info)
@@ -4005,7 +4005,7 @@ class EntityTimer(HAelement, base._TileBase):
     @classproperty
     def action_shorthands(cls) -> dict[str,Callable[["base.Element", CoordType],Any]]:
         "Shorthand values mapping to element specific functions. Use by setting the function string as element:{function}"
-        return base._TileBase.action_shorthands | {"start-timer": "start_timer", "pause-timer": "pause_timer", "cancel-timer": "cancel_timer", "toggle-timer": "toggle_timer"}
+        return base.TileElement.action_shorthands | {"start-timer": "start_timer", "pause-timer": "pause_timer", "cancel-timer": "cancel_timer", "toggle-timer": "toggle_timer"}
 
     ALLOWED_DOMAINS = ["timer"]
 
@@ -4080,7 +4080,7 @@ class EntityTimer(HAelement, base._TileBase):
         if element_properties["icon"].get("tap_action", "toggle-timer") == "toggle-timer":
             element_properties["icon"]["tap_action"] = self.toggle_timer
         
-        base._TileBase.__init__(self, tile_layout = tile_layout, horizontal_sizes=horizontal_sizes, 
+        base.TileElement.__init__(self, tile_layout = tile_layout, horizontal_sizes=horizontal_sizes, 
                                 element_properties=element_properties,
                                 **kwargs)
 
@@ -4121,12 +4121,12 @@ class EntityTimer(HAelement, base._TileBase):
         self._reparse_layout = True
         self._timer_type = value
 
-    @base._TileBase.element_properties.setter
+    @base.TileElement.element_properties.setter
     def element_properties(self, value : dict):
         if "slider" in value:
             _LOGGER.warning(f"{self}: slider element cannot be altered directly. Please change the appropriate element: 'timer-slider' or 'timer-countdown'.")
             value.pop("slider")
-        base._TileBase.element_properties.fset(self, value)
+        base.TileElement.element_properties.fset(self, value)
 
     @property
     def durationString(self) -> str:
@@ -4359,7 +4359,7 @@ class EntityTimer(HAelement, base._TileBase):
         "Cancels the timer"
         self.HAclient.call_service(service="timer.cancel", target=self.entity)
 
-class ClimateElement(HAelement, base._TileBase):
+class ClimateElement(HAelement, base.TileElement):
     """
     A tile element that controls a climate entity. For now, the features are limited to setting the target temperature and selecting the HVAC mode.
     Three tiles are provided: 
@@ -4387,12 +4387,12 @@ class ClimateElement(HAelement, base._TileBase):
     @property
     def color_properties(cls):
         "Set containing all possible color properties for an element type"
-        return base._TileBase.color_properties | {"active_color"}
+        return base.TileElement.color_properties | {"active_color"}
 
     @classproperty
     def _color_shorthands(cls) -> dict[str,str]:
         "Class method to get shorthands for color setters, to allow for parsing their values in element properties. Returns a dict with the [key] being the shorthand to use for element properties and [value] being the tile attribute it links to."
-        return {"active": "active_color"} | base._TileBase._color_shorthands
+        return {"active": "active_color"} | base.TileElement._color_shorthands
 
     defaultLayouts = {
                 "horizontal": "[state-tile,thermostat];hvac-modes",
@@ -4450,7 +4450,7 @@ class ClimateElement(HAelement, base._TileBase):
                 for prop, val in props.items():
                     elt_props.setdefault(prop, val)
 
-        base._TileBase.__init__(self, tile_layout=tile_layout, element_properties=element_properties, foreground_color=foreground_color, accent_color=accent_color,  **kwargs)
+        base.TileElement.__init__(self, tile_layout=tile_layout, element_properties=element_properties, foreground_color=foreground_color, accent_color=accent_color,  **kwargs)
         if "hide" in kwargs:
             self.hide = kwargs["hide"]
         return
