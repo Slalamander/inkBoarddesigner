@@ -59,7 +59,7 @@ async def async_unload_inkBoard(reload_modules: bool = False):
     
     _LOGGER.debug(f"Unloading inkBoard")
     stop_loop = False
-    if hasattr(CORE,"screen") and CORE.screen.mainLoop:
+    if hasattr(CORE,"screen") and hasattr(CORE,"screen"):
         CORE.screen.mainLoop.stop()
         stop_loop = CORE.screen.mainLoop
     
@@ -245,7 +245,7 @@ async def run_inkboard_thread(config_file):
         window.set_progress_bar(value=ttk.DANGER, text=f"Error in config file {config_file}: {exce}")
     except DeviceError as exce:
         msg = f"Error setting up inkBoard device: {exce}"
-        _LOGGER.error(msg, exc_info=None)
+        _LOGGER.error(msg, exc_info=True)
         _LOGGER.debug(f"{type(exce)} info:", exc_info=exce)
         window.set_inkboard_state("ERROR")
         window.set_progress_bar(value=ttk.DANGER, text=msg)

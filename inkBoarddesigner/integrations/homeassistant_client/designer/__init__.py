@@ -10,7 +10,7 @@ from inkBoarddesigner.tkinter.widgets import Treeview
 from inkBoarddesigner import const as des_const
 
 from .const import ENTITY_ICONS
-from .. import async_setup as super_setup, async_start as super_start, logger as _LOGGER
+from .. import async_setup as super_setup, async_start as super_start, _LOGGER
 
 if TYPE_CHECKING:
     from inkBoard import config
