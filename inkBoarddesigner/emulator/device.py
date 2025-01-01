@@ -86,7 +86,7 @@ def validate_platform_config(emulator_config: dict, config: "config"):
 
     device_conf = dict(config.device)
     platform_name = device_conf.pop("platform")
-    device_conf.pop("name") ##name and platform will be standard. Any platform should accept the name parameter.
+    device_conf.pop("name", None) ##name and platform will be standard. Any platform should accept the name parameter.
 
     err = False
 
