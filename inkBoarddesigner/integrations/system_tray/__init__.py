@@ -17,10 +17,21 @@ async def async_setup(core: "CORE", config: "config"):
         return False
 
     from .trayicon import TrayIcon
-    icon = TrayIcon(core, config.inkBoard.name)
+    icon = TrayIcon(core, config)
     
     return icon
 
 async def async_start(core: "CORE", trayicon: "TrayIcon"):
-    trayicon.run_detached()
+    trayicon.start()
     return
+
+class system_tray_entry(TypedDict):
+
+    icon: Union[str,Literal["circle","droplet"]] = "circle"
+    "The icon to show in the taskbar."
+
+    hide_window: bool = False
+    "Hides the window from the taskbar when it is minimised"
+
+    toolwindow: bool = False
+    "Hides inkBoard from the taskbar entirely. Opening and closing the window can be done via the taskbar icon."
