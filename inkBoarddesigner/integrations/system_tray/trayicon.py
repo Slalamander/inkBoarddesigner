@@ -25,7 +25,11 @@ class TrayIcon(pystray.Icon):
     def __init__(self, core: "CORE", config: "config", **kwargs):
         self.__core = core
         tray_config = config["system_tray"]
-        if not tray_config: tray_config = default_config
+        if not tray_config:
+            tray_config = default_config
+        else:
+            tray_config = default_config.copy() | tray_config
+
 
         if tray_config.get("hide_window", False):
             self._minimise_action = "withdraw"
