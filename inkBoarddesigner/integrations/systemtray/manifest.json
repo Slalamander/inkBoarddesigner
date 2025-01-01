@@ -1,0 +1,11 @@
+{
+    "name": "inkBoard Systemtray",
+    "config_entry": "systemtray",
+    "codeowners": ["Slalamander"],
+    "documentation": "https://www.example.com",
+    "requirements": ["pystray"],
+    "inkboard_requirements": {
+        "platforms": ["desktop"]
+                            },
+    "version": "0.0.1"
+}
