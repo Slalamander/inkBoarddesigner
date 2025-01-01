@@ -1,7 +1,7 @@
 {
     "name": "inkBoard Home Assistant",
     "config_entry": "home_assistant",
-    "codeowners": [],
+    "codeowners": ["Slalamander"],
     "documentation": "https://www.example.com",
     "requirements": ["websockets","requests"],
 

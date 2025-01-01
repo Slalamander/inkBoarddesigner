@@ -1,7 +1,7 @@
 {
     "name": "Meteocons",
     "config_entry": "meteocons",
-    "codeowners": [],
+    "codeowners": ["Slalamander"],
     "documentation": "https://www.example.com",
     "requirements": [],
     "version": "0.1.0"
