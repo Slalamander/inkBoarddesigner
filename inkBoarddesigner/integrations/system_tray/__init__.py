@@ -16,3 +16,4 @@ async def async_setup(core: "CORE", config: "config"):
         return False
 
     return True
+

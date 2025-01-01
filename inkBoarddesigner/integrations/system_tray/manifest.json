@@ -1,6 +1,6 @@
 {
     "name": "inkBoard Systemtray",
-    "config_entry": "systemtray",
+    "config_entry": "system_tray",
     "codeowners": ["Slalamander"],
     "documentation": "https://www.example.com",
     "requirements": ["pystray"],
