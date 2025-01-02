@@ -71,6 +71,7 @@ class TrayIcon(pystray.Icon):
         return self._device.window
     
     def minimise_window(self, item):
+        ##Handle this not being called in the mainthread
         _LOGGER.debug(f"Minimising window via {item}")
 
         if self.window.wm_state() != "normal":
