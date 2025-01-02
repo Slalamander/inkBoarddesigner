@@ -116,10 +116,6 @@ class TrayIcon(pystray.Icon):
             else:
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
-                self._device.canvas.configure(highlightthickness=0)
-                ##Removing the borders in desktop mode: should be doable by setting the canvas highlightthickness = 0
-                ##https://stackoverflow.com/a/45111321
-
                 
         self.run_detached()
 
