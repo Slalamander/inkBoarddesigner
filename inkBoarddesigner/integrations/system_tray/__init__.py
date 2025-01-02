@@ -25,6 +25,10 @@ async def async_start(core: "CORE", trayicon: "TrayIcon"):
     trayicon.start()
     return
 
+def stop(core: "CORE", trayicon: "TrayIcon"):
+    trayicon.stop()
+    return
+
 class system_tray_entry(TypedDict):
 
     icon: Union[str,Literal["circle","droplet"]] = "circle"
