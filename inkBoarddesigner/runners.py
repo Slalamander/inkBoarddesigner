@@ -78,16 +78,7 @@ async def async_unload_inkBoard(reload_modules: bool = False):
             task.cancel()
     
     await asyncio.sleep(0)
-
-    if reload_modules:
-        ##Reloading the platform may actually be done already via the platform check
-        await asyncio.to_thread(
-            inkBoard.bootstrap.reload_core, CORE, True
-                )
-    else:
-        await asyncio.to_thread(
-            inkBoard.bootstrap.reload_core, CORE, False
-                )
+    await inkBoard.bootstrap.reload_core(CORE,reload_modules)
         ##Regarding that: move shorthand colors to style, so they can be reset from there.
 
     if stop_loop:
