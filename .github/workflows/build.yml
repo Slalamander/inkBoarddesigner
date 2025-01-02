@@ -6,15 +6,17 @@ on:
 
 jobs:
     build:
-        name: Build distribution 📦
+        strategy:
+          matrix:
+            python-version: ['3.9', '3.10']
+        name: Python ${{ matrix.python-version }}, Build distribution 📦
         runs-on: ubuntu-latest
-    
         steps:
         - uses: actions/checkout@v4
         - name: Set up Python
           uses: actions/setup-python@v5
           with:
-                python-version: "3.x"
+                python-version:  ${{ matrix.python-version }}
         - name: Install pypa/build
           run: >-
             python3 -m
