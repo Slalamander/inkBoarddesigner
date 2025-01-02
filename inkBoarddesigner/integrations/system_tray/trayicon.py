@@ -1,5 +1,7 @@
 
 from typing import TYPE_CHECKING
+import threading
+import asyncio
 
 from PIL import Image
 from pathlib import Path
@@ -20,6 +22,10 @@ _LOGGER = inkBoard.getLogger(__name__)
 
 default_config = system_tray_entry(icon="circle", hide_window=True, toolwindow=False)
 
+class HIDEACTIONS:
+    ICONIFY = "iconify"
+    WITHDRAW = "withdraw"
+
 class TrayIcon(pystray.Icon):
 
     def __init__(self, core: "CORE", config: "config", **kwargs):
@@ -32,9 +38,13 @@ class TrayIcon(pystray.Icon):
 
 
         if tray_config.get("hide_window", False):
-            self._minimise_action = "withdraw"
+            if core.DESIGNER_RUN:
+                _LOGGER.info("Not running system_tray with hide_window in the designer")
+                self._minimise_action = HIDEACTIONS.ICONIFY
+            else:
+                self._minimise_action = HIDEACTIONS.WITHDRAW
         else:
-            self._minimise_action = "iconify"
+            self._minimise_action = HIDEACTIONS.ICONIFY
         ##Other options to add: custom icon; custom name
 
         self._toolwindow = tray_config.get("toolwindow", False)
@@ -71,16 +81,20 @@ class TrayIcon(pystray.Icon):
         return self._device.window
     
     def minimise_window(self, item):
-        ##Handle this not being called in the mainthread
+        "Minimise the dashboard window"
+        self._device._call_in_main_thread(self._minimise_window, item)
+
+    def _minimise_window(self, item):
+        "Minimises the window. Must be called in the main thread"
         _LOGGER.debug(f"Minimising window via {item}")
 
         if self.window.wm_state() != "normal":
-            if self._minimise_action == "withdraw":
+            if self._minimise_action == HIDEACTIONS.WITHDRAW:
                 ##This simply makes the animation of the window appearing a lot smoother
                 self.window.iconify()
             self.window.deiconify()
         else:
-            if self._minimise_action == "withdraw":
+            if self._minimise_action == HIDEACTIONS.ICONIFY:
                 self.window.withdraw()
             else:
                 self.window.iconify()
@@ -102,6 +116,7 @@ class TrayIcon(pystray.Icon):
             else:
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
+                self._device.canvas.configure(highlightthickness=0)
                 ##Removing the borders in desktop mode: should be doable by setting the canvas highlightthickness = 0
                 ##https://stackoverflow.com/a/45111321
 
