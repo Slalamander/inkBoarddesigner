@@ -313,6 +313,9 @@ class HAclient:
                     
                     _LOGGER.debug(f"Updating functions in function dict") #{self.functionDict}")
                     for func_entity in self.functionDict:
+                        if func_entity not in self.stateDict:
+                            _LOGGER.warning(f"Entity {func_entity} is not found in the acquired entity states. Not calling its functions.")
+                            continue
                         trigger_dict = triggerDictType(entity_id=func_entity, to_state=self.stateDict[func_entity], from_state=None, context=None)
                         for func_tuple in self.functionDict[func_entity]:
                             (func, call_func) = func_tuple
