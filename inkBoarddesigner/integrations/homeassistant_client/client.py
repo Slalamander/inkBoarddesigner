@@ -385,7 +385,7 @@ class HAclient:
                     self.longrunningTasks.cancel("Client connection closed")
                 return
             except Exception as e:
-                _LOGGER.error(f"Something went wrong in the client: {e}")
+                _LOGGER.exception(f"Something went wrong in the client: {e}")
                 raise
         return
 
