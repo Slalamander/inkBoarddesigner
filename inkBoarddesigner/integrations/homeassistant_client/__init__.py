@@ -33,7 +33,7 @@ async def async_setup(core: "CORE", config : "config") -> None:
 
     from . import client
     client.CORE = core
-    HAclient = client.HAclient(core.screen)
+    HAclient = client.HAclient(core.screen, core)
     from . import parser
     parser.setup_elements()
 

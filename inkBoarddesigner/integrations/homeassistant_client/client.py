@@ -20,21 +20,20 @@ from inkBoard.platforms import FEATURES
 from PythonScreenStackManager import tools, elements
 from PythonScreenStackManager.tools import DummyTask
 
-from inkBoard import core as CORE
-
 from .helpers import triggerDictType, stateDictType, actionCallDict, EntityType, _gather_entities_and_actions, parse_entity_tag
 from .constants import ENTITY_TAG_KEY, \
                         DEFAULT_PING_INTERVAL, MAX_PONGS_MISSED, DEFAULT_HA_DT_FORMAT
 
-
-
 from .HAelements import HAelement
 from .clientelements import ClientElement
+from . import trigger_functions
+
 
 if TYPE_CHECKING:
     from PythonScreenStackManager.devices import PSSMdevice as pssm_device
     from PythonScreenStackManager import elements, tools #import pssm as screenFile, elements as pssm
     from PythonScreenStackManager.tools import DummyTask
+    from inkBoard import core as CORE
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.debug(f"{_LOGGER.name} has loglevel {logging.getLevelName(_LOGGER.getEffectiveLevel())}")
@@ -89,7 +88,7 @@ class HAclient:
         screen: instance of PSSMScreen that handles the printing of layouts and elements etc
     '''
     
-    def __init__(self, screen: screen.PSSMScreen, ping_interval:int = DEFAULT_PING_INTERVAL):
+    def __init__(self, screen: screen.PSSMScreen, core: "CORE", ping_interval:int = DEFAULT_PING_INTERVAL):
 
         self._websocket: ws_client.ClientConnection
         self._pssmScreen = screen
@@ -98,12 +97,15 @@ class HAclient:
         self._subcribe_callbacks = [] 
         #Callbacks to call when subscribing to a new entity. None async functions only -> eh no make tasks of them and then continue.
 
-        screen.add_shorthand_function("service-action",self.call_service_action)
+        screen.add_shorthand_function("service-action",self.call_service_action)    ##will deprecate this shorthand at some point as it may be confusing with terminology
+        screen.add_shorthand_function("call-service-action",self.call_service_action)
         screen.add_register_callback(self.register_new_element)
         
-        self.hass_data = CORE.config.configuration["home_assistant"]
+        self._core = core
 
-        self._all_entities, self._all_service_actions = _gather_entities_and_actions(CORE)
+        self.hass_data = core.config.configuration["home_assistant"]
+
+        self._all_entities, self._all_service_actions = _gather_entities_and_actions(core)
 
         self.__last_id = 0
         self.loglist = []
@@ -128,6 +130,7 @@ class HAclient:
         self._listenerLock = asyncio.Lock()
 
         HAelement._client_instance = self
+        trigger_functions.state_color_dict = core.config.styles.get("state_colors",{})
 
     #region client properties
     @property
@@ -305,7 +308,7 @@ class HAclient:
                         initial_dict[entity["entity_id"]] = entity
                     self._stateDict = initial_dict
                     
-                    timeout = CORE.config.inkBoard.integration_start_time
+                    timeout = self._core.config.inkBoard.integration_start_time
                     if isinstance(timeout, str):
                         timeout = tools.parse_duration_string(timeout)
                     if timeout < 0:

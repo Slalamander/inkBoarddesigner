@@ -12,7 +12,7 @@ from PIL import Image
 
 from PythonScreenStackManager import elements as elts, tools
 import mdi_pil as mdi
-from inkBoard import core as CORE
+# from inkBoard import core as CORE
 
 from .constants import DEFAULT_DOMAIN_ACTIONS, UNKNOWN_ICON, UNAVAILABLE_ICON, UNAVAILABLE_COLOR, UNKNOWN_COLOR
 from .helpers import triggerDictType, request_image_threadsafe
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 attribute_styles_stateType = TypedDict('attribute_style_states', {"state": Any, 'properties': dict})
 attribute_stylesType = TypedDict('attribute_stylesDict', {'attribute': str, 'states': attribute_styles_stateType, 'else': dict})
 
-state_color_dict = CORE.config.styles.get("state_colors",{})
+state_color_dict: dict = {} 
 
 def get_condition_key(state : str, conditions : list[str]):
     """
