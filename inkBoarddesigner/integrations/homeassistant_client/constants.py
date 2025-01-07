@@ -41,55 +41,6 @@ Domains without a default action are not present in this dict.
 
 ENTITY_TAG_KEY = "!entity "
 
-# all_entities_config = CORE.config.configuration.get("entities",{}).copy()
-# "All entitites as defined in the config file"
-
-# all_entities = {"sun.sun": {"entity_id": "sun.sun"}}
-# for entity_config in all_entities_config:
-#     if "entity_id" not in entity_config:
-#         logger.error(f"Entries in the entity config require an entity_id. Cannot add {entity_config}")
-#     else:
-#         all_entities[entity_config["entity_id"]] = entity_config
-
-# entity_tags : dict
-# "Entities defined in the entities.yaml file. Can be used to parse entities by prefixing the key with !entity (Same as in the yaml config)"
-
-# base_folder = CORE.config.folders["base_folder"]
-
-# entity_file = base_folder / "entitities.yaml"
-# if entity_file.exists():
-#     with open(entity_file) as f:
-#         entity_tags = yaml.load(f, Loader=yaml.SafeLoader)
-#     f.close()
-
-#     for tag, entity in entity_tags.items():
-#         if entity not in all_entities:
-#             all_entities[entity] = {"entity_id": entity}
-# else:
-#     entity_tags = {}
-
-# 
-# def parse_entity_tag(entity : str) -> Union[str,Literal[False]]:
-#     if entity.startswith(ENTITY_TAG_KEY):
-#         tag = entity.removeprefix(ENTITY_TAG_KEY)
-        
-#         if tag not in entity_tags:
-#             msg = f"{tag} could not be found as a key in the entities.yaml file. "
-#             logger.exception(KeyError(msg))
-#             return False
-#         else:
-#             return entity_tags[tag]
-
-# _all_services_config = CORE.config.configuration.get("service_actions",{}).copy()
-
-# ##Generally this should happen during import I think, and return a False maybe for the setup?
-# all_service_actions = {}
-# for service_config in _all_services_config:
-#     if "service_id" not in service_config:
-#         logger.error(f"Entries in the service_actions config require a service_id. Cannot add {service_config}")
-#     else:
-#         all_service_actions[service_config["service_id"]] = service_config
-
 DEFAULT_HA_DT_FORMAT = "%Y-%m-%-dT%H:%M:%S.%Y+%H:%M"
 """
 The default format Home Assistant seems to use for datetime strings.
