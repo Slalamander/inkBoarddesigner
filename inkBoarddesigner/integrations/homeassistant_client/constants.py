@@ -4,8 +4,6 @@ Constants for use with the HA PSSM library
 from typing import Literal, Optional, Union
 import yaml
 
-from inkBoard import core as CORE
-
 from PythonScreenStackManager.constants import INKBOARD, PSSM_COLORS, SHORTHAND_FONTS, SHORTHAND_ICONS 
 from pathlib import Path
 
