@@ -32,10 +32,10 @@ import mdi_pil as mdi
 from inkBoard.constants import FuncExceptions
 
 from .constants import UNAVAILABLE_COLOR, UNAVAILABLE_ICON, UNKNOWN_ICON, UNKNOWN_COLOR, DEFAULT_HA_DT_FORMAT,\
-                    entity_tags, ENTITY_TAG_KEY, ERROR_STATES, all_entities
+                    ENTITY_TAG_KEY, ERROR_STATES
             
 
-from .helpers import EntityType, WeatherData, stateDictType, triggerDictType
+from .helpers import EntityType, WeatherData, stateDictType, triggerDictType, parse_entity_tag
 
 from . import trigger_functions as triggers
 from .trigger_functions import set_trigger_function
@@ -62,14 +62,17 @@ def validate_entity(elt : HAelement, entity : str):
         _LOGGER.error(msg)
         return False
     
-    if entity.startswith(ENTITY_TAG_KEY):
-        tag = entity.removeprefix(ENTITY_TAG_KEY)
-        if tag not in entity_tags:
-            msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
-            _LOGGER.error(msg)
+    if entity.startswith((ENTITY_TAG_KEY,"$")):
+        # tag = entity.removeprefix(ENTITY_TAG_KEY)
+        # if tag not in entity_tags:
+        #     msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
+        #     _LOGGER.error(msg)
+        #     return False
+        # else:
+        #     entity = entity_tags[tag]
+        entity = parse_entity_tag(entity)
+        if not entity:
             return False
-        else:
-            entity = entity_tags[tag]
 
     if elt.ALLOWED_DOMAINS:
         domain = entity.split(".")[0]
@@ -164,6 +167,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ALLOWED_DOMAINS = []
     "Allowed entity domains for this element. Empty if any domain is allowed."
 
+    _client_instance: "HAclient"
+
     @property
     def _emulator_icon(cls): return "mdi:home-assistant"
 
@@ -171,7 +176,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ##So I'm not going to, I tried quite a bit.
     def __init__(self, baseElement : Optional[elements.Element] = None):
         if baseElement != None:
-            self.wrap_element(baseElement)       
+            self.wrap_element(baseElement, self._client_instance)       
         else:
 
             ##Do this in a similar for loop as the wrapper function
@@ -377,7 +382,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
         return
 
     @classmethod
-    def wrap_element(cls,element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
+    def wrap_element(cls, element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
         """
         Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
         This function is automatically called when adding elements with an entity attribute to a Home Assistant client instance.
@@ -437,8 +442,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             saved["trigger_function"] = v
 
         ##Check if the entity is defined in the entities key, and the element has link_element
-        if (ent := all_entities.get(element.entity, False)) and getattr(element,"link_element", True):
-            ent : dict
+        if (ent := cls._client_instance._all_entities.get(element.entity, False)) and getattr(element,"link_element", True):
 
             ##defaults to true for now, do I want that?
             if ent.get("link_elements",True):
@@ -500,7 +504,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     def __link_element_to_config(self, element : "HAelement"):
         "Links an element to settings in the entity config. Does not overwrite settings if they are already applied, and only called during init (hence a private method)"
             
-        ent : dict = all_entities.get(self.entity, {})
+        ent : dict = HAelement._client_instance._all_entities.get(self.entity, {})
 
         ##Like this: the element should still have all the needed properties/attributes set.
         if not ent.get("link_elements",False):
@@ -4046,7 +4050,7 @@ class EntityTimer(HAelement, base.TileElement):
 
         icon = elements.Icon(icon, tap_action=self.toggle_timer, icon_attribute=None)
         
-        HAelement.wrap_element(icon,None)
+        HAelement.wrap_element(icon, None)
         
         timer = elements.Button("--:--")
         total = elements.Button("--/--", )
