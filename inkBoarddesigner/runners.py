@@ -85,7 +85,8 @@ async def async_unload_inkBoard(reload_modules: bool = False):
         stop_loop.close()
 
     window._inkBoard_clean = True
-    window._inkBoard_lock.release()
+    if window._inkBoard_lock.locked():
+        window._inkBoard_lock.release()
     return
 
 def unload_inkBoard(reload_modules: bool = False):
