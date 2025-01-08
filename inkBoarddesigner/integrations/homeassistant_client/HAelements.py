@@ -174,7 +174,10 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
-    def __init__(self, baseElement : Optional[elements.Element] = None):
+    def __init__(self, baseElement : Optional[elements.Element] = None,
+                entity_attribute: str = None,
+                state_styles: dict = {}, attribute_styles: list[dict] = [],
+                state_colors: bool = False, state_conditionals: bool = False):
         if baseElement != None:
             self.wrap_element(baseElement, self._client_instance)       
         else:
@@ -210,7 +213,10 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def entity(self) -> str:
-        "The entity_id of the entity associated with this element. Can be changed, but that will also mean the old entity is not linked anymore."
+        """The entity_id of the entity associated with this element.
+        
+        Can be changed, but that will also mean the old entity is not linked anymore.
+        """
         return self._entity
     
     @entity.setter
@@ -242,8 +248,9 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_styles(self) -> MappingProxyType[Literal["state"],dict[Literal["property"],Any]]:
-        """
-        Dict mapping entity states (or attribute if set) to element attributes to update when that state is received.
+        """Dict mapping entity states (or entity attribute if set) to element properties.
+        
+        Applies the properties corresponding to the state that matched a key.
         You can also add a default key to use for undefined states. Some default trigger functions deal with the Unavailable and Unknown states, but these can be overwritten.
         If a key returns a string instead of a dict, the value is used to update the base attribute (i.e. set a new icon for Icon elements.)
         """
@@ -257,36 +264,39 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def attribute_styles(self) -> triggers.attribute_stylesType:
-        """
-        Element styling as determined by the values of attributes. 
-        Advanced property, has not been tested to its full extend, so it may lead to issues.
+        """Element styling as determined by the values of attributes. 
 
+        This is somewhat advanced, and the conditions are very flexible.
+        This may come at the cost of both performance and security, as it may enable executing random code (I am not sure, I am not a programmer. Please notify me if it is really bad).
+
+        ----------
         Usage
         ----------
         Each entry in the list needs an `attribute` key, which maps it to the connectes entities attribute. `'state'` can also be used here, which maps to the entities state.
         The `states` key is a list which is looped through. 
-            Each item needs a `state` key. The value is first tested to see if it matches the value of the attribute. 
-            If it does not, it is tested as a condition. In here, the value of the attribute can be provided as `state`. So for example `state < 25'.
-            All items in the list are tested. Any that is `True` will update the dict with element properties to update. So, order matters, as each condition that evaluates to true can overwrite previous conditions.
+        Each item needs a `state` key. The value is first tested to see if it matches the value of the attribute. 
+        If it does not, it is tested as a condition. In here, the value of the attribute can be provided as `state`. So for example `state < 25'.
+        All items in the list are tested. Any that is `True` will update the dict with element properties to update. So, order matters, as each condition that evaluates to true can overwrite previous conditions.
         The `else`, if present, is used when the attribute is not present in the entity's state, or if none of the conditions evaluated to True. This key is not required.
 
         Bad YAML Example
         ----------
-        ```
-        - attribute: brightness
-          states:
-            - state: 'state<100'
-              properties:
-                color: gray3
-            - state: '200<state<254'
-              properties:
-                 color: white
-            - state: 'state<215'
-              properties:
-                color: gray10
-          'else':
-            color: black
-        ```
+        .. code-block:: yaml
+
+            - attribute: brightness
+            states:
+                - state: 'state<100'
+                properties:
+                    color: gray3
+                - state: '200<state<254'
+                properties:
+                    color: white
+                - state: 'state<215'
+                properties:
+                    color: gray10
+            'else':
+                color: black
+
         This generally maps a color to the brightness of a light. However there are a few problemns:
             - If the brightness value is between 201 and 214, the second state evaluates `True`, however the third one also evaluated `True`. This causes the color of the element to be set to gray10.
             - If the brightness value is 254 or higher, none of the states evaluate to True, which means the else case is used and the element's color becomes black, even if the light is at maximum brightness.
@@ -294,24 +304,25 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
         Good YAML Example
         ----------
-        ```
-        - attribute: brightness
-          states:
-            - state: '10<state<100'
-              properties:
-                color: gray3
-            - state: 'state>=200'
-              properties:
-                 color: white
-            - state: 'state<200'
-              properties:
-                color: gray10
-            - state: 'None'
-              properties:
-                color: None
-          'else':
-            color: black
-        ```
+        .. code-block:: yaml
+
+            - attribute: brightness
+              states:
+                - state: '10<state<100'
+                properties:
+                    color: gray3
+                - state: 'state>=200'
+                properties:
+                    color: white
+                - state: 'state<200'
+                properties:
+                    color: gray10
+                - state: 'None'
+                properties:
+                    color: None
+              'else':
+                color: black
+        
         Now, when the light is off, the color becomes None (None can be used to map to the attribute not being present). If the brightness is smaller than 10, the element's color is black since no condition evaluates as `True`. When the brightness is larger than or equal to 200, it will be white (so also at maximum brightness), and the third state does not interfere with it anymore.
         """
         return self._attribute_styles
@@ -327,7 +338,10 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_colors(self) -> bool:
-        "True if the elements color may be set by the configured state colors, if the main color property is not defined in the dict for the state."
+        """Allows the element's color configured state colors.
+        
+        Only if the main color property is not defined in the dict for the state.
+        """
         return self._state_colors
     
     @state_colors.setter
@@ -339,8 +353,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_conditionals(self) -> bool:
-        """
-        If true, the element will first treat the keys in the state_styles dict as possible conditions.
+        """The element will first treat the keys in the ``state_styles`` dict as possible conditions.
+
         The first condition to return true will be used to configure the element's attributes. If none return True, it will check if the state is present as a key, and only then will use the default element_state if provided.
         """
         return self._state_conditionals
@@ -369,8 +383,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @abstractmethod
     async def trigger_function(self,element : "HAelement", trigger_dict : "triggers.triggerDictType"): #trigger_dict : dict["entity_id", "to_state", "from_state"]):
-        """
-        This function is called when the entity associated with the element is updated. 
+        """This function is called when the entity associated with the element is updated. 
+
         Passed are the element itself, and a trigger dict with ['new_state'] and ['old_state'] (and some other keys for clarity).
         When initially setting up, old_state will be false, so be mindfull of this when coding.
         Can be a blocking function, but the typing will show a coroutine.
@@ -383,8 +397,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @classmethod
     def wrap_element(cls, element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
-        """
-        Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
+        """        Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
+
         This function is automatically called when adding elements with an entity attribute to a Home Assistant client instance.
         Reference: 
         * https://stackoverflow.com/a/1355444/509706
@@ -466,8 +480,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @classmethod
     def wrap_compound(cls, element : "HAelement", properties : dict) -> dict:
-        """
-        Applies some additional attributes to the compound element for better HA connectivity 
+        """Applies some additional attributes to the compound element for better HA connectivity 
+
         Also performs domain checks
 
         Parameters
@@ -636,8 +650,9 @@ class StateButton(HAelement, elements.Button):
     
     @property
     def entity_attribute(self) -> Optional[str]:
-        """
-        The entity's attribute being shown as the element's state. Set to None to use the state (default)
+        """The entity's attribute being shown as the element's state.
+        
+        Set to None to use the state (default)
         If the attribute is not present the button will display no text.
         """
         return self.__entity_attribute
