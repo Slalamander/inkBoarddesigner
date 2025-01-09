@@ -85,7 +85,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
 
         for elt in eltList:
             elt : elements.Layout
-            if not getattr(elt, "_isSubLayout", False) or (elt.__class__ not in  {elements.Layout, elements.baseelements._TileBase}):
+            if not getattr(elt, "_isSubLayout", False) or (elt.__class__ not in  {elements.Layout, elements.baseelements.TileElement}):
                 if elt.id == elt.unique_id:
                     eltname = elt.id.replace('_',' ')
                 else:

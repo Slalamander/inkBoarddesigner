@@ -86,7 +86,7 @@ def validate_platform_config(emulator_config: dict, config: "config"):
 
     device_conf = dict(config.device)
     platform_name = device_conf.pop("platform")
-    device_conf.pop("name") ##name and platform will be standard. Any platform should accept the name parameter.
+    device_conf.pop("name", None) ##name and platform will be standard. Any platform should accept the name parameter.
 
     err = False
 
@@ -141,12 +141,14 @@ class Device(device.Device):
         
         emulated_platform: str = config.device["platform"]
 
-        if "/" in emulated_platform or "\\" in emulated_platform:
+        if emulated_platform == "emulator":
+            platform_folder = Path(__file__).parent
+        elif "/" in emulated_platform or "\\" in emulated_platform:
             platform_folder = Path(emulated_platform)
         else:
             platform_folder = const.PLATFORM_FOLDER / emulated_platform
 
-        assert platform_folder.exists(), f"Platform {emulated_platform} does not exist or is not installed"
+        assert emulated_platform == "emulator" or platform_folder.exists(), f"Platform {emulated_platform} does not exist or is not installed"
 
         self.__emulated_platform = emulated_platform
         self.__emulated_platform_folder = platform_folder
@@ -336,6 +338,8 @@ class Device(device.Device):
 
     def _quit(self, exce):
         for widget, seq, funcid in self._bound:
+            if funcid in self.window._keep_bound:
+                continue
             try:
                 widget.unbind(seq,funcid)
             except tk.TclError:
@@ -389,7 +393,7 @@ class Device(device.Device):
 
         if self.has_feature(FEATURES.FEATURE_INTERACTIVE):
             self._eventQueue = eventQueue
-            self._interactEvent = asyncio.Event(loop=self.Screen.mainLoop)
+            self._interactEvent = asyncio.Event()
             self.Screen.mainLoop.create_task(self.simple_canvas_event_handler())
         
         self._updateWindowTask = asyncio.create_task(self._update_canvas_loop())

@@ -2,6 +2,14 @@
 
 The desktop implementation is the most basic platform to run inkBoard on. Most likely you're familiar with it, as it forms the basis of the emulator as well. However, a lot of options that are guarded off by the emulator are available here.
 
+## Installation
+
+If running this on a machine where the designer is not installed, and it is not desired to do so, you can follow this process. Otherwise, follow the documentation to install the designer.
+Ensure you have a compatible Python version installed (likely 3.9 or 3.10), and run
+```console
+pip install inkBoard
+```
+
 ## Usage
 
 The most basic configuration for this platform is as follows:

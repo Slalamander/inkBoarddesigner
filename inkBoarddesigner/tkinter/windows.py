@@ -35,6 +35,9 @@ window: "DesignerWindow"
 
 p = Path()
 
+if not hasattr(Image, "CUBIC"):
+    _LOGGER.debug("Applying patch for ttkbootstrap; Image.CUBIC is set to Image.Resampling.BICUBIC")
+    Image.CUBIC = Image.Resampling.BICUBIC
 
 class DesignerWindow(ttk.Window):
     """Specific window class meant to interface with inkBoard Designer
@@ -45,6 +48,8 @@ class DesignerWindow(ttk.Window):
 
     def __init__(self, title="ttkbootstrap", themename="litera",  size=None, position=None, minsize=None, maxsize=None, resizable=None, hdpi=True, scaling=None, transient=None, overrideredirect=False, alpha=1):
         super().__init__(title, themename, None, size, position, minsize, maxsize, resizable, hdpi, scaling, transient, overrideredirect, alpha)
+
+        self._keep_bound = []
 
         util.window = self
 
@@ -90,7 +95,8 @@ class DesignerWindow(ttk.Window):
         self._resize_bind = None
         self._width = self.winfo_width()
         self._height = self.winfo_height()
-        self.bind("<Configure>", self._configure, add="+")
+        self._keep_bound.append(self.bind("<Configure>", self._configure, add="+"))
+        self.bind("<F5>", tk_functions.reload_config)
 
         self._reloading = True
 
@@ -222,14 +228,15 @@ class DesignerWindow(ttk.Window):
             else:
                 if not self._resizeTask.done():
                     return
-                resize_event = asyncio.Event(loop=self._mainLoop)
+                asyncio.set_event_loop(self._mainLoop)
+                resize_event = asyncio.Event()
                 self._resize_bind = self.bind("<ButtonRelease-1>", lambda event: resize_event.set(), add="+") ##Won't add this to bind as it is removed upon releasing the mouse button
 
             if not self._mainLoop:
                 self.screenCanvas._build_canvas_background()
                 return
             
-            self._resizeTask = self._mainLoop.create_task(self._resize(resize_event))
+            self._resizeTask = self._mainLoop.create_task(self._resize(resize_event), name="resize-window-task")
         return
 
     async def _resize(self, event : Union[tk.Event,asyncio.Event]):
