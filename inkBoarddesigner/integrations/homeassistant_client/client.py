@@ -785,15 +785,18 @@ class HAclient:
         return
 
     def add_entity_function(self, entity_id: str, call_functions: list[tuple[Union[str,Callable]], bool]):
-        '''
-        Adds a function that is called when entity_id is updated. Can accept multiple trigger entities for the function
+        """Adds a function that is called when entity_id is updated.
 
-                Parameters:
-                        entities (str): The entity that is associated with the function. If a list is provided, the function will be associated with all entities in it
-                        call_function (function): The function to be called. Needs to accept a trigger_dict (called on entity update) and current stateDict (dict, with all current entity states, called after adding and reconnect). 
-                                If called after adding, needs to accept a current state dict as well, which is none if the state is not defined yet. Set up can be call_function(power_funcs_test(trigger_dict=None,stateDict=None)
-                        call_after_add (bool): after adding the function to the dict, run the function (true) or not (false). If starting up the dashboard, this will decide if the function is called after all states have been processed. 
-        '''
+        Can accept multiple trigger entities for the function
+
+        Parameters
+        ----------
+        entity_id : str
+            The entity who's triggers will call the functions
+        call_functions : list[tuple[Union[str,Callable]], bool]
+            List of functions to call. Each item in the list is a tuple with (function, bool), with the boolean indicating if the function should be called upon connecting to the client.
+        """        
+
 
         for func_tuple in call_functions:
             if isinstance(func_tuple, (tuple,list)):
