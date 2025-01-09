@@ -23,6 +23,11 @@ For the Home Assistant example, you should fill out the `ha_substitutions.yaml` 
 
 Running the examples can be done by selecting the yaml file from the designer ui, or running `inkBoard designer configuration.yaml` from the examples folder.
 
+## Documentation
+
+The documentation is hosted on readthedocs:
+https://inkboard-documentation.readthedocs.io/en/latest/
+
 # Acknowledgements
 This project has been a labour of love (and sometimes hate), and I could not have done this without these projects:
  - The ESPHome project, which is where the idea for an E-Ink based dashboard was born for me.
