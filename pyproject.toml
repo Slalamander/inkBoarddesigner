@@ -19,6 +19,7 @@ license = {file = "LICENSE"}
 requires-python = ">=3.9"
 keywords = ["gui", "pixels", "interface", "MaterialDesignIcon", "mdi icons", "dashboards", "dashboarding",]
 classifiers = [
+
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 
