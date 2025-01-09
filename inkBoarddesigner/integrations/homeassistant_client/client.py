@@ -20,21 +20,20 @@ from inkBoard.platforms import FEATURES
 from PythonScreenStackManager import tools, elements
 from PythonScreenStackManager.tools import DummyTask
 
-from inkBoard import core as CORE
-
-from .helpers import triggerDictType, stateDictType, actionCallDict, EntityType
-from .constants import all_entities, all_service_actions, entity_tags, ENTITY_TAG_KEY, parse_entity_tag, \
+from .helpers import triggerDictType, stateDictType, actionCallDict, EntityType, _gather_entities_and_actions, parse_entity_tag
+from .constants import ENTITY_TAG_KEY, \
                         DEFAULT_PING_INTERVAL, MAX_PONGS_MISSED, DEFAULT_HA_DT_FORMAT
-
-
 
 from .HAelements import HAelement
 from .clientelements import ClientElement
+from . import trigger_functions
+
 
 if TYPE_CHECKING:
     from PythonScreenStackManager.devices import PSSMdevice as pssm_device
     from PythonScreenStackManager import elements, tools #import pssm as screenFile, elements as pssm
     from PythonScreenStackManager.tools import DummyTask
+    from inkBoard import core as CORE
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.debug(f"{_LOGGER.name} has loglevel {logging.getLevelName(_LOGGER.getEffectiveLevel())}")
@@ -89,7 +88,7 @@ class HAclient:
         screen: instance of PSSMScreen that handles the printing of layouts and elements etc
     '''
     
-    def __init__(self, screen: screen.PSSMScreen, ping_interval:int = DEFAULT_PING_INTERVAL):
+    def __init__(self, screen: screen.PSSMScreen, core: "CORE", ping_interval:int = DEFAULT_PING_INTERVAL):
 
         self._websocket: ws_client.ClientConnection
         self._pssmScreen = screen
@@ -98,10 +97,16 @@ class HAclient:
         self._subcribe_callbacks = [] 
         #Callbacks to call when subscribing to a new entity. None async functions only -> eh no make tasks of them and then continue.
 
-        screen.add_shorthand_function("service-action",self.call_service_action)
+        screen.add_shorthand_function("service-action",self.call_service_action)    ##will deprecate this shorthand at some point as it may be confusing with terminology
+        screen.add_shorthand_function("call-service-action",self.call_service_action)
         screen.add_register_callback(self.register_new_element)
         
-        self.hass_data = CORE.config.configuration["home_assistant"]
+        self._core = core
+
+        self.hass_data = core.config.configuration["home_assistant"]
+
+        self._all_entities, self._all_service_actions = _gather_entities_and_actions(core)
+
         self.__last_id = 0
         self.loglist = []
         self._HAconfig = ServerConfigDict(name=None, time_zone=None, version=None, integration=False, unit_system={})
@@ -123,6 +128,9 @@ class HAclient:
         self.__message_queue = asyncio.Queue()
         self._commanderLock = asyncio.Lock()
         self._listenerLock = asyncio.Lock()
+
+        HAelement._client_instance = self
+        trigger_functions.state_color_dict = core.config.styles.get("state_colors",{})
 
     #region client properties
     @property
@@ -294,13 +302,13 @@ class HAclient:
                     continue
                 else:
                     _LOGGER.debug("Received all states from Home Assistant")
-                    initial_states = list(filter(lambda entity: entity["entity_id"] in all_entities, all_states["result"])) 
+                    initial_states = list(filter(lambda entity: entity["entity_id"] in self._all_entities, all_states["result"])) 
                     initial_dict = {}
                     for entity in initial_states:
                         initial_dict[entity["entity_id"]] = entity
                     self._stateDict = initial_dict
                     
-                    timeout = CORE.config.inkBoard.integration_start_time
+                    timeout = self._core.config.inkBoard.integration_start_time
                     if isinstance(timeout, str):
                         timeout = tools.parse_duration_string(timeout)
                     if timeout < 0:
@@ -344,7 +352,7 @@ class HAclient:
                                 coro = task.get_coro()
                                 _LOGGER.warning(f"{coro.__qualname__} raised an error while connecting: {task.exception()}")
 
-                subscribe_headers = trigger_headers(all_entities,self.__last_id)
+                subscribe_headers = trigger_headers(self._all_entities,self.__last_id)
                 subscribe_fails = 0
 
                 for header in subscribe_headers:
@@ -594,9 +602,9 @@ class HAclient:
     async def _new_entities_subscribe(self, *entities):
 
         for ent in entities:
-            if ent not in all_entities:
+            if ent not in self._all_entities:
                 ##all_entities should not have to perform a check for this.
-                all_entities[ent] = {'entity_id': ent}
+                self._all_entities[ent] = {'entity_id': ent}
 
         if not self.stateDict or not self.commanding:
             return
@@ -683,13 +691,13 @@ class HAclient:
         
         entity_id = element.entity
 
-        if entity_id not in all_entities:
+        if entity_id not in self._all_entities:
             _LOGGER.debug(f"{entity_id} is not defined in config, adding it.")
             
             if self.websocket is not None:      
                 self.messageQueue.put_nowait(trigger_headers(entity_id,self.__last_id))
 
-            all_entities[entity_id] = {'entity_id': entity_id}
+            self._all_entities[entity_id] = {'entity_id': entity_id}
 
         if entity_id in self.elementDict:                       
             self._elementDict[entity_id].add(element)
@@ -716,12 +724,12 @@ class HAclient:
                 element._HAclient = self
                 entity_id = element.entity
                 
-                if entity_id not in all_entities:
+                if entity_id not in self._all_entities:
                     _LOGGER.info(f"{entity_id} is not defined in config, adding it.")
                     if self.websocket is not None:      
                         self.messageQueue.put_nowait(trigger_headers(entity_id,self.__last_id))
 
-                    all_entities[entity_id] = {'entity_id': entity_id}
+                    self._all_entities[entity_id] = {'entity_id': entity_id}
 
                 if entity_id in self.elementDict:                       
                     self._elementDict[entity_id].add(element)
@@ -768,7 +776,7 @@ class HAclient:
                     asyncio.create_task(tools.wrap_to_coroutine(func,element,self.stateDict[new_entity]))
             
     def setup_entity_functions(self):
-        for ent, ent_config in all_entities.items():
+        for ent, ent_config in self._all_entities.items():
             if "trigger_functions" in ent_config:
                 funcs = ent_config["trigger_functions"]
                 if not isinstance(funcs, Sequence):
@@ -777,15 +785,18 @@ class HAclient:
         return
 
     def add_entity_function(self, entity_id: str, call_functions: list[tuple[Union[str,Callable]], bool]):
-        '''
-        Adds a function that is called when entity_id is updated. Can accept multiple trigger entities for the function
+        """Adds a function that is called when entity_id is updated.
 
-                Parameters:
-                        entities (str): The entity that is associated with the function. If a list is provided, the function will be associated with all entities in it
-                        call_function (function): The function to be called. Needs to accept a trigger_dict (called on entity update) and current stateDict (dict, with all current entity states, called after adding and reconnect). 
-                                If called after adding, needs to accept a current state dict as well, which is none if the state is not defined yet. Set up can be call_function(power_funcs_test(trigger_dict=None,stateDict=None)
-                        call_after_add (bool): after adding the function to the dict, run the function (true) or not (false). If starting up the dashboard, this will decide if the function is called after all states have been processed. 
-        '''
+        Can accept multiple trigger entities for the function
+
+        Parameters
+        ----------
+        entity_id : str
+            The entity who's triggers will call the functions
+        call_functions : list[tuple[Union[str,Callable]], bool]
+            List of functions to call. Each item in the list is a tuple with (function, bool), with the boolean indicating if the function should be called upon connecting to the client.
+        """        
+
 
         for func_tuple in call_functions:
             if isinstance(func_tuple, (tuple,list)):
@@ -801,7 +812,7 @@ class HAclient:
                 func = self.pssmScreen.parse_shorthand_function(func)
 
             if isinstance(entity_id,str):
-                if entity_id not in all_entities:
+                if entity_id not in self._all_entities:
                     _LOGGER.warning(f"{entity_id} is not defined in the configuration entities")
                 if entity_id in self.functionDict:
                     self._functionDict[entity_id].append((func, call_after_add))
@@ -966,8 +977,8 @@ class HAclient:
                 target: target to call the service on
                 return_response: tell Home Assistant to return a response from this service call
         '''
-        if action_id in all_service_actions:
-            service_config = all_service_actions[action_id]
+        if action_id in self._all_service_actions:
+            service_config = self._all_service_actions[action_id]
             full_service = service_config["action"]
         else:
             full_service = action_id
@@ -1126,7 +1137,7 @@ class HAclient:
             coro_list = []
             self.updatingAll = True
             self.pssmScreen.start_batch_writing()
-            for entity in all_entities:
+            for entity in self._all_entities:
                 coro_list.extend(
                     await self.client_update_elements(entity_id=entity,internalbatch=False))
             if coro_list:
@@ -1357,7 +1368,7 @@ class dummyClient:
             if all_states["success"]:
                 #Finding the corresponding entitiy's entry in the list of all states
                 _LOGGER.debug("Received all states from Home Assistant")
-                initial_states = list(filter(lambda entity: entity["entity_id"] in all_entities, all_states["result"])) 
+                initial_states = list(filter(lambda entity: entity["entity_id"] in self._all_entities, all_states["result"])) 
                 all_states = None
                 initial_dict = {}
                 for entity in initial_states:
@@ -1380,7 +1391,7 @@ class dummyClient:
             else:
                 _LOGGER.error(f"Failed to get states {all_states}")
 
-            subscribe_headers = trigger_headers(all_entities,self.__last_id)
+            subscribe_headers = trigger_headers(self._all_entities,self.__last_id)
             subscribe_fails = 0
             for header in subscribe_headers:
                 await self.websocket.send(json.dumps(header))

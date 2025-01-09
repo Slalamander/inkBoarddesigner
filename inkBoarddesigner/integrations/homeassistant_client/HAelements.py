@@ -19,7 +19,7 @@ from abc import abstractmethod
 from PIL import Image
 
 from PythonScreenStackManager import elements
-from PythonScreenStackManager.elements import baseelements as base, colorproperty
+from PythonScreenStackManager.elements import baseelements as base, colorproperty, classproperty
 from PythonScreenStackManager.elements.baseelements import  Style
 from PythonScreenStackManager.elements.constants import DEFAULT_BACKGROUND_COLOR, DEFAULT_FOREGROUND_COLOR, \
                                                     DEFAULT_FONT, DEFAULT_FONT_HEADER, DEFAULT_ACCENT_COLOR
@@ -32,10 +32,10 @@ import mdi_pil as mdi
 from inkBoard.constants import FuncExceptions
 
 from .constants import UNAVAILABLE_COLOR, UNAVAILABLE_ICON, UNKNOWN_ICON, UNKNOWN_COLOR, DEFAULT_HA_DT_FORMAT,\
-                    entity_tags, ENTITY_TAG_KEY, ERROR_STATES, all_entities
+                    ENTITY_TAG_KEY, ERROR_STATES
             
 
-from .helpers import EntityType, WeatherData, stateDictType, triggerDictType
+from .helpers import EntityType, WeatherData, stateDictType, triggerDictType, parse_entity_tag
 
 from . import trigger_functions as triggers
 from .trigger_functions import set_trigger_function
@@ -62,14 +62,17 @@ def validate_entity(elt : HAelement, entity : str):
         _LOGGER.error(msg)
         return False
     
-    if entity.startswith(ENTITY_TAG_KEY):
-        tag = entity.removeprefix(ENTITY_TAG_KEY)
-        if tag not in entity_tags:
-            msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
-            _LOGGER.error(msg)
+    if entity.startswith((ENTITY_TAG_KEY,"$")):
+        # tag = entity.removeprefix(ENTITY_TAG_KEY)
+        # if tag not in entity_tags:
+        #     msg = f"{elt}: {tag} could not be found as a key in the entities.yaml file. "
+        #     _LOGGER.error(msg)
+        #     return False
+        # else:
+        #     entity = entity_tags[tag]
+        entity = parse_entity_tag(entity)
+        if not entity:
             return False
-        else:
-            entity = entity_tags[tag]
 
     if elt.ALLOWED_DOMAINS:
         domain = entity.split(".")[0]
@@ -164,14 +167,19 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ALLOWED_DOMAINS = []
     "Allowed entity domains for this element. Empty if any domain is allowed."
 
+    _client_instance: "HAclient"
+
     @property
     def _emulator_icon(cls): return "mdi:home-assistant"
 
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
-    def __init__(self, baseElement : Optional[elements.Element] = None):
+    def __init__(self, baseElement : Optional[elements.Element] = None,
+                entity_attribute: str = None,
+                state_styles: dict = {}, attribute_styles: list[dict] = [],
+                state_colors: bool = False, state_conditionals: bool = False):
         if baseElement != None:
-            self.wrap_element(baseElement)       
+            self.wrap_element(baseElement, self._client_instance)       
         else:
 
             ##Do this in a similar for loop as the wrapper function
@@ -205,7 +213,10 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def entity(self) -> str:
-        "The entity_id of the entity associated with this element. Can be changed, but that will also mean the old entity is not linked anymore."
+        """The entity_id of the entity associated with this element.
+        
+        Can be changed, but that will also mean the old entity is not linked anymore.
+        """
         return self._entity
     
     @entity.setter
@@ -237,8 +248,9 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_styles(self) -> MappingProxyType[Literal["state"],dict[Literal["property"],Any]]:
-        """
-        Dict mapping entity states (or attribute if set) to element attributes to update when that state is received.
+        """Dict mapping entity states (or entity attribute if set) to element properties.
+        
+        Applies the properties corresponding to the state that matched a key.
         You can also add a default key to use for undefined states. Some default trigger functions deal with the Unavailable and Unknown states, but these can be overwritten.
         If a key returns a string instead of a dict, the value is used to update the base attribute (i.e. set a new icon for Icon elements.)
         """
@@ -252,36 +264,39 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def attribute_styles(self) -> triggers.attribute_stylesType:
-        """
-        Element styling as determined by the values of attributes. 
-        Advanced property, has not been tested to its full extend, so it may lead to issues.
+        """Element styling as determined by the values of attributes. 
 
+        This is somewhat advanced, and the conditions are very flexible.
+        This may come at the cost of both performance and security, as it may enable executing random code (I am not sure, I am not a programmer. Please notify me if it is really bad).
+
+        ----------
         Usage
         ----------
         Each entry in the list needs an `attribute` key, which maps it to the connectes entities attribute. `'state'` can also be used here, which maps to the entities state.
         The `states` key is a list which is looped through. 
-            Each item needs a `state` key. The value is first tested to see if it matches the value of the attribute. 
-            If it does not, it is tested as a condition. In here, the value of the attribute can be provided as `state`. So for example `state < 25'.
-            All items in the list are tested. Any that is `True` will update the dict with element properties to update. So, order matters, as each condition that evaluates to true can overwrite previous conditions.
+        Each item needs a `state` key. The value is first tested to see if it matches the value of the attribute. 
+        If it does not, it is tested as a condition. In here, the value of the attribute can be provided as `state`. So for example `state < 25'.
+        All items in the list are tested. Any that is `True` will update the dict with element properties to update. So, order matters, as each condition that evaluates to true can overwrite previous conditions.
         The `else`, if present, is used when the attribute is not present in the entity's state, or if none of the conditions evaluated to True. This key is not required.
 
         Bad YAML Example
         ----------
-        ```
-        - attribute: brightness
-          states:
-            - state: 'state<100'
-              properties:
-                color: gray3
-            - state: '200<state<254'
-              properties:
-                 color: white
-            - state: 'state<215'
-              properties:
-                color: gray10
-          'else':
-            color: black
-        ```
+        .. code-block:: yaml
+
+            - attribute: brightness
+            states:
+                - state: 'state<100'
+                properties:
+                    color: gray3
+                - state: '200<state<254'
+                properties:
+                    color: white
+                - state: 'state<215'
+                properties:
+                    color: gray10
+            'else':
+                color: black
+
         This generally maps a color to the brightness of a light. However there are a few problemns:
             - If the brightness value is between 201 and 214, the second state evaluates `True`, however the third one also evaluated `True`. This causes the color of the element to be set to gray10.
             - If the brightness value is 254 or higher, none of the states evaluate to True, which means the else case is used and the element's color becomes black, even if the light is at maximum brightness.
@@ -289,24 +304,25 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
         Good YAML Example
         ----------
-        ```
-        - attribute: brightness
-          states:
-            - state: '10<state<100'
-              properties:
-                color: gray3
-            - state: 'state>=200'
-              properties:
-                 color: white
-            - state: 'state<200'
-              properties:
-                color: gray10
-            - state: 'None'
-              properties:
-                color: None
-          'else':
-            color: black
-        ```
+        .. code-block:: yaml
+
+            - attribute: brightness
+              states:
+                - state: '10<state<100'
+                properties:
+                    color: gray3
+                - state: 'state>=200'
+                properties:
+                    color: white
+                - state: 'state<200'
+                properties:
+                    color: gray10
+                - state: 'None'
+                properties:
+                    color: None
+              'else':
+                color: black
+        
         Now, when the light is off, the color becomes None (None can be used to map to the attribute not being present). If the brightness is smaller than 10, the element's color is black since no condition evaluates as `True`. When the brightness is larger than or equal to 200, it will be white (so also at maximum brightness), and the third state does not interfere with it anymore.
         """
         return self._attribute_styles
@@ -322,7 +338,10 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_colors(self) -> bool:
-        "True if the elements color may be set by the configured state colors, if the main color property is not defined in the dict for the state."
+        """Allows the element's color configured state colors.
+        
+        Only if the main color property is not defined in the dict for the state.
+        """
         return self._state_colors
     
     @state_colors.setter
@@ -334,8 +353,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @property
     def state_conditionals(self) -> bool:
-        """
-        If true, the element will first treat the keys in the state_styles dict as possible conditions.
+        """The element will first treat the keys in the ``state_styles`` dict as possible conditions.
+
         The first condition to return true will be used to configure the element's attributes. If none return True, it will check if the state is present as a key, and only then will use the default element_state if provided.
         """
         return self._state_conditionals
@@ -351,7 +370,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     def __HAwrapper(self):
         """
         Attribute to indicate this element was wrapped into a Home Assistant element. 
-        Don't reference it directly, use hasattr(element,'__HAwrapper'). 
+        Don't reference it directly, use hasattr(element,'__HAwrapper'). `(or isinstance(element, HAelement)`)
         The attribute is always true, but only set if the element is either a subclass of HAelement (Which is true for all elements in the HAelements module), or has been wrapped using HAelement.wrap_element(element). 
         """
         return True
@@ -364,8 +383,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @abstractmethod
     async def trigger_function(self,element : "HAelement", trigger_dict : "triggers.triggerDictType"): #trigger_dict : dict["entity_id", "to_state", "from_state"]):
-        """
-        This function is called when the entity associated with the element is updated. 
+        """This function is called when the entity associated with the element is updated. 
+
         Passed are the element itself, and a trigger dict with ['new_state'] and ['old_state'] (and some other keys for clarity).
         When initially setting up, old_state will be false, so be mindfull of this when coding.
         Can be a blocking function, but the typing will show a coroutine.
@@ -377,9 +396,9 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
         return
 
     @classmethod
-    def wrap_element(cls,element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
-        """
-        Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
+    def wrap_element(cls, element : Union[elements.Element, "HAelement"], client : "HAclient") -> "HAelement":
+        """        Wraps a base PSSM element in a Home Assistant element, to add protections, checks etc. for some important attributes by wrapping them into a property.
+
         This function is automatically called when adding elements with an entity attribute to a Home Assistant client instance.
         Reference: 
         * https://stackoverflow.com/a/1355444/509706
@@ -437,8 +456,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             saved["trigger_function"] = v
 
         ##Check if the entity is defined in the entities key, and the element has link_element
-        if (ent := all_entities.get(element.entity, False)) and getattr(element,"link_element", True):
-            ent : dict
+        if (ent := cls._client_instance._all_entities.get(element.entity, False)) and getattr(element,"link_element", True):
 
             ##defaults to true for now, do I want that?
             if ent.get("link_elements",True):
@@ -462,8 +480,8 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     @classmethod
     def wrap_compound(cls, element : "HAelement", properties : dict) -> dict:
-        """
-        Applies some additional attributes to the compound element for better HA connectivity 
+        """Applies some additional attributes to the compound element for better HA connectivity 
+
         Also performs domain checks
 
         Parameters
@@ -500,7 +518,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     def __link_element_to_config(self, element : "HAelement"):
         "Links an element to settings in the entity config. Does not overwrite settings if they are already applied, and only called during init (hence a private method)"
             
-        ent : dict = all_entities.get(self.entity, {})
+        ent : dict = HAelement._client_instance._all_entities.get(self.entity, {})
 
         ##Like this: the element should still have all the needed properties/attributes set.
         if not ent.get("link_elements",False):
@@ -522,8 +540,9 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 ##Maybe use the entityElement as a base class to ensure all stuff is set at init?
 
 class StateButton(HAelement, elements.Button):
-    """
-    Button displaying the state of an entity as text.
+    """:py:class:`Button <PythonScreenStackManager.elements.Button>` displaying the state of an entity as text.
+
+    Comes with some additional functionality to display the state to your liking.
 
     Parameters
     ----------
@@ -631,8 +650,9 @@ class StateButton(HAelement, elements.Button):
     
     @property
     def entity_attribute(self) -> Optional[str]:
-        """
-        The entity's attribute being shown as the element's state. Set to None to use the state (default)
+        """The entity's attribute being shown as the element's state.
+        
+        Set to None to use the state (default)
         If the attribute is not present the button will display no text.
         """
         return self.__entity_attribute
@@ -797,8 +817,8 @@ class _EntityLayout(HAelement, elements.Layout):
         "Builds the layout for this element."
 
 class EntityTile(_EntityLayout, elements.Tile):
-    """
-    Version of the Tile Element linked to an entity. For most options/configuration, see the Tile Element.
+    """Version of the :py:class:`Tile <PythonScreenStackManager.elements.Tile>` Element linked to an entity.
+
     The text and title Button are replaced with StateButtons, and hence the textProperties and titleProperties are set via here as well.
     state_styles can be defined via the appropriate property variable, or via the state_styles of the Tile itself.
 
@@ -1009,8 +1029,9 @@ class EntityTile(_EntityLayout, elements.Tile):
         return
 
 class PersonElement(EntityTile):
-    """
-    Element displaying where a person is (i.e. the state of a person entity). Takes all options except badge from the EntityTile.
+    """Element displaying where a person is (i.e. the state of a person entity). 
+    
+    Takes all options except badge from the :py:class:`EntityTile`.
 
     Parameters
     ----------
@@ -1134,11 +1155,15 @@ class PersonElement(EntityTile):
         return
 
 class MediaPlayer(_EntityLayout):
-    """
-    A element to show the state of a media player. Highly configurable and stylable (In my opinion), but the default values should make it similar to the media player cards in the HA frontend.
-    Any element properties passed (e.g. `info_title_properties` or `duration_slider_properties`) will only overwrite the keys passed, otherwise the default value is used. These also accepts the values `background` and `foreground` for color properties, which parses the appropriate color of the MediaPlayer to that property.
-    Due to complexity,does not use the `_TileBase` class, so it may be rewritten in the future.
+    """A element to show the state of a media player.
     
+    Highly configurable and stylable (In my opinion), but the default values should make it similar to the media player cards in the HA frontend.
+    Any element properties passed (e.g. ``info_title_properties`` or ``duration_slider_properties``) will only overwrite the keys passed, otherwise the default value is used. These also accepts the values `background` and `foreground` for color properties, which parses the appropriate color of the MediaPlayer to that property.
+    Due to complexity, does not use the ``TileElement`` class yet, so it may be rewritten in the future.
+    This is also why the documentation is different from other tiles.
+    
+    Currently available tiles are:  ``media_info``, ``controls``, ``duration``, ``artwork`` and ``volume``
+
     Parameters
     ----------
     entity : str
@@ -1209,7 +1234,9 @@ class MediaPlayer(_EntityLayout):
     """
     
     ALLOWED_DOMAINS = {"media_player"}
-    TILES = {"media_info", "controls", "duration", "artwork", "volume"}
+
+
+    tiles = {"media_info", "controls", "duration", "artwork", "volume"}
 
     @property
     def _emulator_icon(cls): return "mdi:video-image"
@@ -2606,24 +2633,11 @@ class MediaPlayer(_EntityLayout):
 ##Maybe also add a special weather tile? Which simply shows the icon and two attributes
 
 class WeatherElement(_EntityLayout, base.TileElement):
-    """
-    A Weather Element. Opens a forecast popup on click (if tap_action is not specified) with a forecast from the entity. \n
-    Elements are 'condition' (The condition icon), 'title' (A statebutton which by default shows the friendly name, but is also hidden by default) and 'weather-data', which is the tile_layout holding all the weather_data
-    Otherwise accepts all TileLayout arguments.
+    """A Weather Element.
+    
+    Opens a forecast popup on click (if tap_action is not specified) with a forecast from the entity. \n
+    Tiles are ``condition`` (The condition icon), ``title`` (A statebutton which by default shows the friendly name, but is also hidden by default) and ``weather-data``, which is a :py:class:`TileLayout <PythonScreenStackManager.elements.TileLayout>` holding all the weather_data.
 
-    Elements
-    ----------
-    condition : `base.Icon`
-        Icon element, that shows the condition icon. the icon cannot be set directly
-    title : `StateButton`
-        StateButton element, can show any data of the entity. Defaults the the friendly_name, but is also hidden by default
-    weather-data : `base.TileLayout`
-        A TileLayout that holds more TileLayouts for each attribute in weather_data. Element_properties can be set, however that requires setting one for each weather_data entry. Use this element's weather_data_properties to give each tile the same styling. By default, the icon and text button in here will be given this element's foreground_color.
-    forecast : `ForecastElement`
-        The element with the forecast data. Typically, this is used as a popup (when the `tap_action` is `"show-forecast"`), but it can be used as an element in the tile layout
-        Putting it in the tile_layout and also using it in the popup could lead to weird behaviour, though it didn't seem to when I was testing (which was not what I expected)
-        Styling is done via `element_properties['forecast']` regardless of whether it is used as a popup or an element in the tile_layout.
-        
     Parameters
     ----------
     entity : str
@@ -2655,11 +2669,28 @@ class WeatherElement(_EntityLayout, base.TileElement):
         Otherwise, a custom layout is possible, but you will need to define each value from `weather_data` yourself (any value missing in the layout string will not be shown).
     hide : list[Literal[&quot;condition&quot;,&quot;title&quot;,&quot;weather, optional
         List of elements to hide from the main Tile, by default ["title"]
+    
+    Elements
+    ----------
+    condition : `base.Icon`
+        Icon element, that shows the condition icon. the icon cannot be set directly
+    title : `StateButton`
+        StateButton element, can show any data of the entity. Defaults the the friendly_name, but is also hidden by default
+    weather-data : `base.TileLayout`
+        A TileLayout that holds more TileLayouts for each attribute in weather_data. Element_properties can be set, however that requires setting one for each weather_data entry. Use this element's weather_data_properties to give each tile the same styling. By default, the icon and text button in here will be given this element's foreground_color.
+    forecast : `ForecastElement`
+        The element with the forecast data. Typically, this is used as a popup (when the `tap_action` is `"show-forecast"`), but it can be used as an element in the tile layout
+        Putting it in the tile_layout and also using it in the popup could lead to weird behaviour, though it didn't seem to when I was testing (which was not what I expected)
+        Styling is done via `element_properties['forecast']` regardless of whether it is used as a popup or an element in the tile_layout.    
     """
 
     ALLOWED_DOMAINS = ["weather"]
     
     defaultLayouts : dict = {"vertical": "[condition,title];weather-data", "horizontal": "[condition;title],weather-data"}
+
+    @classproperty
+    def tiles(cls):
+        return ("condition", "title", "weather-data")
 
     _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
@@ -2831,6 +2862,8 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
         self._rebuild_layout = True
         "Set this to rebuild the layout the next time the generator is called."
+
+        HAelement._client_instance.add_entity_function("sun.sun", (self._trigger_from_sun, False))
         return
 
     #region
@@ -3302,6 +3335,13 @@ class WeatherElement(_EntityLayout, base.TileElement):
             await self.async_update(updated=updated)        
         return
 
+    async def _trigger_from_sun(self, trigger_dict: triggerDictType, ha_client: "HAclient"):
+
+        weather_state = self.HAclient.stateDict[self.entity]
+        weather_trigger = triggerDictType(entity_id=self.entity, to_state=weather_state)
+        await self.trigger_function(self, weather_trigger)
+        return
+
     def show_forecast(self, *args):
         asyncio.create_task(self.async_show_forecast())
 
@@ -3316,13 +3356,13 @@ class WeatherElement(_EntityLayout, base.TileElement):
         await self.__ForecastPopup.async_show()
 
 class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
-    """
-    An element that shows the weather forecast of the connected entity using a stack of `WeatherElements`.
-    Does _NOT_ accept Tile like layout strings, but does accept the same color properties.
-    ForecastElements also accept a list of values for its color properties (foreground_color, accent_color, background_color, outline_color).
+    """An element that shows the weather forecast of the connected entity using a stack of :py:class:`WeatherElement` elements.
+
+    Does **NOT** accept Tile like layout strings, but does accept the same color properties.
+    ForecastElements also accept a list of values for its color properties (``foreground_color``, ``accent_color``, ``background_color``, ``outline_color``).
     Using a list will have the element cycle through the values, i.e. the first `WeatherElement` will parse the first value if it has a color property matching the shorthand. Then the next `WeatherElement` will parse the next value in the list, etc.
     Values are still cycled even if they're not used in an element.
-    So, for example, using `background_color = ["black","white"]` and `foreground_color = ["white","black"]`, and `element_properties = {"background_color": "background", "foreground_color": "foreground"}` will mean the first `WeatherElement` has a white foreground_color and black background_color. The second one will have a black foreground_color and a white background_color, etc.
+    So, for example, using ``background_color = ["black","white"]`` and ``foreground_color = ["white","black"]``, and ``element_properties = {"background_color": "background", "foreground_color": "foreground"}`` will mean the first `WeatherElement` has a white ``foreground_color`` and black ``background_color``. The second one will have a black ``foreground_color`` and a ``white background_color``, etc.
     Parsing color strings is should work without putting them in a list, but in case of using i.e. RGB values, it may be a bit finnicky. The best way to use these values is to already pass them as a nested list (i.e. pass `[[100,100,50]]` instead of `[100,100,50]`). Checks are in place to prevent this but better safe than sorry.
     
     Due to the way the client is setup, the first forecast data cannot be retrieved before printing has started, so the element will initially show the default texts and icons. However the elements should update within the first few seconds, provided a connection to Home Assistant was successfully made.
@@ -3970,9 +4010,10 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 ##Apparently seting HAelement as the second parentclass caused issues lol
 ##So it needs to be in front
 class EntityTimer(HAelement, base.TileElement):
-    """
-    A tile based element for timer entities.
-    Provided tiles are 'icon', 'title', 'timer', 'timer-slider', 'timer-countdown' and 'duration'. (See tile_layout below for more info)
+    """A tile based element for timer entities.
+
+    Provided tiles are 'icon', 'title', 'timer', 'timer-slider', 'timer-countdown' and 'duration'.
+    Depending on what you put into the ``tile_layout``, you can display the time either via a slider or textually.
 
     Parameters
     ----------
@@ -3999,6 +4040,10 @@ class EntityTimer(HAelement, base.TileElement):
             applied defaults are {"icon": {"icon_attribute": "icon","icon_color": "foreground", "background_color": "accent", "background_shape": "circle", "tap_action": 'toggle-timer'}, "timer-slider": {"style": "box", "inactive_color": 'accent', "active_color": "foreground", "outline_color": None}, "title": {"entity_attribute": "friendly_name", "text_xPosition": "left","font": DEFAULT_FONT_HEADER}, "timer-countdown": {"text_xPosition": "left"}}
     """ 
     
+    @classproperty
+    def tiles(cls):
+        return ("icon", "title", "timer", "timer-slider", "timer-countdown", "duration")
+
     @property
     def _emulator_icon(cls): return "mdi:clock-star-four-points"
 
@@ -4046,7 +4091,7 @@ class EntityTimer(HAelement, base.TileElement):
 
         icon = elements.Icon(icon, tap_action=self.toggle_timer, icon_attribute=None)
         
-        HAelement.wrap_element(icon,None)
+        HAelement.wrap_element(icon, None)
         
         timer = elements.Button("--:--")
         total = elements.Button("--/--", )
@@ -4341,17 +4386,19 @@ class EntityTimer(HAelement, base.TileElement):
                     return
 
     def toggle_timer(self, *args):
+        "Toggles the timer between running and pausing"
         if self.state != "active":
             self.start_timer()
         else:
             self.pause_timer()
 
     def start_timer(self, *args):
-        "Pauses the connected timer entity"
+        "Starts the timer and the connected timer entity"
         if self.state != "active":
             self.HAclient.call_service(service="timer.start", target=self.entity)
 
     def pause_timer(self, *args):
+        "Pauses the timer and the connected entity"
         if self.state == "active":
             self.HAclient.call_service(service="timer.pause", target=self.entity)
 

@@ -21,7 +21,6 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-
 ##This one is required
 async def async_setup(core: "CORE", config : "config") -> None:
     ##Screen can be gotten by importing at this point
@@ -34,7 +33,7 @@ async def async_setup(core: "CORE", config : "config") -> None:
 
     from . import client
     client.CORE = core
-    HAclient = client.HAclient(core.screen)
+    HAclient = client.HAclient(core.screen, core)
     from . import parser
     parser.setup_elements()
 
