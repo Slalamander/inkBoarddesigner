@@ -2862,6 +2862,8 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
         self._rebuild_layout = True
         "Set this to rebuild the layout the next time the generator is called."
+
+        HAelement._client_instance.add_entity_function("sun.sun", (self._trigger_from_sun, False))
         return
 
     #region
@@ -3331,6 +3333,13 @@ class WeatherElement(_EntityLayout, base.TileElement):
                 updated = True
             else: updated = False
             await self.async_update(updated=updated)        
+        return
+
+    async def _trigger_from_sun(self, trigger_dict: triggerDictType, ha_client: "HAclient"):
+
+        weather_state = self.HAclient.stateDict[self.entity]
+        weather_trigger = triggerDictType(entity_id=self.entity, to_state=weather_state)
+        await self.trigger_function(self, weather_trigger)
         return
 
     def show_forecast(self, *args):
