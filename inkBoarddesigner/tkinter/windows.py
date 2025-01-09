@@ -35,6 +35,9 @@ window: "DesignerWindow"
 
 p = Path()
 
+if not hasattr(Image, "CUBIC"):
+    _LOGGER.debug("Applying patch for ttkbootstrap; Image.CUBIC is set to Image.Resampling.BICUBIC")
+    Image.CUBIC = Image.Resampling.BICUBIC
 
 class DesignerWindow(ttk.Window):
     """Specific window class meant to interface with inkBoard Designer
