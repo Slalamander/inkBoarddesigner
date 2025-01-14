@@ -71,9 +71,11 @@ def make_app():
     ])
 
 ##api endpoints to implement:
-##device: features, a get_feature thing
-##screen
+##device: features, a get_feature thingy
+##screen -> get properties? maybe just a few basic ones i.e. screen size and color modes
+##Also: getter for shorthand functions and getter for shorthand groups
 ##config
+##integration list
 
 ##actions: action that routes to shorthands
 
