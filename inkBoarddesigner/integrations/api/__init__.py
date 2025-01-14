@@ -13,3 +13,4 @@
 ## - Flask
 
 ##Will try out with tornado. Not the fastest (relatively slow even), but considering it is a minor endpoint that should not handle much that is not a major problem I hope.
+##Benchmarks for apis: https://github.com/klen/py-frameworks-bench
