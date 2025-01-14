@@ -14,3 +14,28 @@
 
 ##Will try out with tornado. Not the fastest (relatively slow even), but considering it is a minor endpoint that should not handle much that is not a major problem I hope.
 ##Benchmarks for apis: https://github.com/klen/py-frameworks-bench
+
+from typing import *
+
+from .constants import DEFAULT_PORT
+
+if TYPE_CHECKING:
+    from inkBoard import core as CORE
+    from .server import inkBoardAPI
+
+async def async_setup(core : "CORE", config : "CORE.config"):
+
+    from .server import make_app
+
+    app = make_app()
+    app._core = core
+    return app
+
+
+async def async_run(core: "CORE", app : "inkBoardAPI"):
+    app._server = app.listen(DEFAULT_PORT)
+    return
+
+def stop(core: "CORE", app : "inkBoardAPI"):
+
+    app.server.stop()
