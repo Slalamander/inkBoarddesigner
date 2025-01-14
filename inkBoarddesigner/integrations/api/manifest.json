@@ -3,7 +3,7 @@
     "config_entry": "api",
     "codeowners": ["Slalamander"],
     "documentation": "https://www.example.com",
-    "requirements": ["websockets","requests"],
+    "requirements": ["tornado"],
 
     "version": "0.2.1"
 }
