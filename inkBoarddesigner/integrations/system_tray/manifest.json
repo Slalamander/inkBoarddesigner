@@ -2,7 +2,7 @@
     "name": "inkBoard Systemtray",
     "config_entry": "system_tray",
     "codeowners": ["Slalamander"],
-    "documentation": "https://www.example.com",
+    "documentation": "https://inkboard-documentation.readthedocs.io/en/latest/integrations/system_tray.html",
     "requirements": ["pystray"],
     "inkboard_requirements": {
         "platforms": ["desktop"]
