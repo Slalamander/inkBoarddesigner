@@ -34,6 +34,10 @@ async def async_setup(core : "CORE", config : "CORE.config"):
 
 async def async_run(core: "CORE", app : "inkBoardAPI"):
     app._server = app.listen(DEFAULT_PORT)
+
+    ##To allow extensions e.d. to not have their functions available via the api:
+    ##Add a property that lists the group and one for functions
+    ##api should catch them out.
     return
 
 def stop(core: "CORE", app : "inkBoardAPI"):
