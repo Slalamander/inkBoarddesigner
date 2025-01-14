@@ -65,10 +65,13 @@ class DeviceFeaturesHandler(RequestHandler):
 
 
 def make_app():
-    return inkBoardAPI([
+    app = inkBoardAPI([
+        (tornado.routing.HostMatches(r'(localhost|127\.0\.0\.1)')),
         (r"/api", MainHandler),
         (r"/api/device/features", DeviceFeaturesHandler)
     ])
+
+    return app
 
 ##api endpoints to implement:
 ##device: features, a get_feature thingy
