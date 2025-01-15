@@ -129,7 +129,7 @@ class ConfigGetter(RequestHandler):
         conf["version"] = inkBoard.__version__
         self.write(conf)
 
-class DeviceFeaturesHandler(RequestHandler):
+class DeviceFeaturesGetter(RequestHandler):
     """Returns a list with the device's features
 
     Parameters
@@ -151,6 +151,8 @@ class DeviceFeaturesHandler(RequestHandler):
         resp_dict["features"] = features
         
         self.write(resp_dict)
+
+# class FeatureHandler
 
 class BatteryHandler(RequestHandler):
 
@@ -254,7 +256,7 @@ def make_app():
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
         (r"/api/config", ConfigGetter),
         
-        (r"/api/device/features", DeviceFeaturesHandler), ##Returns a list with all the features of the device, and the model and platform
+        (r"/api/device/features", DeviceFeaturesGetter), ##Returns a list with all the features of the device, and the model and platform
         (r"/api/device/battery", BatteryHandler),
         (r"/api/device/network", NetworkHandler),
         
