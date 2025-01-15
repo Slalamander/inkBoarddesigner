@@ -152,15 +152,19 @@ class DeviceFeaturesGetter(RequestHandler):
         
         self.write(resp_dict)
 
-# class FeatureHandler
+class BaseFeatureHandler(RequestHandler):
 
-class BatteryHandler(RequestHandler):
+    feature = None
 
     def prepare(self):
-        if not self.core.device.has_feature(FEATURES.FEATURE_BATTERY):
+        if not self.core.device.has_feature(self.feature):
             self.send_error(404, reason = "device does not have the battery feature")
             return
         return super().prepare()
+
+class BatteryHandler(BaseFeatureHandler):
+
+    feature = FEATURES.FEATURE_BATTERY
 
     def get(self):
         conf = {
@@ -173,12 +177,9 @@ class BatteryHandler(RequestHandler):
         state = await self.core.device.battery.async_update_battery_state()
         self.write({"state": state[1], "charge": state[0]})
 
-class NetworkHandler(RequestHandler):
+class NetworkHandler(BaseFeatureHandler):
 
-    def prepare(self):
-        if not self.core.device.has_feature(FEATURES.FEATURE_NETWORK):
-            self.send_error(404, reason = "device does not have the network feature")
-            return
+    feature = FEATURES.FEATURE_NETWORK
 
     def _create_network_dict(self) -> dict:
 
@@ -197,6 +198,25 @@ class NetworkHandler(RequestHandler):
     async def post(self):
         await self.core.device.network.async_update_network_properties()
         self.write(self._create_network_dict())
+
+class BacklightHandler(BaseFeatureHandler):
+
+    feature = FEATURES.FEATURE_BACKLIGHT
+
+    def get(self):
+
+        backlight = self.core.device.backlight
+        conf = {
+            "state": backlight.state,
+            "brightness": backlight.brightness,
+            "behaviour": backlight.behaviour,
+            
+            "default_time_on": backlight.default_time_on,
+            "default_brightness": backlight.defaultBrightness,
+            "default_transition": backlight.defaultTransition
+        }
+        self.write(conf)
+
 
 class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
