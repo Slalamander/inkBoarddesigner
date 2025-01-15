@@ -9,9 +9,14 @@ import asyncio
 import tornado
 from tornado.web import RequestHandler
 
+import inkBoard
 from inkBoard.platforms import InkboardDeviceFeatures
+from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
+
+import PythonScreenStackManager
 from PythonScreenStackManager import tools
 from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGroupNotFound
+from PythonScreenStackManager.elements import TabPages
 
 from .constants import DEFAULT_PORT
 
@@ -19,7 +24,7 @@ if TYPE_CHECKING:
     from inkBoard import core as CORE
     from inkBoard.platforms import BaseDevice
 
-class inkBoardAPI(tornado.web.Application):
+class inkBoardAPIServer(tornado.web.Application):
 
     def __init__(self, handlers = None, default_host = None, transforms = None, **settings):
         super().__init__(handlers, default_host, transforms, **settings)
@@ -66,7 +71,7 @@ class inkBoardAPI(tornado.web.Application):
 
 class RequestHandler(RequestHandler):
 
-    application: inkBoardAPI
+    application: inkBoardAPIServer
 
     @property
     def core(self) -> "CORE":
@@ -109,6 +114,42 @@ class DeviceFeaturesHandler(RequestHandler):
         resp_dict["features"] = features
         
         self.write(tornado.escape.json_encode(resp_dict))
+
+class ConfigGetter(RequestHandler):
+
+    def get(self):
+
+        conf = {}
+        conf["name"] = self.core.config.inkBoard.name
+
+        if self.core.config.inkBoard.main_element:
+            id = self.core.config.inkBoard.main_element
+            elt = self.core.screen.elementRegister[id]
+
+            if elt.__module__.startswith("PythonScreenStackManager.elements"):
+                type_ = elt.__module__.split(".")[-1]
+            elif elt.__module__.startswith("inkBoard.integrations"):
+                type_ = elt.__module__.lstrip("inkBoard.integrations.")
+            else:
+                type_ = elt.__module__
+
+            conf["main_element"] = {
+                "id": id,
+                "type": type_
+            }
+        elif "main_tabs" in self.core.config:
+            conf["main_element"] = {
+                "id": self.core.config["main_tabs"].get("id", DEFAULT_MAIN_TABS_NAME),
+                "type": TabPages.__name__
+            }
+        else:
+            conf["main_element"] = None
+
+        conf["integrations"] = tuple(self.core.integration_loader.imported_integrations.keys())
+        conf["start_time"] = self.core.IMPORT_TIME
+        conf["platform"] = self.core.device.platform
+        conf["version"] = inkBoard.__version__
+
 
 class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
@@ -174,7 +215,7 @@ class ActionGroupHandler(RequestHandler):
             return super().write_error(status_code, **kwargs)
 
 def make_app():
-    app = inkBoardAPI()
+    app = inkBoardAPIServer()
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
         [(r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
         (r"/api/device/features", DeviceFeaturesHandler), ##Returns a list with all the features of the device, and the model and platform
@@ -194,6 +235,9 @@ def make_app():
 ##config -> not the full config, but info.
 ##i.e., inkBoard entry, integrations(?) base device info and screen info?
 ##integration list
+
+##For device features:
+##Some features (battery, backlight?) Should have a class that can both get and post (post simply calling the update method)
 
 ##screen info: size, rotation, mainelement (id), popupregister, 
 ##device info: size, rotation, model, platform, deviceName, screentype; base info endpoint
