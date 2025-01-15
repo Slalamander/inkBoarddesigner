@@ -171,7 +171,30 @@ class BatteryHandler(RequestHandler):
         state = await self.core.device.battery.async_update_battery_state()
         self.write({"state": state[1], "charge": state[0]})
 
+class NetworkHandler(RequestHandler):
 
+    def prepare(self):
+        if not self.core.device.has_feature(FEATURES.FEATURE_NETWORK):
+            self.send_error(404, reason = "device does not have the network feature")
+            return
+
+    def _create_network_dict(self) -> dict:
+
+        network = self.core.device.network
+        conf = {
+            "ip_adress": network.IP,
+            "mac_adress": network.macAddr,
+            "network_ssid": network.SSID,
+            "signal": network.signal,
+        }
+        return conf
+    
+    def get(self):
+        self.write(self._create_network_dict())
+
+    async def post(self):
+        await self.core.device.network.async_update_network_properties()
+        self.write(self._create_network_dict())
 
 class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
@@ -233,6 +256,7 @@ def make_app():
         
         (r"/api/device/features", DeviceFeaturesHandler), ##Returns a list with all the features of the device, and the model and platform
         (r"/api/device/battery", BatteryHandler),
+        (r"/api/device/network", NetworkHandler),
         
         (r"/api/actions", ActionsGetter),   ##Returns all available shorthand actions
         (r"/api/actions/groups", ActionGroupsGetter),   ##Returns all available action groups
