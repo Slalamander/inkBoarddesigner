@@ -10,7 +10,7 @@ import tornado
 from tornado.web import RequestHandler
 
 import inkBoard
-from inkBoard.platforms import InkboardDeviceFeatures
+from inkBoard.platforms import InkboardDeviceFeatures, FEATURES
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 
 import PythonScreenStackManager
@@ -92,28 +92,6 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         self.write("API running")
 
-class DeviceFeaturesHandler(RequestHandler):
-    """Returns a list with the device's features
-
-    Parameters
-    ----------
-    RequestHandler : _type_
-        _description_
-    """
-
-    async def get(self):
-        resp_dict = {
-            "platform": self.application.device.platform,
-            "model": self.application.device.model,
-            }
-
-        features = []
-        for feat, val in self.application.device._features._asdict().items():
-            if val: features.append(feat)
-        
-        resp_dict["features"] = features
-        
-        self.write(tornado.escape.json_encode(resp_dict))
 
 class ConfigGetter(RequestHandler):
 
@@ -149,7 +127,44 @@ class ConfigGetter(RequestHandler):
         conf["start_time"] = self.core.IMPORT_TIME
         conf["platform"] = self.core.device.platform
         conf["version"] = inkBoard.__version__
+        self.write(conf)
 
+class DeviceFeaturesHandler(RequestHandler):
+    """Returns a list with the device's features
+
+    Parameters
+    ----------
+    RequestHandler : _type_
+        _description_
+    """
+
+    async def get(self):
+        resp_dict = {
+            "platform": self.application.device.platform,
+            "model": self.application.device.model,
+            }
+
+        features = []
+        for feat, val in self.application.device._features._asdict().items():
+            if val: features.append(feat)
+        
+        resp_dict["features"] = features
+        
+        self.write(tornado.escape.json_encode(resp_dict))
+
+class BatteryHandler(RequestHandler):
+
+    def get(self):
+        if not self.core.device.has_feature(FEATURES.FEATURE_BATTERY):
+            self.send_error(404, reason = "device does not have the battery feature")
+            return
+        
+        conf = {
+            "state": self.core.device.battery.state,
+            "charge": self.core.device.battery.charge
+        }
+        self.write
+        
 
 class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
@@ -173,18 +188,13 @@ class BaseActionHandler(RequestHandler):
     async def post(self, action: str):
         
         if action not in self.core.screen.shorthandFunctions or action in self.application._removed_actions:
-            self.send_error(404, missing_action = action)
+            self.send_error(404, reason = f"No Shorthand Action {action}")
             return
 
         func = self.core.screen.shorthandFunctions[action]
         await tools.wrap_to_coroutine(func, **self.json_args)
         return
-    
-    def write_error(self, status_code, **kwargs):
-        if status_code == 404 and "missing_action" in kwargs:
-            self.write(f"{status_code}: No Shorthand Action {kwargs['missing_action']}")
-        else:
-            return super().write_error(status_code, **kwargs)
+
 
 class ActionGroupHandler(RequestHandler):
 
@@ -193,32 +203,32 @@ class ActionGroupHandler(RequestHandler):
         args = self.json_args.copy()
         data = args.pop("data", {})
         if action_group not in self.core.screen.shorthandFunctionGroups or action_group in self.application._removed_action_groups:
-            self.send_error(400, f"No shorthand action group {action_group} is registered")
+            self.send_error(404, reason = f"No shorthand action group {action_group} is registered")
             return
         
         try:
             func = self.core.screen.parse_shorthand_function(f"{action_group}:{action}", options=args)
         except ShorthandGroupNotFound:
-            self.send_error(404, f"No shorthand action group {action_group} is registered")
+            self.send_error(404, reason = f"No shorthand action group {action_group} is registered")
             return
         except ShorthandNotFound:
-            self.send_error(404, f"Shorthand action group {action_group} could not parse {action}")
+            self.send_error(404, reason = f"Shorthand action group {action_group} could not parse {action}")
             return
         
         await tools.wrap_to_coroutine(func, **data)
         return
-    
-    def write_error(self, status_code, **kwargs):
-        if status_code == 404 and "action_error_string" in kwargs:
-            self.write(f"{status_code}: {kwargs['action_error_string']}")
-        else:
-            return super().write_error(status_code, **kwargs)
+
 
 def make_app():
     app = inkBoardAPIServer()
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
-        [(r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
+        [
+        (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
+        (r"/api/config", ConfigGetter),
+        
         (r"/api/device/features", DeviceFeaturesHandler), ##Returns a list with all the features of the device, and the model and platform
+        (r"/api/device/battery", BatteryHandler),
+        
         (r"/api/actions", ActionsGetter),   ##Returns all available shorthand actions
         (r"/api/actions/groups", ActionGroupsGetter),   ##Returns all available action groups
 
