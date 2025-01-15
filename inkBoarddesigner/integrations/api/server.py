@@ -154,17 +154,24 @@ class DeviceFeaturesHandler(RequestHandler):
 
 class BatteryHandler(RequestHandler):
 
-    def get(self):
+    def prepare(self):
         if not self.core.device.has_feature(FEATURES.FEATURE_BATTERY):
             self.send_error(404, reason = "device does not have the battery feature")
             return
-        
+        return super().prepare()
+
+    def get(self):
         conf = {
             "state": self.core.device.battery.state,
             "charge": self.core.device.battery.charge
         }
-        self.write
-        
+        self.write(conf)
+
+    async def post(self):
+        state = await self.core.device.battery.async_update_battery_state()
+        self.write({"state": state[1], "charge": state[0]})
+
+
 
 class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
