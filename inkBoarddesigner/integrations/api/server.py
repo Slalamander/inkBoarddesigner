@@ -131,11 +131,15 @@ class ConfigGetter(RequestHandler):
             main_elt = None
 
         if isinstance(main_elt, TabPages):
-            main_elt.tabs
-            conf["main_element"]["tabs"] = {}
+            conf["main_element"]["current_tab"] = main_elt.currentPage
+            conf["main_element"]["tabs"] = list(main_elt.pageNames)
             ##Gather the page id's from the element.
-            ##Also: add current tab in info as well as optional popup
-            pass
+            ##Also: add current tab in info as well as optional popup that is on top
+        
+        conf["popups"] = {
+            "current_popup": self.core.screen.popupsOnTop[-1] if self.core.screen.popupsOnTop else None,
+            "registered_popups": list(self.core.screen.popupRegister.keys())
+        }
 
         self.write(conf)
 
