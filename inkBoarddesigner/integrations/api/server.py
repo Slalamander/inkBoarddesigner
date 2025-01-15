@@ -100,16 +100,21 @@ class ConfigGetter(RequestHandler):
         conf = {}
         conf["name"] = self.core.config.inkBoard.name
 
+        conf["start_time"] = self.core.IMPORT_TIME
+        conf["platform"] = self.core.device.platform
+        conf["version"] = inkBoard.__version__
+
+        conf["integrations"] = tuple(self.core.integration_loader.imported_integrations.keys())
         if self.core.config.inkBoard.main_element:
             id = self.core.config.inkBoard.main_element
-            elt = self.core.screen.elementRegister[id]
+            main_elt = self.core.screen.elementRegister[id]
 
-            if elt.__module__.startswith("PythonScreenStackManager.elements"):
-                type_ = elt.__module__.split(".")[-1]
-            elif elt.__module__.startswith("inkBoard.integrations"):
-                type_ = elt.__module__.lstrip("inkBoard.integrations.")
+            if main_elt.__module__.startswith("PythonScreenStackManager.elements"):
+                type_ = main_elt.__module__.split(".")[-1]
+            elif main_elt.__module__.startswith("inkBoard.integrations"):
+                type_ = main_elt.__module__.lstrip("inkBoard.integrations.")
             else:
-                type_ = elt.__module__
+                type_ = main_elt.__module__
 
             conf["main_element"] = {
                 "id": id,
@@ -120,16 +125,21 @@ class ConfigGetter(RequestHandler):
                 "id": self.core.config["main_tabs"].get("id", DEFAULT_MAIN_TABS_NAME),
                 "type": TabPages.__name__
             }
+            main_elt = self.core.screen.elementRegister[conf["main_element"]["id"]]
         else:
             conf["main_element"] = None
+            main_elt = None
 
-        conf["integrations"] = tuple(self.core.integration_loader.imported_integrations.keys())
-        conf["start_time"] = self.core.IMPORT_TIME
-        conf["platform"] = self.core.device.platform
-        conf["version"] = inkBoard.__version__
+        if isinstance(main_elt, TabPages):
+            main_elt.tabs
+            conf["main_element"]["tabs"] = {}
+            ##Gather the page id's from the element.
+            ##Also: add current tab in info as well as optional popup
+            pass
+
         self.write(conf)
 
-class DeviceFeaturesGetter(RequestHandler):
+class DeviceHandler(RequestHandler):
     """Returns a list with the device's features
 
     Parameters
@@ -139,18 +149,26 @@ class DeviceFeaturesGetter(RequestHandler):
     """
 
     async def get(self):
-        resp_dict = {
-            "platform": self.application.device.platform,
-            "model": self.application.device.model,
+        device = self.core.device
+        conf = {
+            "platform": device.platform,
+            "model": device.model,
+            "name": device.name,
+            "size": (device.screenWidth, device.screenHeight),
+            "screen_type": device.screenType,
+            "screen_mode": device.screenMode
             }
+        
+        if device.has_feature(FEATURES.FEATURE_ROTATION):
+            conf["rotation"] = device.rotation
 
         features = []
         for feat, val in self.application.device._features._asdict().items():
             if val: features.append(feat)
         
-        resp_dict["features"] = features
+        conf["features"] = features
         
-        self.write(resp_dict)
+        self.write(conf)
 
 class BaseFeatureHandler(RequestHandler):
 
@@ -276,9 +294,10 @@ def make_app():
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
         (r"/api/config", ConfigGetter),
         
-        (r"/api/device/features", DeviceFeaturesGetter), ##Returns a list with all the features of the device, and the model and platform
+        (r"/api/device", DeviceHandler), ##Returns a list with all the features of the device, and the model and platform
         (r"/api/device/battery", BatteryHandler),
         (r"/api/device/network", NetworkHandler),
+        (r"/api/device/backlight", BacklightHandler),
         
         (r"/api/actions", ActionsGetter),   ##Returns all available shorthand actions
         (r"/api/actions/groups", ActionGroupsGetter),   ##Returns all available action groups
@@ -300,7 +319,9 @@ def make_app():
 ##For device features:
 ##Some features (battery, backlight?) Should have a class that can both get and post (post simply calling the update method)
 
-##screen info: size, rotation, mainelement (id), popupregister, 
+##screen info: mainelement (id), popupregister -> move to config
+##Also include tab pages if appropriate
+
 ##device info: size, rotation, model, platform, deviceName, screentype; base info endpoint
 ##Add features for endpoints? Or in info?
 ##I.e. how to get the battery state, backlight state etc.
