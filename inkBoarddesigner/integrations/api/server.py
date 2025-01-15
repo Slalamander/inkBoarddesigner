@@ -150,7 +150,7 @@ class DeviceFeaturesHandler(RequestHandler):
         
         resp_dict["features"] = features
         
-        self.write(tornado.escape.json_encode(resp_dict))
+        self.write(resp_dict)
 
 class BatteryHandler(RequestHandler):
 
@@ -171,16 +171,14 @@ class ActionsGetter(RequestHandler):
 
     def get(self):
         actions = set(self.core.screen.shorthandFunctions.keys()) - self.application._removed_actions
-        self.write(tornado.escape.json_encode(
-                    list(actions)))
+        self.write(list(actions))
         
 class ActionGroupsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
 
     def get(self):
         groups = set(self.core.screen.shorthandFunctionGroups.keys()) - self.application._removed_action_groups
-        self.write(tornado.escape.json_encode(
-                    list(groups)))
+        self.write(list(groups))
         
 
 class BaseActionHandler(RequestHandler):
