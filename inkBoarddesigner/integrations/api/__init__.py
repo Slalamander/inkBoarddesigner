@@ -21,18 +21,21 @@ from .constants import DEFAULT_PORT
 
 if TYPE_CHECKING:
     from inkBoard import core as CORE
-    from .server import inkBoardAPI
+    from .server import inkBoardAPIServer
 
 async def async_setup(core : "CORE", config : "CORE.config"):
 
     from .server import make_app
+
+    ##For the config: allow manually omitting services etc. as well
+    ##Also add a way to omit specific actions from a group
 
     app = make_app()
     app._core = core
     return app
 
 
-async def async_run(core: "CORE", app : "inkBoardAPI"):
+async def async_run(core: "CORE", app : "inkBoardAPIServer"):
     app._server = app.listen(DEFAULT_PORT)
 
     ##To allow extensions e.d. to not have their functions available via the api:
@@ -40,6 +43,6 @@ async def async_run(core: "CORE", app : "inkBoardAPI"):
     ##api should catch them out.
     return
 
-def stop(core: "CORE", app : "inkBoardAPI"):
+def stop(core: "CORE", app : "inkBoardAPIServer"):
 
     app.server.stop()
