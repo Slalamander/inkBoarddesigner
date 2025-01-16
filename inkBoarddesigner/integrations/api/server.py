@@ -89,9 +89,8 @@ class RequestHandler(RequestHandler):
             self.json_args = None
 
 class MainHandler(tornado.web.RequestHandler):
-    def get(self):
+    async def get(self):
         self.write("API running")
-
 
 class ConfigGetter(RequestHandler):
 
@@ -264,6 +263,8 @@ class BaseActionHandler(RequestHandler):
             return
 
         func = self.core.screen.shorthandFunctions[action]
+        ##Maybe wrap these in a very short wait, so some errors in the call can be caught out
+        ##But the entire function call is not awaited
         await tools.wrap_to_coroutine(func, **self.json_args)
         return
 
@@ -305,7 +306,7 @@ def make_app():
         
         (r"/api/actions", ActionsGetter),   ##Returns all available shorthand actions
         (r"/api/actions/groups", ActionGroupsGetter),   ##Returns all available action groups
-
+        ##May group these two together. Since post and get are handled differently anyways?
         (r"/api/action/([a-z,-_]+)/([a-z,-_]+)", ActionGroupHandler),   ##Calls a shorthand action from a group. The "data" key from the body is passed to the function as keyword args
         (r"/api/action/([a-z,-_]+)", BaseActionHandler),    ##Calls a shorthand action without identifier. body data is send as is to the function as keyword args
                     ])
@@ -330,7 +331,9 @@ def make_app():
 ##Add features for endpoints? Or in info?
 ##I.e. how to get the battery state, backlight state etc.
 
-##actions: action that routes to shorthands
+##Also: implement a websocket; can use the same setup
+##Will require: all the implemented getters should be a function in the app which returns the required value.
+
 
 async def main():
     app = make_app()
