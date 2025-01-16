@@ -5,6 +5,7 @@ from typing import *
 from types import MappingProxyType
 import asyncio
 from functools import cached_property
+from contextlib import suppress
 
 import tornado
 
@@ -23,11 +24,17 @@ from .constants import DEFAULT_PORT
 if TYPE_CHECKING:
     from inkBoard import core as CORE
     from inkBoard.platforms import BaseDevice
+    from PythonScreenStackManager.pssm import PSSMScreen
+
+_LOGGER = inkBoard.getLogger(__name__)
 
 class removeaccessdict(TypedDict):
     actions: list[str]
     action_groups: list[str]
     group_actions: dict[str,list[str]]
+
+class _ALLOW_NONE:
+    pass
 
 class APICoordinator(tornado.web.Application):
 
@@ -45,10 +52,13 @@ class APICoordinator(tornado.web.Application):
 
         self._setup_config_access(**remove_access)
         
-        if allowed_networks == None: allowed_networks = [None]
+        if isinstance(allowed_networks,str): allowed_networks = [allowed_networks]
+        if allowed_networks == None: allowed_networks = [_ALLOW_NONE]
         assert isinstance(allowed_networks, Sequence), "allowed_networks must be a list"
         self._allowed_networks = allowed_networks
         self._port = port
+
+        self._server = None
 
         return
 
@@ -59,11 +69,15 @@ class APICoordinator(tornado.web.Application):
     
     @property
     def device(self) -> "BaseDevice":
-        return self._core.device
+        return self.core.device
     
     @property
-    def server(self) -> tornado.httpserver.HTTPServer:
-        return self._server
+    def screen(self) -> "PSSMScreen":
+        return self.core.screen
+
+    # @property
+    # def server(self) -> tornado.httpserver.HTTPServer:
+    #     return self._server
 
     @property
     def baseConfig(self) -> MappingProxyType:
@@ -99,6 +113,35 @@ class APICoordinator(tornado.web.Application):
         for group, actions in group_actions:
             for action in actions:
                 self.remove_group_action_access(group, action)
+
+    async def listen(self):
+        
+        await self._handle_network_ssid()
+        condition = self.screen.deviceUpdateCondition
+        network = self.device.network.SSID
+        while self.core.screen.printing:
+            with suppress(asyncio.CancelledError):
+                async with condition:
+                    await condition.wait_for(lambda : network != self.device.network.SSID)
+                _LOGGER.debug(f"Device network changed from {network} to {self.device.network.SSID}, checking if allowed")
+            await self._handle_network_ssid()
+            network = self.device.network.SSID
+
+    async def _handle_network_ssid(self) -> bool:
+
+        network = self.device.network.SSID
+        if (self.device.network.connected and
+            (len(self._allowed_networks) == 0 or
+            network in self._allowed_networks)):
+            ##Handle: start listening on server if not happening
+            if not self._server:
+                self._server = super().listen(self._port)
+        else:
+            ##Handle: close server if currently listening
+            if self._server:
+                self._server.stop()
+                self._server = None
+            ##Closing websocket connections does not happen via here? figure out how to.
 
     def remove_action_access(self, action: str):
         """Prevents an action shorthand from being callable via the api
