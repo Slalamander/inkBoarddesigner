@@ -217,7 +217,7 @@ class NetworkHandler(BaseFeatureHandler):
         network = self.core.device.network
         conf = {
             "ip_address": network.IP,
-            "mac_address": network.macAddr,
+            "mac_address": network.macAddress,
             "network_ssid": network.SSID,
             "signal": network.signal,
         }
@@ -249,7 +249,7 @@ class BacklightHandler(BaseFeatureHandler):
             "behaviour": backlight.behaviour,
             
             "default_time_on": backlight.default_time_on,
-            "default_brightness": backlight.defaultBrightness,
+            "default_brightness": backlight.default_brightness,
             "default_transition": backlight.defaultTransition
         }
         self.write(conf)

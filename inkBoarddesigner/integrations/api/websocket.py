@@ -1,5 +1,6 @@
 
 from typing import *
+import asyncio
 import json
 
 import inkBoard
@@ -20,8 +21,9 @@ class inkBoardWebSocket(WebSocketHandler):
     async def open(self):
         _LOGGER.debug("Opening a websocket connection")
         self._last_id = 0
-        self.write_message({"type": "connection", "inkboard_version": inkBoard.__version__})
         self.application._websockets.add(self)
+        self._connected = True
+        self.write_message({"type": "connection", "inkboard_version": inkBoard.__version__})
 
     async def on_message(self, message):
         
@@ -43,9 +45,14 @@ class inkBoardWebSocket(WebSocketHandler):
 
         self.write_message(u"You said: " + message)
 
+    def close(self, code = None, reason = None):
+        self.write_message({"type": "closing", "reason": reason})
+        return super().close(code, reason)
+
     def on_close(self):
         _LOGGER.debug("Closed a websocket connection")
         self.application._websockets.remove(self)
+        self._connected = False
 
 
     messagetypes = {
@@ -58,8 +65,18 @@ class inkBoardWebSocket(WebSocketHandler):
         "subscribe_device": None,    #subscribe to device updates -> how to handle passing the changed things?
         "subscribe_elements": None, #subscribe to certain elements doing a thing; this is not implemented though.
         "call_action": None, #calls an action; handles identifier etc. also allow for returning the result
-        "t": None
     }
+
+    async def _await_device_update(self, message_id, feature):
+
+        ##purely allow subscribing to features.
+        while self._connected and self.application.screen.printing:
+            
+            asyncio.sleep(5)
+
+        ##I think a good way to improve this is to give each feature class a get_state function or something
+        ##which should return a dict with anything that is updated on polling. 
+        ##These can then be checked into by conditions.
 
 def make_app(app: "APICoordinator"):
 
