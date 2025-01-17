@@ -5,5 +5,5 @@
     "documentation": "https://www.example.com",
     "requirements": ["websockets>=13.0","requests"],
 
-    "version": "0.2.1"
+    "version": "0.2.2"
 }
