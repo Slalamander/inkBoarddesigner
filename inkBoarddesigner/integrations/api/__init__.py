@@ -29,32 +29,39 @@ from .constants import DEFAULT_PORT
 
 if TYPE_CHECKING:
     from inkBoard import core as CORE
-    from .server import inkBoardAPIServer
+    from .app import APICoordinator
 
 async def async_setup(core : "CORE", config : "CORE.config"):
 
-    from .server import make_app
+    from .app import APICoordinator
+
+    conf = config["api"]
+    if conf in {None, ""}: conf = {}
+
+    apiapp = APICoordinator(core, **conf)
+
+    from .handlers import make_app
+    make_app(apiapp)
 
     ##For the config: allow manually omitting services etc. as well
     ##Also add a way to omit specific actions from a group -> simply passed to init
     ##Setting for allowed_networks OR allow_all_networks -> implement checks via a condition, simply shutdown the server when it does not check out?
 
     ##And a port setting
-
-    app = make_app()
-    app._core = core
-    return app
+    return apiapp
 
 
-async def async_run(core: "CORE", app : "inkBoardAPIServer"):
+async def async_run(core: "CORE", app : "APICoordinator"):
 
-    app._server = app.listen(DEFAULT_PORT)
+    # app._server = app.listen(DEFAULT_PORT)
+
+    await app.listen()
 
     ##To allow extensions e.d. to not have their functions available via the api:
     ##Add a property that lists the group and one for functions
     ##api should catch them out.
     return
 
-def stop(core: "CORE", app : "inkBoardAPIServer"):
+def stop(core: "CORE", app : "APICoordinator"):
 
-    app.server.stop()
+    app.stop()
