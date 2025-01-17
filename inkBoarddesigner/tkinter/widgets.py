@@ -591,7 +591,7 @@ class BacklightFrame(ttk.Labelframe):
 
     def __set_default_brightness(self, event: tk.Event):
         val = float(event)
-        self._device.backlight.defaultBrightness = int(val)
+        self._device.backlight.default_brightness = int(val)
 
     def __toggle_backlight(self, *args):
         var_name = "backlight.simulate"

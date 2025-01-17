@@ -626,7 +626,7 @@ class Backlight(windowed.Backlight):
             _LOGGER.debug(f"Async turning on in {transition} seconds")
         
         if brightness == None:
-            brightness = self.defaultBrightness
+            brightness = self.default_brightness
         
         if transition == None:
             transition = self.defaultTransition
@@ -644,7 +644,7 @@ class Backlight(windowed.Backlight):
             transition = self.defaultTransition
 
         if brightness == None:
-            brightness = self.defaultBrightness
+            brightness = self.default_brightness
         
         if transition < 0:
             _LOGGER.error("Transition time cannot be negative.")
