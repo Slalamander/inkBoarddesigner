@@ -20,6 +20,7 @@ from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGrou
 from PythonScreenStackManager.elements import TabPages
 
 from .constants import DEFAULT_PORT
+
 from .apitypes import *
 
 if TYPE_CHECKING:

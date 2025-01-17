@@ -19,6 +19,7 @@ from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGrou
 from PythonScreenStackManager.elements import TabPages
 
 from .constants import DEFAULT_PORT
+from .app import APICoordinator
 
 if TYPE_CHECKING:
     from inkBoard import core as CORE
@@ -71,7 +72,7 @@ class inkBoardAPIServer(tornado.web.Application):
 
 class RequestHandler(RequestHandler):
 
-    application: inkBoardAPIServer
+    application: "APICoordinator"
 
     @property
     def core(self) -> "CORE":
@@ -90,7 +91,7 @@ class RequestHandler(RequestHandler):
 
 class MainHandler(tornado.web.RequestHandler):
     async def get(self):
-        self.write("API running")
+        self.write({"message": "API running"})
 
 class ConfigGetter(RequestHandler):
 
@@ -206,8 +207,8 @@ class NetworkHandler(BaseFeatureHandler):
 
         network = self.core.device.network
         conf = {
-            "ip_adress": network.IP,
-            "mac_adress": network.macAddr,
+            "ip_address": network.IP,
+            "mac_address": network.macAddr,
             "network_ssid": network.SSID,
             "signal": network.signal,
         }
@@ -243,16 +244,19 @@ class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
 
     def get(self):
-        actions = set(self.core.screen.shorthandFunctions.keys()) - self.application._removed_actions
-        self.write(list(actions))
-        
-class ActionGroupsGetter(RequestHandler):
-    "Returns a list of all registered shorthand actions (not action groups)"
+        # actions = set(self.core.screen.shorthandFunctions.keys()) - self.application._removed_actions
 
-    def get(self):
-        groups = set(self.core.screen.shorthandFunctionGroups.keys()) - self.application._removed_action_groups
-        self.write(list(groups))
+        conf = {"shorthands": self.application.get_shorthand_actions(),
+                "groups": self.application.get_shorthand_action_groups()}
+
+        self.write(conf)
         
+# class ActionGroupsGetter(RequestHandler):
+#     "Returns a list of all registered shorthand actions (not action groups)"
+
+#     def get(self):
+#         groups = set(self.core.screen.shorthandFunctionGroups.keys()) - self.application._removed_action_groups
+#         self.write(list(groups))
 
 class BaseActionHandler(RequestHandler):
 
@@ -288,12 +292,13 @@ class ActionGroupHandler(RequestHandler):
             self.send_error(404, reason = f"Shorthand action group {action_group} could not parse {action}")
             return
         
+        
         await tools.wrap_to_coroutine(func, **data)
         return
 
 
 def make_app():
-    app = inkBoardAPIServer()
+    app = APICoordinator()
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
         [
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
@@ -305,10 +310,10 @@ def make_app():
         (r"/api/device/backlight", BacklightHandler),
         
         (r"/api/actions", ActionsGetter),   ##Returns all available shorthand actions
-        (r"/api/actions/groups", ActionGroupsGetter),   ##Returns all available action groups
         ##May group these two together. Since post and get are handled differently anyways?
-        (r"/api/action/([a-z,-_]+)/([a-z,-_]+)", ActionGroupHandler),   ##Calls a shorthand action from a group. The "data" key from the body is passed to the function as keyword args
-        (r"/api/action/([a-z,-_]+)", BaseActionHandler),    ##Calls a shorthand action without identifier. body data is send as is to the function as keyword args
+        ##Can be rewritten, have the GET for actions return groups as well.
+        (r"/api/actions/([a-z,-_]+)/([a-z,-_]+)", ActionGroupHandler),   ##Calls a shorthand action from a group. The "data" key from the body is passed to the function as keyword args
+        (r"/api/actions/([a-z,-_]+)", BaseActionHandler),    ##Calls a shorthand action without identifier. body data is send as is to the function as keyword args
                     ])
 
     return app
