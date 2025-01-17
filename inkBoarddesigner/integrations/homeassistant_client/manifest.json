@@ -3,7 +3,7 @@
     "config_entry": "home_assistant",
     "codeowners": ["Slalamander"],
     "documentation": "https://www.example.com",
-    "requirements": ["websockets","requests"],
+    "requirements": ["websockets>=13.0","requests"],
 
     "version": "0.2.1"
 }
