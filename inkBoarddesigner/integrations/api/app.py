@@ -272,7 +272,7 @@ class APICoordinator(tornado.web.Application):
         
         return self.core.screen.parse_shorthand_function(f"{group}:{action}", options=options)
 
-    async def run_coroutine(self, coro: Coroutine) -> bool:
+    async def run_coroutine(self, coro: Coroutine) -> tuple[int,Union[None,Exception]]:
         """Starts running the provided coroutine
 
         This function returns almost immediately, but the coroutine will keep running.
@@ -285,16 +285,35 @@ class APICoordinator(tornado.web.Application):
 
         Returns
         -------
-        bool
-            Whether the coroutine started successfully
+        tuple[int, Exception | None]
+            An appropriate return code, and optionally the exception thrown, if any.
         """
 
-        try:
-            done, pending = await asyncio.wait([coro], 0)
-        except:
-            return False
+        res = ()
+        t = asyncio.create_task(coro)
 
-        return True
+        return (200, None)
+
+        try:
+            # await asyncio.sleep(0)
+            with suppress(asyncio.CancelledError):
+                # await asyncio.sleep(0)
+                await asyncio.sleep(0)
+            
+            try:
+                exce = t.exception()
+            except asyncio.InvalidStateError:
+                pass
+            else:
+                if isinstance(exce, TypeError):
+                    res = (400, TypeError)
+                    print("set result")
+        finally:
+            await asyncio.sleep(0)
+            if not res:
+                res = (200,None)
+            # else:
+            return res
 
     def get_rest_config(self) -> dict:
 
