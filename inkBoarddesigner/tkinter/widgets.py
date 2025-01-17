@@ -567,7 +567,7 @@ class BacklightFrame(ttk.Labelframe):
         trFrame.columnconfigure(0,weight=1)
         self.trBox = ttk.Spinbox(trFrame, command=self.__set_default_transition , validate="all", validatecommand=(digit_func, '%P', "%W"),
                                 from_=0.0, to=60*60, increment=1) ##Somehow increments smaller than one mess up the widget so I guess it'll be like this.  
-        self.trBox.set(device.backlight.defaultTransition)
+        self.trBox.set(device.backlight.default_transition)
         self.trBox.grid(row=0,column=0, sticky="ew")
         trFrame.grid(row=0, column=0)
         ToolTip(trFrame, "The default transition time (in seconds) when turning on/off the backlight without specifying a transition.", bootstyle=const.TOOLTIP_STYLE)
@@ -601,7 +601,7 @@ class BacklightFrame(ttk.Labelframe):
 
     def __set_default_transition(self,*args):
         val = self.trBox.get()
-        self._device.backlight.defaultTransition = float(val)
+        self._device.backlight.default_transition = float(val)
         return
 
     def __set_turn_off_time(self,*args):
