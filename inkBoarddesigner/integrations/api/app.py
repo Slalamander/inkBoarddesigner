@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from inkBoard import core as CORE
     from inkBoard.platforms import BaseDevice
     from PythonScreenStackManager.pssm import PSSMScreen
+    from .websocket import inkBoardWebSocket
 
 _LOGGER = inkBoard.getLogger(__name__)
 
@@ -67,6 +68,8 @@ class APICoordinator(tornado.web.Application):
 
         self._server = None
         self._enabledCondition = asyncio.Condition()
+
+        self._websockets: set["inkBoardWebSocket"] = set()
 
         return
 
