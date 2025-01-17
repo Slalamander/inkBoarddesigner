@@ -11,7 +11,7 @@ class baseconfig(TypedDict):
     "Name of the inkBoard instance"
 
     start_time: str
-    "The time at which the instances was started, in ``'%H:%M:%S'``"
+    "The time at which the instances was started, in isoformat"
 
     platform: str
     "The platform inkBoard is running on"
