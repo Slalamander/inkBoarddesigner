@@ -44,13 +44,14 @@ class _ALLOW_NONE:
 # do include a logging_port in the base config
 class APICoordinator(tornado.web.Application):
 
-    def __init__(self, 
+    def __init__(self, core: "CORE",
                 port: int = DEFAULT_PORT,
                 remove_access : removeaccessdict = {},
                 allowed_networks : list[str] = []
-                
                 ):
         super().__init__(handlers=None, default_host=None, transforms=None)
+
+        self._core = core
 
         self._removed_shorthand_actions = set()
         self._removed_action_groups = set()
@@ -172,6 +173,10 @@ class APICoordinator(tornado.web.Application):
         async with self.enabledCondition:
             self.enabledCondition.notify_all()
 
+    def stop(self):
+        if self._server:
+            self._server.stop()
+
     def remove_action_access(self, action: str):
         """Prevents an action shorthand from being callable via the api
 
@@ -224,7 +229,7 @@ class APICoordinator(tornado.web.Application):
             Indicates the shorthand does not exist or is barred from api access
         """        
 
-        if (action not in self.core.screen.shorthandFunctionGroups
+        if (action not in self.core.screen.shorthandFunctions
             or action in self._removed_shorthand_actions):
             raise ShorthandNotFound(action)
         
@@ -266,6 +271,30 @@ class APICoordinator(tornado.web.Application):
             raise ShorthandNotFound(action)
         
         return self.core.screen.parse_shorthand_function(f"{group}:{action}", options=options)
+
+    async def run_coroutine(self, coro: Coroutine) -> bool:
+        """Starts running the provided coroutine
+
+        This function returns almost immediately, but the coroutine will keep running.
+        It is meant to catch out errors in function paramaters.
+
+        Parameters
+        ----------
+        coro : Coroutine
+            The coroutine to run
+
+        Returns
+        -------
+        bool
+            Whether the coroutine started successfully
+        """
+
+        try:
+            done, pending = await asyncio.wait([coro], 0)
+        except:
+            return False
+
+        return True
 
     def get_rest_config(self) -> dict:
 
@@ -353,12 +382,40 @@ class APICoordinator(tornado.web.Application):
 
         return tuple(set(self.core.screen.shorthandFunctionGroups.keys()) - self._removed_action_groups)
     
+    def get_actions_config(self) -> actionsconfig:
+        conf = {"shorthands": self.get_shorthand_actions(),
+                "groups": self.get_shorthand_action_groups()}
+        return conf
     
-    def get_battery_config(self):
+    def get_battery_config(self) -> batteryconfig:
         ##Add error class to handle missing features
         conf = {
             "state": self.core.device.battery.state,
             "charge": self.core.device.battery.charge
+        }
+        return conf
+    
+    def get_network_config(self) -> networkconfig:
+        network = self.device.network
+        conf = {
+            "ip_address": network.IP,
+            "mac_address": network.macAddr,
+            "network_ssid": network.SSID,
+            "signal": network.signal,
+        }
+        return conf
+    
+    def get_backlight_config(self) -> backlightconfig:
+        
+        backlight = self.device.backlight
+        conf = {
+            "state": backlight.state,
+            "brightness": backlight.brightness,
+            "behaviour": backlight.behaviour,
+            
+            "default_time_on": backlight.default_time_on,
+            "default_brightness": backlight.defaultBrightness,
+            "default_transition": backlight.defaultTransition
         }
         return conf
     
