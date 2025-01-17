@@ -273,17 +273,17 @@ class Device(basedevice.PSSMdevice):
 class Backlight(basedevice.Backlight):
 	'''
 	The backlight of the device. Provides callbacks to the state, and functions to turn on, off, or toggle it. Upon initialising this class, the light will be set to 0 to ensure the level is correct
-		defaultBrightness (int): default brightness to turn on the backlight too, if not brightness provided (between 1-100)
-		defaultTransition (float): default time in seconds for the fade. For smooth fades, 0.5 seems to be the minimum value from my tests.
+		default_brightness (int): default brightness to turn on the backlight too, if not brightness provided (between 1-100)
+		default_transition (float): default time in seconds for the fade. For smooth fades, 0.5 seems to be the minimum value from my tests.
 	'''
-	def __init__(self, device: Device, defaultBrightness : int = 50, defaultTransition : float = 0):
+	def __init__(self, device: Device, default_brightness : int = 50, default_transition : float = 0):
 
 		##Ensuring the backlight is off when the dashboard starts, so the brightness and state are correct
 		self.__set_backlight_level(0)
 
 		self.__transitionExecutor = concurrent.futures.ThreadPoolExecutor(1,thread_name_prefix="backlightthread")
 
-		super().__init__(device, defaultBrightness, defaultTransition)
+		super().__init__(device, default_brightness, default_transition)
 
 	#region
 	@property
@@ -297,26 +297,26 @@ class Backlight(basedevice.Backlight):
 		return True if self._level > 0 else False
 
 	@property
-	def defaultBrightness(self) -> int:
+	def default_brightness(self) -> int:
 		"""The default brightness to turn the backlight on to"""
-		return self._defaultBrightness
+		return self._default_brightness
 
-	@defaultBrightness.setter
-	def defaultBrightness(self, value : int):
+	@default_brightness.setter
+	def default_brightness(self, value : int):
 		if value >= 0 and value <= 100:
-			self._defaultBrightness = value
+			self._default_brightness = value
 		else:
 			_LOGGER.error("Default brightness must be between 0 and 100")
 
 	@property
-	def defaultTransition(self) -> float:
+	def default_transition(self) -> float:
 		"""The default transition time (in seconds)"""
-		return self._defaultTransition
+		return self._default_transition
 	
-	@defaultTransition.setter
-	def defaultTransition(self, value : float):
+	@default_transition.setter
+	def default_transition(self, value : float):
 		if value >= 0:
-			self._defaultTransition = value
+			self._default_transition = value
 		else:
 			_LOGGER.error("Default transition time must be 0 or larger")
 	#endregion
@@ -373,10 +373,10 @@ class Backlight(basedevice.Backlight):
 			return
 		
 		if transition == None:
-			transition = self.defaultTransition
+			transition = self.default_transition
 
 		if brightness == None:
-			brightness = self.defaultBrightness
+			brightness = self.default_brightness
 		
 		if transition < 0:
 			_LOGGER.error("Transition time cannot be negative.")
@@ -406,7 +406,7 @@ class Backlight(basedevice.Backlight):
 			return
 
 		if transition == None:
-			transition = self.defaultTransition
+			transition = self.default_transition
 
 		if transition < 0:
 			_LOGGER.error("Transition time cannot be negative.")
@@ -434,7 +434,7 @@ class Backlight(basedevice.Backlight):
 	
 	async def toggle_async(self, brightness = None, transition = None):
 		if transition == None:
-			transition = self.defaultTransition
+			transition = self.default_transition
 
 		if transition < 0:
 			_LOGGER.error("Transition time cannot be negative.")
@@ -448,7 +448,7 @@ class Backlight(basedevice.Backlight):
 			return
 		else:
 			if brightness == None:
-				brightness = self.defaultBrightness
+				brightness = self.default_brightness
 			if brightness < 0 or brightness > 100:
 				_LOGGER.error(f"Brightness must be between 0 and 100. {brightness} is an invalid value")
 				return
@@ -544,7 +544,7 @@ class Network(basedevice.Network):
 		return self._SSID
 	
 	@property
-	def macAddr(self) -> str:
+	def macAddress(self) -> str:
 		"""Returns the mac adress of the device"""
 		return self._macAddr
 	

@@ -626,10 +626,10 @@ class Backlight(windowed.Backlight):
             _LOGGER.debug(f"Async turning on in {transition} seconds")
         
         if brightness == None:
-            brightness = self.defaultBrightness
+            brightness = self.default_brightness
         
         if transition == None:
-            transition = self.defaultTransition
+            transition = self.default_transition
 
         if self.brightness == brightness:
             ##Do nothing if the light is already at the correct level
@@ -641,10 +641,10 @@ class Backlight(windowed.Backlight):
         """Turn on the backlight to the set level"""
 
         if transition == None:
-            transition = self.defaultTransition
+            transition = self.default_transition
 
         if brightness == None:
-            brightness = self.defaultBrightness
+            brightness = self.default_brightness
         
         if transition < 0:
             _LOGGER.error("Transition time cannot be negative.")
@@ -664,7 +664,7 @@ class Backlight(windowed.Backlight):
             return
 
         if transition == None:
-            transition = self.defaultTransition
+            transition = self.default_transition
 
         await self.__transition(0,transition)
 
@@ -675,7 +675,7 @@ class Backlight(windowed.Backlight):
             return
 
         if transition == None:
-            transition = self.defaultTransition
+            transition = self.default_transition
 
         if transition < 0:
             _LOGGER.error("Transition time cannot be negative.")

@@ -437,7 +437,7 @@ class APICoordinator(tornado.web.Application):
             
             "default_time_on": backlight.default_time_on,
             "default_brightness": backlight.default_brightness,
-            "default_transition": backlight.defaultTransition
+            "default_transition": backlight.default_transition
         }
         return conf
     
