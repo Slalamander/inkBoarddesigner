@@ -43,6 +43,9 @@ async def async_setup(core : "CORE", config : "CORE.config"):
     from .handlers import make_app
     make_app(apiapp)
 
+    from .websocket import make_app
+    make_app(apiapp)
+
     ##For the config: allow manually omitting services etc. as well
     ##Also add a way to omit specific actions from a group -> simply passed to init
     ##Setting for allowed_networks OR allow_all_networks -> implement checks via a condition, simply shutdown the server when it does not check out?
