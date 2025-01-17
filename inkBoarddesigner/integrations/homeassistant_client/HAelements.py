@@ -3339,6 +3339,8 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
     async def _trigger_from_sun(self, trigger_dict: triggerDictType, ha_client: "HAclient"):
 
+        if not self.HAclient:
+            return
         weather_state = self.HAclient.stateDict[self.entity]
         weather_trigger = triggerDictType(entity_id=self.entity, to_state=weather_state)
         await self.trigger_function(self, weather_trigger)
