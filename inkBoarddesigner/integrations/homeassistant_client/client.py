@@ -374,6 +374,7 @@ class HAclient:
 
                 self.listenerTask = self.loop.create_task(self.__async_listen())
                 self.commanderTask = self.loop.create_task(self.__async_command())
+                self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
                 runners = [self.listenerTask, self.commanderTask]
 
                 self._longrunningTasks = asyncio.gather(*runners, return_exceptions=True)

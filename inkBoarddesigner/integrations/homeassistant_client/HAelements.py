@@ -2703,6 +2703,8 @@ class WeatherElement(_EntityLayout, base.TileElement):
     @property
     def _emulator_icon(cls): return "mdi:cloud-circle"
 
+    ##Updates of (at least) the temperature seem to not happen?
+
     def __init__(self, entity : str, condition_icons : Union[Literal["mdi","meteocons","meteocons-outline"],dict] = "mdi",
                 weather_data : list[WeatherData,Literal['friendly_name'],str] = ['temperature'], weather_data_icons : Union[Literal["mdi","meteocons","meteocons-outline"],dict[WeatherData,Union[mdiType,str]]] = "mdi", 
                 time_format : str = "%A",
@@ -3315,7 +3317,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
                         data_unit = f' {data_attr[unit_key]}'
 
                 if data_unit: data_val = f"{data_val}{data_unit}"
-                coro_list.add(data_button.async_update({"text": data_val}, skipPrint=True, skipGen=True))
+                coro_list.add(data_button.async_update({"text": data_val}, skipPrint=True))
             
             if not self._isForecast and self.forecast_update == "on-trigger":
                 if self.screen.printing:
@@ -3337,6 +3339,8 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
     async def _trigger_from_sun(self, trigger_dict: triggerDictType, ha_client: "HAclient"):
 
+        if not self.HAclient:
+            return
         weather_state = self.HAclient.stateDict[self.entity]
         weather_trigger = triggerDictType(entity_id=self.entity, to_state=weather_state)
         await self.trigger_function(self, weather_trigger)
