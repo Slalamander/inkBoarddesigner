@@ -202,6 +202,9 @@ class BatteryHandler(BaseFeatureHandler):
         self.write(conf)
 
     async def post(self):
+        """Updates the battery state and returns the new one.
+        Does not return until the update is done.
+        """
         state = await self.core.device.battery.async_update_battery_state()
         self.write({"state": state[1], "charge": state[0]})
 
@@ -221,12 +224,15 @@ class NetworkHandler(BaseFeatureHandler):
         return conf
     
     def get(self):
-        self.write(self._create_network_dict())
+        self.write(self.application.get_network_config())
         # self.write(self.application.get_net)
 
     async def post(self):
+        """Updates the network state and returns the new one.
+        Does not return until the update is done.
+        """
         await self.core.device.network.async_update_network_properties()
-        self.write(self._create_network_dict())
+        self.write(self.application.get_network_config())
 
 class BacklightHandler(BaseFeatureHandler):
 
@@ -234,6 +240,8 @@ class BacklightHandler(BaseFeatureHandler):
 
     def get(self):
 
+        self.write(self.application.get_backlight_config())
+        return
         backlight = self.core.device.backlight
         conf = {
             "state": backlight.state,
@@ -251,32 +259,43 @@ class ActionsGetter(RequestHandler):
     "Returns a list of all registered shorthand actions (not action groups)"
 
     def get(self):
-        # actions = set(self.core.screen.shorthandFunctions.keys()) - self.application._removed_actions
-
-        conf = {"shorthands": self.application.get_shorthand_actions(),
-                "groups": self.application.get_shorthand_action_groups()}
-
-        self.write(conf)
+        self.write(self.application.get_actions_config())
         
-# class ActionGroupsGetter(RequestHandler):
-#     "Returns a list of all registered shorthand actions (not action groups)"
-
-#     def get(self):
-#         groups = set(self.core.screen.shorthandFunctionGroups.keys()) - self.application._removed_action_groups
-#         self.write(list(groups))
 
 class BaseActionHandler(RequestHandler):
 
     async def post(self, action: str):
         
-        if action not in self.core.screen.shorthandFunctions or action in self.application._removed_actions:
+        # if action not in self.application.
+        #     self.send_error(404, reason = f"No Shorthand Action {action}")
+        #     return
+
+        # func = self.core.screen.shorthandFunctions[action]
+        # ##Maybe wrap these in a very short wait, so some errors in the call can be caught out
+        # ##But the entire function call is not awaited
+        # coro = tools.wrap_to_coroutine(func, **self.json_args)
+        
+        try:
+            func = self.application.parse_shorthand_action(action)
+        except ShorthandNotFound:
             self.send_error(404, reason = f"No Shorthand Action {action}")
             return
 
-        func = self.core.screen.shorthandFunctions[action]
-        ##Maybe wrap these in a very short wait, so some errors in the call can be caught out
-        ##But the entire function call is not awaited
-        await tools.wrap_to_coroutine(func, **self.json_args)
+        ##Not fully sure if this is fine like this?
+        ##I.e. if it does allow throwing the argumenterror
+        ##Test that
+        try:
+            tools.validate_action_call(func, keyword_arguments=self.json_args)
+        except TypeError as exce:
+            self.send_error(400, reason=f"{exce}")
+            return
+
+        coro = tools.wrap_to_coroutine(func, **self.json_args)
+        (res, exce) = await self.application.run_coroutine(coro)
+        if res == 200:
+            self.write({"message": f"action {action} called"})
+        else:
+            self.send_error(res, reason=f"Could not call action {action}: {exce}")
         return
 
 
@@ -291,7 +310,7 @@ class ActionGroupHandler(RequestHandler):
             return
         
         try:
-            func = self.core.screen.parse_shorthand_function(f"{action_group}:{action}", options=args)
+            func = self.application.parse_group_action(action_group, action, options=args)
         except ShorthandGroupNotFound:
             self.send_error(404, reason = f"No shorthand action group {action_group} is registered")
             return
@@ -299,8 +318,20 @@ class ActionGroupHandler(RequestHandler):
             self.send_error(404, reason = f"Shorthand action group {action_group} could not parse {action}")
             return
         
+        try:
+            tools.validate_action_call(func, keyword_arguments=data)
+        except TypeError as exce:
+            self.send_error(400, reason=f"{exce}")
+            return
         
-        await tools.wrap_to_coroutine(func, **data)
+        coro = tools.wrap_to_coroutine(func, **data)
+        
+        (res, exce) = await self.application.run_coroutine(coro)
+        if res:
+            self.write({"message": f"action {action_group}:{action} called"})
+        else:
+            ##Handle errors a bit better ofc
+            self.send_error(res, reason=f"Could not call action {action}: {exce}")
         return
 
 
