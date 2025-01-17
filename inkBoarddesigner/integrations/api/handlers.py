@@ -97,6 +97,10 @@ class ConfigGetter(RequestHandler):
 
     def get(self):
 
+        conf = self.application.get_rest_config()
+        self.write(conf)
+        return
+
         conf = {}
         conf["name"] = self.core.config.inkBoard.name
 
@@ -153,25 +157,26 @@ class DeviceHandler(RequestHandler):
     """
 
     async def get(self):
-        device = self.core.device
-        conf = {
-            "platform": device.platform,
-            "model": device.model,
-            "name": device.name,
-            "size": (device.screenWidth, device.screenHeight),
-            "screen_type": device.screenType,
-            "screen_mode": device.screenMode
-            }
+        # device = self.core.device
+        # conf = {
+        #     "platform": device.platform,
+        #     "model": device.model,
+        #     "name": device.name,
+        #     "size": (device.screenWidth, device.screenHeight),
+        #     "screen_type": device.screenType,
+        #     "screen_mode": device.screenMode
+        #     }
         
-        if device.has_feature(FEATURES.FEATURE_ROTATION):
-            conf["rotation"] = device.rotation
+        # if device.has_feature(FEATURES.FEATURE_ROTATION):
+        #     conf["rotation"] = device.rotation
 
-        features = []
-        for feat, val in self.application.device._features._asdict().items():
-            if val: features.append(feat)
+        # features = []
+        # for feat, val in self.application.device._features._asdict().items():
+        #     if val: features.append(feat)
         
-        conf["features"] = features
+        # conf["features"] = features
         
+        conf = self.application.get_device_config()
         self.write(conf)
 
 class BaseFeatureHandler(RequestHandler):
@@ -189,10 +194,11 @@ class BatteryHandler(BaseFeatureHandler):
     feature = FEATURES.FEATURE_BATTERY
 
     def get(self):
-        conf = {
-            "state": self.core.device.battery.state,
-            "charge": self.core.device.battery.charge
-        }
+        # conf = {
+        #     "state": self.core.device.battery.state,
+        #     "charge": self.core.device.battery.charge
+        # }
+        conf = self.application.get_battery_config()
         self.write(conf)
 
     async def post(self):
@@ -216,6 +222,7 @@ class NetworkHandler(BaseFeatureHandler):
     
     def get(self):
         self.write(self._create_network_dict())
+        # self.write(self.application.get_net)
 
     async def post(self):
         await self.core.device.network.async_update_network_properties()
@@ -297,8 +304,8 @@ class ActionGroupHandler(RequestHandler):
         return
 
 
-def make_app():
-    app = APICoordinator()
+def make_app(app: APICoordinator):
+    # app = APICoordinator()
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
         [
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
