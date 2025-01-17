@@ -19,13 +19,21 @@ license = {file = "LICENSE"}
 requires-python = ">=3.9"
 keywords = ["gui", "pixels", "interface", "MaterialDesignIcon", "mdi icons", "dashboards", "dashboarding",]
 classifiers = [
-    "Programming Language :: Python :: 3",
+
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+
     "Operating System :: OS Independent",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
 ]
 
 dependencies = [
-    "inkBoard>=0.2.6", "ttkbootstrap", "tkthread", "packaging"
+    "inkBoard>=0.2.6",
+    "ttkbootstrap",
+    "tkthread",
+    "packaging"
 ]
+
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
@@ -33,3 +41,4 @@ version = {attr = "inkBoarddesigner.__version__"}
 
 [project.urls]
 Homepage = "https://github.com/Slalamander/inkBoarddesigner"
+source = "https://github.com/Slalamander/inkBoarddesigner"
