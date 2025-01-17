@@ -20,6 +20,7 @@ from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGrou
 from PythonScreenStackManager.elements import TabPages
 
 from .constants import DEFAULT_PORT
+from .apitypes import *
 
 if TYPE_CHECKING:
     from inkBoard import core as CORE
@@ -28,19 +29,23 @@ if TYPE_CHECKING:
 
 _LOGGER = inkBoard.getLogger(__name__)
 
-class removeaccessdict(TypedDict):
-    actions: list[str]
-    action_groups: list[str]
-    group_actions: dict[str,list[str]]
+
 
 class _ALLOW_NONE:
     pass
 
+##Functions/properties to add:
+# base config (as cached property)
+# base device config -> only holding features that do not change
+# battery, network getter, etc.
+# action and action group getter
+# also add a request that will start log streaming; eh seems to not be the way
+# do include a logging_port in the base config
 class APICoordinator(tornado.web.Application):
 
     def __init__(self, 
                 port: int = DEFAULT_PORT,
-                remove_access : dict = {},
+                remove_access : removeaccessdict = {},
                 allowed_networks : list[str] = []
                 
                 ):
@@ -59,6 +64,7 @@ class APICoordinator(tornado.web.Application):
         self._port = port
 
         self._server = None
+        self._enabledCondition = asyncio.Condition()
 
         return
 
@@ -74,6 +80,22 @@ class APICoordinator(tornado.web.Application):
     @property
     def screen(self) -> "PSSMScreen":
         return self.core.screen
+
+    @property
+    def enabled(self) -> bool:
+        """Indicates if the API is currently enabled
+
+        Indicates if the API server is currently open and being listened to.
+        Does NOT indicate if the API is enabled from the config, for that check the config for the ``api`` key. 
+        """
+        return self._server != None
+
+    @property
+    def enabledCondition(self) -> asyncio.Condition:
+        """async condition that is notified when the state of enabled changes
+        This condition being notified means the server has either been closed or been opened.
+        """
+        return self._enabledCondition
 
     # @property
     # def server(self) -> tornado.httpserver.HTTPServer:
@@ -136,12 +158,18 @@ class APICoordinator(tornado.web.Application):
             ##Handle: start listening on server if not happening
             if not self._server:
                 self._server = super().listen(self._port)
+            else:
+                return
         else:
             ##Handle: close server if currently listening
             if self._server:
                 self._server.stop()
                 self._server = None
+            else:
+                return
             ##Closing websocket connections does not happen via here? figure out how to.
+        async with self.enabledCondition:
+            self.enabledCondition.notify_all()
 
     def remove_action_access(self, action: str):
         """Prevents an action shorthand from being callable via the api
@@ -173,13 +201,6 @@ class APICoordinator(tornado.web.Application):
             self._removed_group_actions[group].add(action)
         else:
             self._removed_group_actions[group] = set([action])
-        ##Functions/properties to add:
-        # base config (as cached property)
-        # base device config -> only holding features that do not change
-        # battery, network getter, etc.
-        # action and action group getter
-        # also add a request that will start log streaming; eh seems to not be the way
-        # do include a logging_port in the base config
 
     def parse_shorthand_action(self, action: str) -> Callable:
         """Gets a shorthand action from the screen's registery
@@ -280,7 +301,7 @@ class APICoordinator(tornado.web.Application):
             ##Also: add current tab in info as well as optional popup that is on top
         
         conf["popups"] = {
-            "current_popup": self.core.screen.popupsOnTop[-1] if self.core.screen.popupsOnTop else None,
+            "current_popup": self.core.screen.popupsOnTop[-1].id if self.core.screen.popupsOnTop else None,
             "registered_popups": list(self.core.screen.popupRegister.keys())
         }
         return conf
@@ -299,12 +320,14 @@ class APICoordinator(tornado.web.Application):
         
         if device.has_feature(FEATURES.FEATURE_ROTATION):
             conf["rotation"] = device.rotation
+        else:
+            conf["rotation"] = None
 
-        features = []
-        for feat, val in device._features._asdict().items():
-            if val: features.append(feat)
+        # features = []
+        # for feat, val in device._features._asdict().items():
+        #     if val: features.append(feat)
         
-        conf["features"] = features
+        conf["features"] = device.features
         return conf
     
     def get_shorthand_actions(self) -> tuple[str]:
@@ -332,4 +355,9 @@ class APICoordinator(tornado.web.Application):
     
     def get_battery_config(self):
         ##Add error class to handle missing features
-        return
+        conf = {
+            "state": self.core.device.battery.state,
+            "charge": self.core.device.battery.charge
+        }
+        return conf
+    
