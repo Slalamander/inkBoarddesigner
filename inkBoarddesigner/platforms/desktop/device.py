@@ -16,7 +16,7 @@ from inkBoard.platforms.basedevice import BaseDevice, InkboardDeviceFeatures, FE
                                     BaseBacklight, BaseBattery, BaseNetwork
 from inkBoard.constants import INKBOARD_FOLDER
 
-from PythonScreenStackManager.devices import windowed
+from PythonScreenStackManager.devices import windowed, trigger_condition
 from PythonScreenStackManager.tools import DummyTask
 
 try:
@@ -131,6 +131,7 @@ class Battery(BaseBattery):
             ##idk if this is blocking, if so, needs to go to a thread
             self.update_battery_state()
         
+        @trigger_condition
         def update_battery_state(self):
             state = plyer.battery.get_state()
             charge_perc = state.get("percentage", 0)
