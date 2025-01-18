@@ -20,7 +20,7 @@ from contextlib import suppress
 from PythonScreenStackManager import constants as const, devices as basedevice, tools
 from PythonScreenStackManager.tools import DummyTask, TouchEvent
 from PythonScreenStackManager.pssm_types import *
-from PythonScreenStackManager.pssm.util import elementactionwrapper
+from PythonScreenStackManager.pssm.decorators import elementactionwrapper, trigger_condition
 
 import inkBoard.constants
 from inkBoard.platforms.basedevice import BaseDevice, BaseConnectionNetwork, InkboardDeviceFeatures, FEATURES
@@ -197,6 +197,7 @@ class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 			self._baseprofile = None
 		super().__init__()
 
+	@trigger_condition
 	def get_network_properties(self):
 		##Add function to get network name
 
