@@ -141,8 +141,22 @@ class APICoordinator(tornado.web.Application):
             for action in actions:
                 self.remove_group_action_access(group, action)
 
+    async def test_size(self):
+
+        # elt = self.screen.popupRegister["screen-menu"]
+        condition = self.screen.triggerCondition
+        while self.screen.printing:
+            popup = self.screen.popupsOnTop[-1] if self.screen.popupsOnTop else None
+            async with condition:
+                if popup:
+                    print(f"Popup {popup.popupID} is currently on top")
+                else:
+                    print("No popup is currently on top")
+                await condition.wait_for(lambda: popup != self.screen.popupsOnTop[-1] if self.screen.popupsOnTop else popup != None )          
+
     async def listen(self):
         
+        asyncio.create_task(self.test_size())
         await self._handle_network_ssid()
         condition = self.screen.deviceUpdateCondition
         network = self.device.network.SSID
@@ -429,15 +443,16 @@ class APICoordinator(tornado.web.Application):
     
     def get_backlight_config(self) -> backlightconfig:
         
-        backlight = self.device.backlight
-        conf = {
-            "state": backlight.state,
-            "brightness": backlight.brightness,
-            "behaviour": backlight.behaviour,
+        # backlight = self.device.backlight
+        # conf = {
+        #     "state": backlight.state,
+        #     "brightness": backlight.brightness,
+        #     "behaviour": backlight.behaviour,
             
-            "default_time_on": backlight.default_time_on,
-            "default_brightness": backlight.default_brightness,
-            "default_transition": backlight.default_transition
-        }
+        #     "default_time_on": backlight.default_time_on,
+        #     "default_brightness": backlight.default_brightness,
+        #     "default_transition": backlight.default_transition
+        # }
+        conf = self.device.backlight.get_feature_state()
         return conf
     

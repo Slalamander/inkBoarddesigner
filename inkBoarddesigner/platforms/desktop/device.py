@@ -85,7 +85,8 @@ class Device(BaseDevice, windowed.Device):
         self._model = None
         
         feature_dict = {FEATURES.FEATURE_INTERACTIVE: interactive, FEATURES.FEATURE_PRESS_RELEASE: interactive,
-                        FEATURES.FEATURE_BACKLIGHT: backlight, FEATURES.FEATURE_NETWORK: network,}
+                        FEATURES.FEATURE_BACKLIGHT: backlight, FEATURES.FEATURE_NETWORK: network,
+                        FEATURES.FEATURE_RESIZE: resizeable}
         if plyer:
             bat_state = plyer.battery.get_state()
             if not all(v is None for v in bat_state.values()):

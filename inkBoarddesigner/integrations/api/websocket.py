@@ -2,6 +2,7 @@
 from typing import *
 import asyncio
 import json
+from functools import partial
 
 import inkBoard
 
@@ -10,6 +11,7 @@ from tornado.websocket import WebSocketHandler
 from PythonScreenStackManager.elements import Element
 
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
+from inkBoard.platforms.basedevice import FEATURES
 
 if TYPE_CHECKING:
     from .app import APICoordinator
@@ -20,22 +22,28 @@ class inkBoardWebSocket(WebSocketHandler):
 
     application: "APICoordinator"
     _last_id: int
+    _watchers: set[asyncio.Task]
 
     @property
     def screen(self):
         return self.application.core.screen
+    
+    @property
+    def device(self):
+        return self.application.core.device
 
     async def open(self):
         _LOGGER.debug("Opening a websocket connection")
         self._last_id = 0
         self.application._websockets.add(self)
         self._connected = True
+        self._watchers = set()
         self.write_message({"type": "connection", "inkboard_version": inkBoard.__version__})
 
     async def on_message(self, message):
         
         try:
-            message = json.loads(message)
+            message : dict = json.loads(message)
         except json.JSONDecodeError:
             self.write_message({"type": "error", "message": "message must be valid json"})
             return
@@ -46,13 +54,13 @@ class inkBoardWebSocket(WebSocketHandler):
             self.write_message({"type": "error", "message": "message id must be larger than the previous message"})
             return
         self._last_id = message["id"]
+        message["message_id"] = message.pop("id")
 
         if "type" not in message:
             self.write_message({"type": "error", "message": "messages must have a type key"})
             return
         elif message["type"] in self.watcher_types:
-            func = getattr(self, message.pop("type"))
-            asyncio.create_task(func(**message))
+            self.add_watcher(message)
         else:
             self.write_message(u"You said: " + str(message))
 
@@ -62,13 +70,19 @@ class inkBoardWebSocket(WebSocketHandler):
 
     def on_close(self):
         _LOGGER.debug("Closed a websocket connection")
+        for watcher in self._watchers:
+            watcher.cancel("Websocket closed")
+
         self.application._websockets.remove(self)
         self._connected = False
 
-    watcher_types = {
-        "watch_element": "watch_element",
-        "watch_popups": "watch_popups"
-    }
+    def add_watcher(self, message: dict):
+        func = getattr(self, message.pop("type"))
+        watcher = asyncio.create_task(func(**message))
+        self._watchers.add(watcher)
+        return
+
+    watcher_types = ("watch_element", "watch_popups", "watch_device_feature")
 
     messagetypes = {
         # "ping": None, #simply returns the pong -> may not be necessary, idk what tornado does out of the box
@@ -87,32 +101,79 @@ class inkBoardWebSocket(WebSocketHandler):
         "watch_popups": None,  #subscribe for registered popups being shown/removed
     }
 
-    async def watch_device_features(self, id : str):
+    async def watch_device_feature(self, message_id : int, feature : str):
         
+        try:
+            feature_str = FEATURES.get_feature_string(feature)
+        except AttributeError as exce:
+            self.write_message({"id": message_id, "type": "result", "success": False,
+                                "message": str(exce)})
+            return
+
+        if not self.device.has_feature(feature_str):
+            self.write_message({"id": message_id, "type": "result", "success": False,
+                    "message": f"Device does not have feature {feature_str} (passed as {feature})"})
+            return
+        
+        condition = self.device.get_feature_trigger(feature_str)
+        feature_state = self.device.get_feature_state(feature_str)
+        if not condition:
+            self.write_message({"id": message_id, "type": "result", "success": False,
+                "message": f"Feature {feature} cannot be watched"})
+            return
+        
+        def test_state(feature_state):
+            current_state = self.device.get_feature_state(feature_str)
+            res = current_state != feature_state
+            if res:
+                return current_state
+            else:
+                return False
+
+        self.write_message({"id": message_id, "type": "result", "success": True,
+            "message": f"Succesfully watching device feature {feature_str} from {feature}"})
+        while not self.close_code:
+            async with condition:
+                ##Can use the result from the predicate, so can try a custom function or something that returns False if no update
+                # await condition.wait_for(lambda: feature_state != self.device.get_feature_state(feature_str))
+                feature_state = await condition.wait_for(partial(test_state, feature_state))
+            
+            # feature_state = self.device.get_feature_state(feature_str)
+            self.write_message({"id": message_id, "type": "watch_device_feature",
+                                "feature": feature_str, "feature_state": feature_state})
         return
 
-    async def watch_popups(self, id : str):
+    async def watch_popups(self, message_id : int):
         
         condition = self.screen.triggerCondition
-        while self.screen.printing:
+        self.write_message({"id": message_id, "type": "result", "success": True})
+        while not self.close_code:
             popup_list = self.screen.popupsOnTop.copy()
             popup_strings = [popup.popupID for popup in self.screen.popupsOnTop if hasattr(popup, "popupID")]
-            self.write_message({"id": id, "type": "watch_popups", "popups": popup_strings})
+            self.write_message({"id": message_id, "type": "watch_popups", "popups": popup_strings})
             async with condition:
-                # if popup:
-                #     print(f"Popup {popup.popupID} is currently on top")
-                # else:
-                #     print("No popup is currently on top")
-                await condition.wait_for(lambda: popup_list != self.screen.popupsOnTop) 
+                await condition.wait_for(lambda: popup_list != self.screen.popupsOnTop)
+        
+        _LOGGER.debug("stopped watching popups")
 
-    async def watch_element(self, id : str, element_id : str, properties : list[str]):
+    async def watch_element(self, message_id : int, element_id : str, properties : list[str]):
 
         ##Each update: write a dict with the new properties
-        message_id = id
-        element = self.screen.elementRegister[element_id]
-        condition = element.triggerCondition
-        elt_dict = self._gather_element_properties(element, properties)
-        self.write_message({"id": message_id, "type": "result", "success": True, "message": f"Watching element {element_id}"})
+        try:
+            element = self.screen.elementRegister[element_id]
+            condition = element.triggerCondition
+            elt_dict = self._gather_element_properties(element, properties)
+            self.write_message({"id": message_id, "type": "result", "success": True})
+        except KeyError:
+            self.write_message({"id": message_id, "type": "result", "success": False, "message": f"No element with id {element_id}"})
+            return
+        except AttributeError as exce:
+            self.write_message({"id": message_id, "type": "result", "success": False, "message": str(exce)})
+            return
+        except Exception:
+            self.write_message({"id": message_id, "type": "result", "success": False, "message": str(exce)})
+            return
+        
         while not self.close_code:
             
             async with condition:
