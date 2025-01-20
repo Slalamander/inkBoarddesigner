@@ -63,10 +63,17 @@ class inkBoardWebSocket(WebSocketHandler):
         if "type" not in message:
             self.write_message({"type": "error", "message": "messages must have a type key"})
             return
-        elif message["type"] in self.watcher_types:
-            self.add_watcher(message)
-        else:
-            self.write_message(u"You said: " + str(message))
+        
+        try:
+            if message["type"] in self.watcher_types:
+                self.add_watcher(message)
+            elif message["type"] in self.getter_types:
+                func = getattr(self,message.pop("type"))
+                func(**message)
+            else:
+                self.write_result_message(message["message_id"], f"Unknown type {message['type']}", False)
+        except Exception as exce:
+            self.write_result_message(message["message_id"], exce, False)
 
     def close(self, code = None, reason = None):
         self.write_message({"type": "closing", "code": code, "reason": reason})
@@ -80,10 +87,13 @@ class inkBoardWebSocket(WebSocketHandler):
         self.application._websockets.remove(self)
         self._connected = False
 
+    def write_message(self, message, binary = False):
+        return super().write_message(message, binary)
+
     def write_id_message(self, message_id : int, type_ : str, message : dict):
         message["id"] = message_id
         message["type"] = type_
-        return super().write_message(message)
+        return self.write_message(message)
 
     def write_result_message(self, message_id : int, result, success : bool = True):
         """Writes a message with type 'result'
@@ -98,11 +108,13 @@ class inkBoardWebSocket(WebSocketHandler):
             The result, or error reason
         success : bool
             If the result is succesfull, by default True
-        """        
+        """
+        if isinstance(result, Exception):
+            result = str(result)
         message = {"success": True,
                     "result": result}
-        return self.write_id_message(message_id, "result", message)
         
+        return self.write_id_message(message_id, "result", message)
 
     def get_config(self, message_id : int):
         conf = dict(self.application.baseConfig)
@@ -137,6 +149,7 @@ class inkBoardWebSocket(WebSocketHandler):
         conf["popups"] = {
             "registered_popups": list(self.core.screen.popupRegister.keys())
         }
+
         ##Get element state as seperate function I think? Or return it when subscribing? No better for seperate to in case watch is not required
         ##Same with feature states
         ##i.e. seperate get_actions for things that can change.
@@ -155,7 +168,56 @@ class inkBoardWebSocket(WebSocketHandler):
             conf["size"] = self.device.screenSize
 
         self.write_result_message(message_id, conf)
+
+
+    def get_elements(self, message_id : int):
+        self.write_result_message(message_id, self.application.get_elements())
+
+    def get_actions(self, message_id: int):
+        self.write_result_message(message_id, self.application.get_actions_config())
+
+    def get_element_state(self, message_id : int, element_id : str, properties : list[str]):
+        """Gets the state (value) of the provided element properties
+
+        Be mindful that only properties that can be represented via JSON can be returned. If a property is in the list whose value cannot be converted, the server will return an unsuccessfull response.
+        Properties whose value are an element can be included, the API takes care of converting the values 
+        """        
+
+        element = self.screen.elementRegister.get(element_id, False)
+        if element_id == False:
+            self.write_result_message(message_id, f"Unknown element_id {element_id}", False)
+            return
         
+        try:
+            element_state = self._gather_element_properties(element, properties)
+            self.write_result_message(message_id, {"element_id": element_id, "state": element_state})
+        except Exception as exce:
+            self.write_result_message(message_id, exce, False)
+
+    def get_feature_state(self, message_id : int, feature : str):
+        """Gets the state of a specific device feature
+        """        
+        try:
+            feature_str = FEATURES.get_feature_string(feature)
+            if not self.device.has_feature(feature_str):
+                self.write_result_message(message_id, f"Device does not have feature {feature}", False)
+            else:
+                state = self.device.get_feature_state(feature)
+                self.write_result_message(message_id, {"feature": feature_str, "state": state})
+        except AttributeError:
+            self.write_result_message(message_id, f"{feature} is not a known value for a feature", False)        
+
+    def get_screen_state(self, message_id : int, properties : str):
+        
+        try:
+            prop_vals = {}
+            for prop in properties:
+                prop_vals[prop] = getattr(self.screen,prop)
+
+            self.write_result_message(message_id, {"screen_state": prop_vals})
+        except Exception as exce:
+            self.write_result_message(message_id, exce, False)
+        return
 
     def add_watcher(self, message: dict) -> asyncio.Task:
         func = getattr(self, message.pop("type"))
@@ -271,7 +333,10 @@ class inkBoardWebSocket(WebSocketHandler):
     def _gather_element_properties(element, property_list: list[str]) -> dict[str,Any]:
 
         props = {}
+        missing_props = set()
         for prop in property_list:
+            if not hasattr(element, prop):
+                missing_props.add(prop)
             val = getattr(element, prop)
             
             if isinstance(val,set):
@@ -280,16 +345,27 @@ class inkBoardWebSocket(WebSocketHandler):
                 val = str(val)
 
             props[prop] = val
+        
+        if missing_props:
+            raise AttributeError(f"Element does not have {'properties' if len(missing_props) > 1 else 'property'} {missing_props}")
         return props
 
     watcher_types = ("watch_element", "watch_popups", "watch_device_feature", "watch_interaction")
+    getter_types = ("get_config", "get_device_config", "get_elements", "get_actions",
+                    "get_element_state", "get_feature_state", "get_screen_state")
 
 messagetypes = {
         # "ping": None, #simply returns the pong -> may not be necessary, idk what tornado does out of the box
         "get_config": None,  #returns the inkBoard config, without the stuff that can change
         "get_device_config": None, ##Returns just the device config?
-        "get_actions": None, #Returns the available actions and groups
-        "get_state": None,   #return the current state of inkBoard idk
+        
+        "get_element_state": None,  ##element properties
+        "get_screen_state": None,   ##screen properties
+        "get_feature_state"
+
+        # "get_actions": None, #Returns the available actions and groups
+        # "get_state": None,   #return the current state of inkBoard idk
+        
         "call_action": None, #calls an action; handles identifier etc. also allow for returning the result
 
         "watch_device_feature": None,    #subscribe to device updates -> how to handle passing the changed things?
@@ -309,10 +385,6 @@ def make_app(app: "APICoordinator"):
     )
     return
 
-
-watchable_features = {
-    "battery", "network", "backlight", "rotation", "resize"
-}
 
 ##Important examples to remember:
 
