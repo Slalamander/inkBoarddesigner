@@ -107,7 +107,7 @@ class APICoordinator(tornado.web.Application):
     #     return self._server
 
     @property
-    def baseConfig(self) -> MappingProxyType:
+    def baseConfig(self) -> dict:
         """Returns a base config of the inkBoard instance
 
         This config is, for example, returned via the ``/api/config`` endpoint.
@@ -379,19 +379,9 @@ class APICoordinator(tornado.web.Application):
             "platform": device.platform,
             "model": device.model,
             "name": device.name,
-            "size": (device.screenWidth, device.screenHeight),
             "screen_type": device.screenType,
             "screen_mode": device.screenMode
             }
-        
-        if device.has_feature(FEATURES.FEATURE_ROTATION):
-            conf["rotation"] = device.rotation
-        else:
-            conf["rotation"] = None
-
-        # features = []
-        # for feat, val in device._features._asdict().items():
-        #     if val: features.append(feat)
         
         conf["features"] = device.features
         return conf
