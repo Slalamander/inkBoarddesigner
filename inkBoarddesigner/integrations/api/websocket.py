@@ -153,9 +153,6 @@ class inkBoardWebSocket(WebSocketHandler):
             "registered_popups": list(self.core.screen.popupRegister.keys())
         }
 
-        ##Get element state as seperate function I think? Or return it when subscribing? No better for seperate to in case watch is not required
-        ##Same with feature states
-        ##i.e. seperate get_actions for things that can change.
         self.write_result_message(message_id, conf)
         return
 
@@ -204,7 +201,10 @@ class inkBoardWebSocket(WebSocketHandler):
             if not self.device.has_feature(feature_str):
                 self.write_result_message(message_id, f"Device does not have feature {feature}", False)
             else:
-                state = self.device.get_feature_state(feature)
+                if feature_str == FEATURES.FEATURE_NETWORK:
+                    state = self.application.get_network_config()
+                else:
+                    state = self.device.get_feature_state(feature)
                 self.write_result_message(message_id, {"feature": feature_str, "state": state})
         except AttributeError:
             self.write_result_message(message_id, f"{feature} is not a known value for a feature", False)        
@@ -269,7 +269,6 @@ class inkBoardWebSocket(WebSocketHandler):
                 # await condition.wait_for(lambda: feature_state != self.device.get_feature_state(feature_str))
                 feature_state = await condition.wait_for(partial(test_state, feature_state))
             
-            # feature_state = self.device.get_feature_state(feature_str)
             self.write_id_message(message_id, "watch_device_feature",
                                 {"feature": feature_str, "feature_state": feature_state})
         return
@@ -294,7 +293,6 @@ class inkBoardWebSocket(WebSocketHandler):
         Can be used to, for example, to be notified of a :py:class:`PythonScreenStackManager.elements.TabPages`` changing the page being shown.
         """
 
-        ##Each update: write a dict with the new properties
         try:
             element = self.screen.elementRegister[element_id]
             condition = element.triggerCondition
@@ -421,29 +419,6 @@ class inkBoardWebSocket(WebSocketHandler):
     getter_types = ("get_config", "get_device_config", "get_elements", "get_actions",
                     "get_element_state", "get_feature_state", "get_screen_state")
     caller_types = ("call_action")
-
-messagetypes = {
-        # "ping": None, #simply returns the pong -> may not be necessary, idk what tornado does out of the box
-        "get_config": None,  #returns the inkBoard config, without the stuff that can change
-        "get_device_config": None, ##Returns just the device config?
-        
-        "get_element_state": None,  ##element properties
-        "get_screen_state": None,   ##screen properties
-        "get_feature_state"
-
-        # "get_actions": None, #Returns the available actions and groups
-        # "get_state": None,   #return the current state of inkBoard idk
-        
-        "call_action": None, #calls an action; handles identifier etc. also allow for returning the result
-
-        "watch_device_feature": None,    #subscribe to device updates -> how to handle passing the changed things?
-        ##some features may require a special watcher, like rotation/size
-
-        "watch_element": None, #subscribe to certain elements doing a thing; this is not implemented though. -> how to determine what is watched for?
-        ##I think: pass a property dict. watcher will check if the properties changed.
-        
-        "watch_popups": None,  #subscribe for registered popups being shown/removed
-    }
 
 
 def make_app(app: "APICoordinator"):
