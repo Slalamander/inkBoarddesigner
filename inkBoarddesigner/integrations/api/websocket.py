@@ -8,7 +8,7 @@ import inkBoard
 
 from tornado.websocket import WebSocketHandler
 
-from PythonScreenStackManager.elements import Element
+from PythonScreenStackManager.elements import Element, TabPages
 
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 from inkBoard.platforms.basedevice import FEATURES
@@ -23,6 +23,10 @@ class inkBoardWebSocket(WebSocketHandler):
     application: "APICoordinator"
     _last_id: int
     _watchers: set[asyncio.Task]
+
+    @property
+    def core(self):
+        return self.application.core
 
     @property
     def screen(self):
@@ -76,19 +80,79 @@ class inkBoardWebSocket(WebSocketHandler):
         self.application._websockets.remove(self)
         self._connected = False
 
-    def add_watcher(self, message: dict):
-        func = getattr(self, message.pop("type"))
-        watcher = asyncio.create_task(func(**message))
-        self._watchers.add(watcher)
-        return
-
     def write_id_message(self, message_id : int, type_ : str, message : dict):
         message["id"] = message_id
         message["type"] = type_
         return super().write_message(message)
 
-    def get_config(self, message_id : int):
+    def write_result_message(self, message_id : int, result, success : bool = True):
+        """Writes a message with type 'result'
 
+        If success is false, instead of a 'result' key, the 'message' key is used, and the ``result`` parameter should be the failure reason.
+
+        Parameters
+        ----------
+        message_id : int
+            id of the message this is in response of
+        result : any
+            The result, or error reason
+        success : bool
+            If the result is succesfull, by default True
+        """        
+        message = {"success": True,
+                    "result": result}
+        self.write_id_message(message_id, "result", message)
+        
+
+    def get_config(self, message_id : int):
+        conf = dict(self.application.baseConfig)
+
+        if self.core.config.inkBoard.main_element:
+            id = self.core.config.inkBoard.main_element
+            main_elt = self.core.screen.elementRegister[id]
+            if main_elt.__module__.startswith("PythonScreenStackManager.elements"):
+                type_ = main_elt.__module__.split(".")[-1]
+            elif main_elt.__module__.startswith("inkBoard.integrations"):
+                type_ = main_elt.__module__.lstrip("inkBoard.integrations.")
+            else:
+                type_ = main_elt.__module__
+
+            conf["main_element"] = {
+                "id": id,
+                "type": type_
+            }
+        elif "main_tabs" in self.core.config:
+            conf["main_element"] = {
+                "id": self.core.config["main_tabs"].get("id", DEFAULT_MAIN_TABS_NAME),
+                "type": TabPages.__name__
+            }
+            main_elt = self.core.screen.elementRegister[conf["main_element"]["id"]]
+        else:
+            conf["main_element"] = None
+            main_elt = None
+
+        if isinstance(main_elt, TabPages):
+            conf["main_element"]["tabs"] = list(main_elt.pageNames)
+
+        conf["popups"] = {
+            "registered_popups": list(self.core.screen.popupRegister.keys())
+        }
+        ##Get element state as seperate function I think? Or return it when subscribing? No better for seperate to in case watch is not required
+        ##Same with feature states
+        ##i.e. seperate get_actions for things that can change.
+        self.write_result_message(message_id, conf)
+        return
+
+    def get_device_config(self, message_id : int):
+        conf = self.application.get_device_config()
+
+        self.write_result_message(message_id, conf)
+        
+
+    def add_watcher(self, message: dict):
+        func = getattr(self, message.pop("type"))
+        watcher = asyncio.create_task(func(**message))
+        self._watchers.add(watcher)
         return
 
     async def watch_device_feature(self, message_id : int, feature : str):
