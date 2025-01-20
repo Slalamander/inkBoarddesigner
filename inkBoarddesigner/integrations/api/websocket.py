@@ -101,7 +101,7 @@ class inkBoardWebSocket(WebSocketHandler):
         """        
         message = {"success": True,
                     "result": result}
-        self.write_id_message(message_id, "result", message)
+        return self.write_id_message(message_id, "result", message)
         
 
     def get_config(self, message_id : int):
@@ -144,16 +144,24 @@ class inkBoardWebSocket(WebSocketHandler):
         return
 
     def get_device_config(self, message_id : int):
+        """Returns the device config. 
+
+        device size is only included if the device does not have the resize feature.
+        Otherwise, get the size by using get_feature_state
+        """
         conf = self.application.get_device_config()
+
+        if not self.device.has_feature(FEATURES.FEATURE_RESIZE):
+            conf["size"] = self.device.screenSize
 
         self.write_result_message(message_id, conf)
         
 
-    def add_watcher(self, message: dict):
+    def add_watcher(self, message: dict) -> asyncio.Task:
         func = getattr(self, message.pop("type"))
         watcher = asyncio.create_task(func(**message))
         self._watchers.add(watcher)
-        return
+        return watcher
 
     async def watch_device_feature(self, message_id : int, feature : str):
         """Notifies clients when the requested device feature has updated
