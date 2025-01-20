@@ -157,26 +157,13 @@ class DeviceHandler(RequestHandler):
     """
 
     async def get(self):
-        # device = self.core.device
-        # conf = {
-        #     "platform": device.platform,
-        #     "model": device.model,
-        #     "name": device.name,
-        #     "size": (device.screenWidth, device.screenHeight),
-        #     "screen_type": device.screenType,
-        #     "screen_mode": device.screenMode
-        #     }
-        
-        # if device.has_feature(FEATURES.FEATURE_ROTATION):
-        #     conf["rotation"] = device.rotation
-
-        # features = []
-        # for feat, val in self.application.device._features._asdict().items():
-        #     if val: features.append(feat)
-        
-        # conf["features"] = features
-        
         conf = self.application.get_device_config()
+        conf["size"] = self.core.device.screenSize
+        if self.core.device.has_feature(FEATURES.ROTATION):
+            conf["rotation"] = self.core.device.rotation
+        else:
+            conf["rotation"] = None
+
         self.write(conf)
 
 class BaseFeatureHandler(RequestHandler):
