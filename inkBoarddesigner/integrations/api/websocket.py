@@ -8,7 +8,9 @@ import inkBoard
 
 from tornado.websocket import WebSocketHandler
 
+from PythonScreenStackManager import tools
 from PythonScreenStackManager.elements import Element, TabPages
+from PythonScreenStackManager.exceptions import ShorthandGroupNotFound, ShorthandNotFound
 
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 from inkBoard.platforms.basedevice import FEATURES
@@ -70,6 +72,8 @@ class inkBoardWebSocket(WebSocketHandler):
             elif message["type"] in self.getter_types:
                 func = getattr(self,message.pop("type"))
                 func(**message)
+            elif message["type"] in self.caller_types:
+                await self.call_caller(message)
             else:
                 self.write_result_message(message["message_id"], f"Unknown type {message['type']}", False)
         except Exception as exce:
@@ -91,8 +95,7 @@ class inkBoardWebSocket(WebSocketHandler):
         return super().write_message(message, binary)
 
     def write_id_message(self, message_id : int, type_ : str, message : dict):
-        message["id"] = message_id
-        message["type"] = type_
+        message = {"id": message_id, "type": type_} | message
         return self.write_message(message)
 
     def write_result_message(self, message_id : int, result, success : bool = True):
@@ -169,7 +172,6 @@ class inkBoardWebSocket(WebSocketHandler):
 
         self.write_result_message(message_id, conf)
 
-
     def get_elements(self, message_id : int):
         self.write_result_message(message_id, self.application.get_elements())
 
@@ -208,7 +210,11 @@ class inkBoardWebSocket(WebSocketHandler):
             self.write_result_message(message_id, f"{feature} is not a known value for a feature", False)        
 
     def get_screen_state(self, message_id : int, properties : str):
-        
+        """Gets the values of the requested screen attributes.
+
+        The client is responsible for ensuring the values can be serialised to json.
+        """        
+
         try:
             prop_vals = {}
             for prop in properties:
@@ -350,9 +356,71 @@ class inkBoardWebSocket(WebSocketHandler):
             raise AttributeError(f"Element does not have {'properties' if len(missing_props) > 1 else 'property'} {missing_props}")
         return props
 
+    async def call_caller(self, message):
+        call_func = getattr(self,message.pop("type"))
+        await call_func(**message)
+
+    # async def call_action(self, message_id : int, action : str, data : dict = {}, **options):
+    async def call_action(self, message_id : int, action : Union[dict,str]):
+        """Call an action
+
+        The syntax is the same as the one used in YAML, just converted to json/dicts
+
+        .. code-block:: json
+
+            {
+            "message_id": 1,
+            "type" "call_action",
+            "action": {
+                        "action":"element:set",
+                        "element_id": "my-counter",
+                        "data": {"value": 5}
+                        }
+            }
+        """        
+
+        if isinstance(action, dict):
+            action_dict = action
+            data = action_dict.get("data", {})
+        else:
+            action_dict = {}
+            data = {}
+
+        if ":" in action:
+            group, action = action.split(":")
+            try:
+                func = self.application.parse_group_action(group, action, action_dict)
+            except ShorthandGroupNotFound:
+                self.write_result_message(message_id, f"No shorthand action group {group} is registered", False)
+                return
+            except ShorthandNotFound:
+                self.write_result_message(message_id, f"Shorthand action group {group} could not parse {action}", False)
+                return
+        else:
+            try:
+                func = self.application.parse_shorthand_action(action)
+            except ShorthandNotFound:
+                self.write_result_message(message_id, f"No Shorthand Action {action}", False)
+                return
+
+        try:
+            tools.validate_action_call(func, keyword_arguments=data)
+        except TypeError as exce:
+            self.write_result_message(message_id, exce, False)
+            return
+        
+        coro = tools.wrap_to_coroutine(func, **data)
+        (res, exce) = await self.application.run_coroutine(coro)
+        if res:
+            self.write_result_message(message_id, None)
+        else:
+            self.write_result_message(message_id, f"Could not call action", False)
+        return
+
     watcher_types = ("watch_element", "watch_popups", "watch_device_feature", "watch_interaction")
     getter_types = ("get_config", "get_device_config", "get_elements", "get_actions",
                     "get_element_state", "get_feature_state", "get_screen_state")
+    caller_types = ("call_action")
 
 messagetypes = {
         # "ping": None, #simply returns the pong -> may not be necessary, idk what tornado does out of the box
