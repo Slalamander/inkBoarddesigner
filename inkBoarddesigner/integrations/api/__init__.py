@@ -40,7 +40,7 @@ async def async_setup(core : "CORE", config : "CORE.config"):
 
     apiapp = APICoordinator(core, **conf)
 
-    from .handlers import make_app
+    from .restapi import make_app
     make_app(apiapp)
 
     from .websocket import make_app

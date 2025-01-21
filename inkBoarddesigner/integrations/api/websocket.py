@@ -266,7 +266,6 @@ class inkBoardWebSocket(WebSocketHandler):
         while not self.close_code:
             async with condition:
                 ##Can use the result from the predicate, so can try a custom function or something that returns False if no update
-                # await condition.wait_for(lambda: feature_state != self.device.get_feature_state(feature_str))
                 feature_state = await condition.wait_for(partial(test_state, feature_state))
             
             self.write_id_message(message_id, "watch_device_feature",
@@ -358,7 +357,6 @@ class inkBoardWebSocket(WebSocketHandler):
         call_func = getattr(self,message.pop("type"))
         await call_func(**message)
 
-    # async def call_action(self, message_id : int, action : str, data : dict = {}, **options):
     async def call_action(self, message_id : int, action : Union[dict,str]):
         """Call an action
 
@@ -421,7 +419,7 @@ class inkBoardWebSocket(WebSocketHandler):
     caller_types = ("call_action")
 
 
-def make_app(app: "APICoordinator"):
+def add_websocket_handler(app: "APICoordinator"):
 
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
                     [(r"/api/websocket", inkBoardWebSocket)]

@@ -52,6 +52,7 @@ class APICoordinator(tornado.web.Application):
 
     def __init__(self, core: "CORE",
                 port: int = DEFAULT_PORT,
+                restapi: bool = True, websocket: bool = True,
                 remove_access : removeaccessdict = {},
                 allowed_networks : list[str] = []
                 ):
@@ -75,6 +76,14 @@ class APICoordinator(tornado.web.Application):
         self._enabledCondition = asyncio.Condition()
 
         self._websockets: set["inkBoardWebSocket"] = set()
+
+        if restapi:
+            from .restapi import add_restapi_handlers
+            add_restapi_handlers(self)
+
+        if websocket:
+            from .websocket import add_websocket_handler
+            add_websocket_handler(self)
 
         return
 
@@ -308,7 +317,6 @@ class APICoordinator(tornado.web.Application):
         
         return elt_dict
         
-
     def get_rest_config(self) -> dict:
 
         conf = self.baseConfig
