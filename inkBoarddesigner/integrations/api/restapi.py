@@ -10,7 +10,7 @@ import tornado
 from tornado.web import RequestHandler
 
 import inkBoard
-from inkBoard.platforms import InkboardDeviceFeatures, FEATURES
+from inkBoard.platforms.basedevice import FEATURES
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 
 import PythonScreenStackManager

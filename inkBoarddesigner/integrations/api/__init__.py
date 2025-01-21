@@ -29,6 +29,12 @@ def stop(core: "CORE", app : "APICoordinator"):
 ##Opted for tornado for lack of requirements and it being quite barebones
 ##In the end speed is not a priority for inkBoard
 ##Benchmarks for apis: https://github.com/klen/py-frameworks-bench
+## -> Upon further review I may have misread the requirements?
+##starlette seems to be lowlevel too, with various ways to set up, but requires a seperate server install
+##With only daphne seeming to be possible, since it does not require uvloop
+
+##Another option: using a normal rest framework(?) for the restapi, and websockets for the websocket
+##websocket at least does not seem to have external dependencies
 
 ##encryption/token authentication:
 ##Will not implement it MYSELF.

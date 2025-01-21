@@ -12,7 +12,6 @@ from tornado.escape import json_encode as tornado_json_encode
 
 import inkBoard
 from inkBoard import core as CORE
-from inkBoard.platforms import InkboardDeviceFeatures, FEATURES
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 
 import PythonScreenStackManager
