@@ -20,7 +20,7 @@ from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGrou
 from PythonScreenStackManager.elements import Element, TabPages
 from PythonScreenStackManager.pssm.util import ElementJSONEncoder
 
-from .constants import DEFAULT_PORT
+from .constants import DEFAULT_PORT, DEFAULT_HOST_PATTERN
 
 from .apitypes import *
 
@@ -53,7 +53,7 @@ class APICoordinator(tornado.web.Application):
                 port: int = DEFAULT_PORT,
                 restapi: bool = True, websocket: bool = True,
                 remove_access : removeaccessdict = {},
-                allowed_networks : list[str] = []
+                allowed_networks : list[str] = [], host_pattern : str = DEFAULT_HOST_PATTERN
                 ):
         super().__init__(handlers=None, default_host=None, transforms=None)
 
@@ -70,6 +70,7 @@ class APICoordinator(tornado.web.Application):
         assert isinstance(allowed_networks, Sequence), "allowed_networks must be a list"
         self._allowed_networks = allowed_networks
         self._port = port
+        self._host_pattern = host_pattern
 
         self._server = None
         self._enabledCondition = asyncio.Condition()

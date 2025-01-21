@@ -197,7 +197,7 @@ class ActionGroupHandler(RequestHandler):
 
 def add_restapi_handlers(app: APICoordinator):
 
-    app.add_handlers(r'(localhost|127\.0\.0\.1)',
+    app.add_handlers(app._host_pattern,
         [
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
         (r"/api/config", ConfigGetter),
