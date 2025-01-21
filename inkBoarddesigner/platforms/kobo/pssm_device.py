@@ -19,7 +19,7 @@ from contextlib import suppress
 
 from PythonScreenStackManager import constants as const, devices as basedevice, tools, exceptions as pssm_exceptions, elements
 from PythonScreenStackManager.tools import DummyTask, TouchEvent
-from PythonScreenStackManager.pssm.util import elementactionwrapper
+from PythonScreenStackManager.pssm.decorators import elementactionwrapper, trigger_condition
 from PythonScreenStackManager.pssm_types import *
 
 from PIL import Image, ImageFont, ImageOps
@@ -214,7 +214,8 @@ class Device(basedevice.PSSMdevice):
 	def close_print_handler():
 		_LOGGER.info("Closing FBInk")
 		FBInk.close()
-		
+	
+	@trigger_condition
 	async def _rotate(self, rotation=None):
 		_LOGGER.info(f"Rotating device to {rotation}")
 		if isinstance(rotation, str):
@@ -341,6 +342,7 @@ class Backlight(basedevice.Backlight):
 		os.system(cmd)
 		self._level = level
 
+	@trigger_condition
 	async def __async_transition(self, brightness : int, transition: float):
 		"""Async function to provide support for transitions. Does NOT perform sanity checks"""
 		if self.brightness == brightness:
@@ -559,6 +561,7 @@ class Network(basedevice.Network):
 	def update_network_properties(self):
 		asyncio.create_task(self.async_update_network_properties())
 
+	@trigger_condition
 	def _update_network_properties(self):
 		self._macAddr = util.get_mac()
 		self._connected = util.is_wifi_connected()

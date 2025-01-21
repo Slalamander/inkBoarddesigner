@@ -2,12 +2,13 @@
 
 """
 from typing import *
-from types import MappingProxyType
 import asyncio
-from functools import cached_property
+from functools import cached_property, wraps
 from contextlib import suppress
+import json
 
 import tornado
+from tornado.escape import json_encode as tornado_json_encode
 
 import inkBoard
 from inkBoard import core as CORE
@@ -17,7 +18,8 @@ from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 import PythonScreenStackManager
 from PythonScreenStackManager import tools
 from PythonScreenStackManager.exceptions import ShorthandNotFound, ShorthandGroupNotFound
-from PythonScreenStackManager.elements import TabPages
+from PythonScreenStackManager.elements import Element, TabPages
+from PythonScreenStackManager.pssm.util import ElementJSONEncoder
 
 from .constants import DEFAULT_PORT
 
@@ -31,22 +33,26 @@ if TYPE_CHECKING:
 
 _LOGGER = inkBoard.getLogger(__name__)
 
-
-
 class _ALLOW_NONE:
     pass
 
+@wraps(tornado_json_encode)
+def json_encode_message(value):
+
+    return json.dumps(value, cls=ElementJSONEncoder).replace("</", "<\\/")
+
+
+tornado.escape.json_encode = json_encode_message
+
+
 ##Functions/properties to add:
-# base config (as cached property)
-# base device config -> only holding features that do not change
-# battery, network getter, etc.
-# action and action group getter
-# also add a request that will start log streaming; eh seems to not be the way
 # do include a logging_port in the base config
+
 class APICoordinator(tornado.web.Application):
 
     def __init__(self, core: "CORE",
                 port: int = DEFAULT_PORT,
+                restapi: bool = True, websocket: bool = True,
                 remove_access : removeaccessdict = {},
                 allowed_networks : list[str] = []
                 ):
@@ -70,6 +76,14 @@ class APICoordinator(tornado.web.Application):
         self._enabledCondition = asyncio.Condition()
 
         self._websockets: set["inkBoardWebSocket"] = set()
+
+        if restapi:
+            from .restapi import add_restapi_handlers
+            add_restapi_handlers(self)
+
+        if websocket:
+            from .websocket import add_websocket_handler
+            add_websocket_handler(self)
 
         return
 
@@ -102,12 +116,8 @@ class APICoordinator(tornado.web.Application):
         """
         return self._enabledCondition
 
-    # @property
-    # def server(self) -> tornado.httpserver.HTTPServer:
-    #     return self._server
-
     @property
-    def baseConfig(self) -> MappingProxyType:
+    def baseConfig(self) -> dict:
         """Returns a base config of the inkBoard instance
 
         This config is, for example, returned via the ``/api/config`` endpoint.
@@ -129,7 +139,6 @@ class APICoordinator(tornado.web.Application):
                             actions : list = [], 
                             action_groups : list = [],
                             group_actions : dict = {}):
-        ##Used to setup api access at init
 
         for action in actions:
             self.remove_action_access(action)
@@ -142,7 +151,7 @@ class APICoordinator(tornado.web.Application):
                 self.remove_group_action_access(group, action)
 
     async def listen(self):
-        
+
         await self._handle_network_ssid()
         condition = self.screen.deviceUpdateCondition
         network = self.device.network.SSID
@@ -160,19 +169,16 @@ class APICoordinator(tornado.web.Application):
         if (self.device.network.connected and
             (len(self._allowed_networks) == 0 or
             network in self._allowed_networks)):
-            ##Handle: start listening on server if not happening
             if not self._server:
                 self._server = super().listen(self._port)
             else:
                 return
         else:
-            ##Handle: close server if currently listening
             if self._server:
                 self._server.stop()
                 self._server = None
             else:
                 return
-            ##Closing websocket connections does not happen via here? figure out how to.
         async with self.enabledCondition:
             self.enabledCondition.notify_all()
 
@@ -297,27 +303,20 @@ class APICoordinator(tornado.web.Application):
 
         return (200, None)
 
-        try:
-            # await asyncio.sleep(0)
-            with suppress(asyncio.CancelledError):
-                # await asyncio.sleep(0)
-                await asyncio.sleep(0)
-            
-            try:
-                exce = t.exception()
-            except asyncio.InvalidStateError:
-                pass
+    def get_elements(self) -> dict:
+        "Returns a dict with all registered elements and their type"
+        elt_dict = {}
+        for elt_id, elt in self.screen.elementRegister.items():
+            if elt.__module__.startswith(("PythonScreenStackManager.elements","abc")):
+                type_ = elt.__class__.__name__
+            elif elt.__module__.startswith("inkBoard.integrations"):
+                type_ = elt.__module__.lstrip("inkBoard.integrations.")
             else:
-                if isinstance(exce, TypeError):
-                    res = (400, TypeError)
-                    print("set result")
-        finally:
-            await asyncio.sleep(0)
-            if not res:
-                res = (200,None)
-            # else:
-            return res
-
+                type_ = f"{str(elt.__module__)}.{elt.__class__.__name__}"
+            elt_dict[elt_id] = type_
+        
+        return elt_dict
+        
     def get_rest_config(self) -> dict:
 
         conf = self.baseConfig
@@ -349,9 +348,7 @@ class APICoordinator(tornado.web.Application):
         if isinstance(main_elt, TabPages):
             conf["main_element"]["current_tab"] = main_elt.currentPage
             conf["main_element"]["tabs"] = list(main_elt.pageNames)
-            ##Gather the page id's from the element.
-            ##Also: add current tab in info as well as optional popup that is on top
-        
+
         conf["popups"] = {
             "current_popup": self.core.screen.popupsOnTop[-1].id if self.core.screen.popupsOnTop else None,
             "registered_popups": list(self.core.screen.popupRegister.keys())
@@ -365,19 +362,9 @@ class APICoordinator(tornado.web.Application):
             "platform": device.platform,
             "model": device.model,
             "name": device.name,
-            "size": (device.screenWidth, device.screenHeight),
             "screen_type": device.screenType,
             "screen_mode": device.screenMode
             }
-        
-        if device.has_feature(FEATURES.FEATURE_ROTATION):
-            conf["rotation"] = device.rotation
-        else:
-            conf["rotation"] = None
-
-        # features = []
-        # for feat, val in device._features._asdict().items():
-        #     if val: features.append(feat)
         
         conf["features"] = device.features
         return conf
@@ -411,33 +398,20 @@ class APICoordinator(tornado.web.Application):
     
     def get_battery_config(self) -> batteryconfig:
         ##Add error class to handle missing features
-        conf = {
-            "state": self.core.device.battery.state,
-            "charge": self.core.device.battery.charge
-        }
+        conf = self.device.battery.get_feature_state()
         return conf
     
     def get_network_config(self) -> networkconfig:
-        network = self.device.network
+        conf = self.device.network.get_feature_state()
         conf = {
-            "ip_address": network.IP,
-            "mac_address": network.macAddress,
-            "network_ssid": network.SSID,
-            "signal": network.signal,
+            "ip_address": conf["IP"],
+            "mac_address": self.device.network.macAddress,
+            "network_ssid": conf["SSID"],
+            "signal": conf["signal"]
         }
         return conf
     
     def get_backlight_config(self) -> backlightconfig:
-        
-        backlight = self.device.backlight
-        conf = {
-            "state": backlight.state,
-            "brightness": backlight.brightness,
-            "behaviour": backlight.behaviour,
-            
-            "default_time_on": backlight.default_time_on,
-            "default_brightness": backlight.default_brightness,
-            "default_transition": backlight.default_transition
-        }
+        conf = self.device.backlight.get_feature_state()
         return conf
     

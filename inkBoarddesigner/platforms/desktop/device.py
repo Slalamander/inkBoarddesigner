@@ -16,7 +16,7 @@ from inkBoard.platforms.basedevice import BaseDevice, InkboardDeviceFeatures, FE
                                     BaseBacklight, BaseBattery, BaseNetwork
 from inkBoard.constants import INKBOARD_FOLDER
 
-from PythonScreenStackManager.devices import windowed
+from PythonScreenStackManager.devices import windowed, trigger_condition
 from PythonScreenStackManager.tools import DummyTask
 
 try:
@@ -85,7 +85,8 @@ class Device(BaseDevice, windowed.Device):
         self._model = None
         
         feature_dict = {FEATURES.FEATURE_INTERACTIVE: interactive, FEATURES.FEATURE_PRESS_RELEASE: interactive,
-                        FEATURES.FEATURE_BACKLIGHT: backlight, FEATURES.FEATURE_NETWORK: network,}
+                        FEATURES.FEATURE_BACKLIGHT: backlight, FEATURES.FEATURE_NETWORK: network,
+                        FEATURES.FEATURE_RESIZE: resizeable}
         if plyer:
             bat_state = plyer.battery.get_state()
             if not all(v is None for v in bat_state.values()):
@@ -131,6 +132,7 @@ class Battery(BaseBattery):
             ##idk if this is blocking, if so, needs to go to a thread
             self.update_battery_state()
         
+        @trigger_condition
         def update_battery_state(self):
             state = plyer.battery.get_state()
             charge_perc = state.get("percentage", 0)
