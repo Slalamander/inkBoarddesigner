@@ -195,7 +195,7 @@ class ActionGroupHandler(RequestHandler):
         return
 
 
-def make_app(app: APICoordinator):
+def add_restapi_handlers(app: APICoordinator):
 
     app.add_handlers(r'(localhost|127\.0\.0\.1)',
         [
