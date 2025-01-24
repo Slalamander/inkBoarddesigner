@@ -34,7 +34,6 @@ jobs:
             path: dist/
     index:
         name: Create inkBoard index file
-        needs: build
         runs-on: unbuntu-latest
         steps:
           - uses: actions/checkout@v4
