@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 from pathlib import Path
 import shutil
 import tempfile
@@ -8,17 +9,33 @@ import zipfile
 import inkBoard
 from inkBoard import constants
 from inkBoard.types import manifestjson, platformjson
-from inkBoard.packaging import ZIP_COMPRESSION, ZIP_COMPRESSION_LEVEL
+from inkBoard.packaging import ZIP_COMPRESSION, ZIP_COMPRESSION_LEVEL, parse_version
 
 import inkBoarddesigner
 import PythonScreenStackManager
 
+_LOGGER = inkBoard.getLogger("inkBoard-index")
+_LOGGER.setLevel(logging.INFO)
+
 INDEX_FOLDER = Path(__file__).parent
+INDEX_FILE = INDEX_FOLDER / "index.json"
 INTEGRATION_INDEX_FOLDER = INDEX_FOLDER / "integrations"
 PLATFORM_INDEX_FOLDER = INDEX_FOLDER / "platforms"
 
 if not INTEGRATION_INDEX_FOLDER.exists(): INTEGRATION_INDEX_FOLDER.mkdir()
 if not PLATFORM_INDEX_FOLDER.exists(): PLATFORM_INDEX_FOLDER.mkdir()
+
+if INDEX_FILE.exists():
+    with open(INDEX_FILE, "r") as file:
+        current_index = json.load(file)
+else:
+    current_index = {
+        "inkBoard": inkBoard.__version__,
+        "PythonScreenStackManager": PythonScreenStackManager.__version__,
+        "inkBoarddesigner": inkBoarddesigner.__version__,
+        "platforms": {},
+        "integrations": {},
+        }
 
 def gather_folders(base_folder) -> list[Path]:
     folders = []
@@ -39,7 +56,11 @@ def create_integration_index():
         with open(manifest_file) as file:
             d = manifestjson(**json.load(file))
             integration_index[p.name] = d["version"]
-        create_integration_zip(p)
+
+        if (not (INTEGRATION_INDEX_FOLDER / f"{p.name}.zip").exists()
+                or p.name not in current_index["integrations"]
+                or parse_version(d["version"]) > parse_version(current_index["integrations"][p.name])):
+            create_integration_zip(p)
     return integration_index
 
 def create_platform_index():
@@ -54,6 +75,11 @@ def create_platform_index():
         with open(platform_file) as file:
             d = platformjson(**json.load(file))
             platform_index[p.name] = d["version"]
+        
+        if (not (PLATFORM_INDEX_FOLDER / f"{p.name}.zip").exists()
+                or p.name not in current_index["platforms"]
+                or parse_version(d["version"]) > parse_version(current_index["platforms"][p.name])):
+            create_platform_zip(p)
     return platform_index
 
 ##for the zips, would they only be for inkBoard, and not the designer?
@@ -61,7 +87,9 @@ def create_platform_index():
 ##I think, for now, yes. -> also base installer handles the installation anyways so only the downloading really matters
 
 ##If so, omit from integrations: designer.py/designer folder
-##from platforms: any of the manual files, and package_files folder
+##from platforms: any of the manual files.
+##packge_files folder will be included, but should only be unpacked based on prompt input
+##readme is omitted as it should be in the docs anyways
 ##always omit __pycache__
 
 def ignore_files(src, names):
@@ -95,32 +123,53 @@ def create_integration_zip(integration_folder: Path):
     ##As per packaging: first create temp directory
     ##When that is done, put all files in there into the zipfile
 
-    
     with tempfile.TemporaryDirectory(dir=str(INTEGRATION_INDEX_FOLDER)) as tempdir:
         name = integration_folder.name
-        # temppath = Path(tempdir)
+        print(f"Gathering integration {name}")
         shutil.copytree(
             src = integration_folder,
             dst= Path(tempdir) / name,
-            ignore=lambda *args: ("__pycache__","designer.py", "designer")
+            ignore=lambda *args: ("__pycache__","emulator.json", "designer", "designer.py")
         )
 
+        print(f"Zipping up integration {name}")
         with zipfile.ZipFile(INTEGRATION_INDEX_FOLDER / f"{name}.zip", 'w', ZIP_COMPRESSION, compresslevel=ZIP_COMPRESSION_LEVEL) as zip_file:
             for foldername, subfolders, filenames in os.walk(tempdir):
-                # _LOGGER.verbose(f"Zipping contents of folder {foldername}")
+                _LOGGER.verbose(f"Zipping contents of folder {foldername}")
                 for filename in filenames:
                     file_path = os.path.join(foldername, filename)
                     zip_file.write(file_path, os.path.relpath(file_path, tempdir))
                 for dir in subfolders:
                     dir_path = os.path.join(foldername, dir)
                     zip_file.write(dir_path, os.path.relpath(dir_path, tempdir))
+        print(f"Succesfully packaged integration {name}")
+    return
 
+def create_platform_zip(platform_folder: Path):
+    
+    with tempfile.TemporaryDirectory(dir=str(INTEGRATION_INDEX_FOLDER)) as tempdir:
+        name = platform_folder.name
+        print(f"Gathering platform {name}")
+        shutil.copytree(
+            src = platform_folder,
+            dst= Path(tempdir) / name,
+            ignore=lambda *args: ("__pycache__","designer.py", "designer")
+        )
 
+        print(f"Zipping up platform {name}")
+        with zipfile.ZipFile(PLATFORM_INDEX_FOLDER / f"{name}.zip", 'w', ZIP_COMPRESSION, compresslevel=ZIP_COMPRESSION_LEVEL) as zip_file:
+            for foldername, subfolders, filenames in os.walk(tempdir):
+                _LOGGER.verbose(f"Zipping contents of folder {foldername}")
+                for filename in filenames:
+                    file_path = os.path.join(foldername, filename)
+                    zip_file.write(file_path, os.path.relpath(file_path, tempdir))
+                for dir in subfolders:
+                    dir_path = os.path.join(foldername, dir)
+                    zip_file.write(dir_path, os.path.relpath(dir_path, tempdir))
+        print(f"Succesfully packaged platform {name}")
     return
 
 if __name__ == "__main__":
-    # folder = constants.DESIGNER_FOLDER / "integrations"
-
     index = {
         "inkBoard": inkBoard.__version__,
         "PythonScreenStackManager": PythonScreenStackManager.__version__,
