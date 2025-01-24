@@ -59,7 +59,7 @@ async def async_unload_inkBoard(reload_modules: bool = False):
     
     _LOGGER.debug(f"Unloading inkBoard")
     stop_loop = False
-    if hasattr(CORE,"screen") and CORE.screen.mainLoop:
+    if hasattr(CORE,"screen") and hasattr(CORE,"screen"):
         CORE.screen.mainLoop.stop()
         stop_loop = CORE.screen.mainLoop
     
@@ -78,23 +78,15 @@ async def async_unload_inkBoard(reload_modules: bool = False):
             task.cancel()
     
     await asyncio.sleep(0)
-
-    if reload_modules:
-        ##Reloading the platform may actually be done already via the platform check
-        await asyncio.to_thread(
-            inkBoard.bootstrap.reload_core, CORE, True
-                )
-    else:
-        await asyncio.to_thread(
-            inkBoard.bootstrap.reload_core, CORE, False
-                )
+    await inkBoard.bootstrap.reload_core(CORE,reload_modules)
         ##Regarding that: move shorthand colors to style, so they can be reset from there.
 
     if stop_loop:
         stop_loop.close()
 
     window._inkBoard_clean = True
-    window._inkBoard_lock.release()
+    if window._inkBoard_lock.locked():
+        window._inkBoard_lock.release()
     return
 
 def unload_inkBoard(reload_modules: bool = False):
@@ -164,6 +156,10 @@ async def run_inkboard_thread(config_file):
 
         bootstrap.import_custom_elements(CORE)
 
+        window.set_progress_bar(40, "Setting up styles")
+        bootstrap.setup_styles(CORE)
+        ##May seperate these. One for setting up color shorthands, one for setting up the actual styles.
+
         ##Implement error catchers for these as well
         window.set_progress_bar(42, "Setting up emulator device")
         CORE.device = await bootstrap.setup_device(CORE)
@@ -173,8 +169,8 @@ async def run_inkboard_thread(config_file):
         screen = CORE.screen
         screen.add_shorthand_function_group("custom", CORE.parse_custom_function)
 
-        window.set_progress_bar(50, "Setting up styles")
-        bootstrap.setup_styles(CORE)
+        # window.set_progress_bar(50, "Setting up styles")
+        # bootstrap.setup_styles(CORE)
 
         window.set_progress_bar(52, "Setting up integrations")
         max_integration_progress = 70
@@ -241,7 +237,7 @@ async def run_inkboard_thread(config_file):
         window.set_progress_bar(value=ttk.DANGER, text=f"Error in config file {config_file}: {exce}")
     except DeviceError as exce:
         msg = f"Error setting up inkBoard device: {exce}"
-        _LOGGER.error(msg, exc_info=None)
+        _LOGGER.error(msg, exc_info=True)
         _LOGGER.debug(f"{type(exce)} info:", exc_info=exce)
         window.set_inkboard_state("ERROR")
         window.set_progress_bar(value=ttk.DANGER, text=msg)
@@ -273,6 +269,7 @@ async def run_inkboard_config(configuration, **kwargs):
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     window._current_config_file = configuration
     loop = asyncio.new_event_loop()
+    loop.set_exception_handler(inkBoard.helpers.loop_exception_handler)
     thread = threading.Thread(target=loop.run_until_complete, kwargs={"future": run_inkboard_thread(configuration)}, name="inkBoard-thread")
     window._inkBoard_thread = thread
     thread.start()

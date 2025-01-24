@@ -1,4 +1,5 @@
 .venv
+build
 __pycache__/
 venv
 .eggs
@@ -10,6 +11,8 @@ dist
 secrets.yaml
 secrets.yml
 settings.json
+settings.ini
 inkBoarddesigner/files/settings.ini
 
 examples/*.zip
+examples/*.yaml

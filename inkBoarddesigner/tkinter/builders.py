@@ -219,7 +219,8 @@ def build_interface():
     "Builds the button interface for the designer"
 
     ui_frame = ttk.Frame(window, name=const.UI_FRAME_NAME,
-                            width=const.INTERFACE_WIDTH-2*const.INTERFACE_BORDER, borderwidth=const.INTERFACE_BORDER,
+                            # width=const.INTERFACE_WIDTH-2*const.INTERFACE_BORDER,
+                            borderwidth=const.INTERFACE_BORDER,
                             style='right.TFrame', 
                             )
 
@@ -253,6 +254,6 @@ def build_window() -> DesignerWindow:
     iface = build_interface()
     window.setup_canvas((init_width-const.INTERFACE_WIDTH, init_height))
 
-    iface.place(anchor=tk.NE,width=const.INTERFACE_WIDTH,relx=1,rely=0, relheight=1)
+    iface.place(anchor=tk.NE, width=const.INTERFACE_WIDTH, relx=1,rely=0, relheight=1)
     return window
 

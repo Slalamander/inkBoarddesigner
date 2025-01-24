@@ -19,8 +19,7 @@ if TYPE_CHECKING:
     from PythonScreenStackManager.pssm.screen import PSSMScreen
     from . import client
 
-logger = logging.getLogger(__name__)
-
+_LOGGER = logging.getLogger(__name__)
 
 ##This one is required
 async def async_setup(core: "CORE", config : "config") -> None:
@@ -29,12 +28,12 @@ async def async_setup(core: "CORE", config : "config") -> None:
     ha_config = config.configuration["home_assistant"]
 
     if "url" not in ha_config or "token" not in ha_config:
-        logger.error("Home Assistant integration requires url and token to be set in the config. At least one is missing.")
+        _LOGGER.error("Home Assistant integration requires url and token to be set in the config. At least one is missing.")
         return False
 
     from . import client
     client.CORE = core
-    HAclient = client.HAclient(core.screen)
+    HAclient = client.HAclient(core.screen, core)
     from . import parser
     parser.setup_elements()
 

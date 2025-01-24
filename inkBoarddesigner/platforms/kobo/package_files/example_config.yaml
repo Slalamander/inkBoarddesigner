@@ -1,0 +1,120 @@
+device:
+  platform: ./kobo
+  name: Example Device
+  rotation: CW
+  # fullscreen: false
+
+# dummy_integration:
+
+screen:
+  poll_interval: 30   ##Amount of seconds between polling various device features
+
+inkBoard:
+  name: "Element Example"
+  date_format: "%A %d %B %Y" #"%A %d %B %Y"  #Date format datetime format string. Defaults to "%d-%m-%Y"
+  time_format: "%H:%M" #Time format in datetime format string. Defaults to %H:%M
+  integration_start_time: -1 #Time to wait for integrations to start, before moving on to running the dashboard. -1 means wait until they are all finished.
+
+elements:
+  ##For example's sake, these element's will be reused.
+  ##But keep in mind, this may at times lead to unexpected consequences.
+  - type: Icon
+    icon: mdi:test-tube
+    id: test-icon
+  - type: Button
+    id: example-button
+    text: Hello World!
+    fit_text: true
+    radius: h*0.1
+    background_color: inkBoard-light
+  - type: Icon
+    id: example-icon
+    icon: mdi:shape
+    background_shape: circle
+    background_color: inkBoard-light
+
+
+# popups:
+#   - type: PopupMenu
+#     id: grid-popup
+#     title: "Popping up"
+#     menu_layout: grid-popup-layout
+
+layouts:
+  - type: custom:LabeledElements  ##If possible, maybe make the labels link to the documentation of said element
+    id: small-elements
+    outer_margins: 10
+    inner_margins: 10
+    rows: 3
+    columns: 2
+    elements:
+      ##Buttons are similar to webpage buttons: some text and some other basic styling options
+      - type: Button
+        text: Hello World!
+        fit_text: true
+        radius: h*0.1
+        background_color: inkBoard-light
+      ##Icons are similar to buttons, but instead of text they use icons
+      ##Any mdi icon is valid as an icon, however image files can also be used (these will be styled to correspond to mdi icons)
+      - type: Icon
+        icon: mdi:refresh
+        background_shape: circle
+        background_color: inkBoard-light
+        tap_action: rotate
+
+      ##The DigitalClock is, well, a digital clock
+      - type: DigitalClock
+        background_color: inkboard
+        font_color: white
+
+      - type: Icon
+        icon: mdi:lightbulb
+        tap_action: backlight-toggle
+
+      - type: DeviceIcon
+        icon_feature: battery
+
+      - type: BacklightSlider
+
+main_tabs:
+  ##Add some defaults in the parser here for markup (i.e. margins etc.)
+  foreground_color: inkboard-light
+  background_color: [100, 100, 100, 150]
+  element_properties:
+    navigation:
+      inactive_properties:
+        background_color: None
+        radius: 5
+        element_properties:
+          name: 
+            font_color: black
+          icon:
+            icon_color: black
+      active_properties:
+        background_color: [255, 255, 255, 200]
+        element_properties:
+          name: 
+            font_color: active
+          icon:
+            icon_color: white
+  tabs:
+    - element: small-elements
+      name: Elements
+      icon: mdi:shape
+
+statusbar:
+  ##The statusbar config entry has two additional entries to those of the StatusBar Element: size and location
+  ##Size: a PSSMdimension for the width/height of the statusbar
+  ##location: top,left,bottom,right. Self explanatory
+  orientation: horizontal
+  location: top
+  size: h*0.1
+  background_color: inkBoard
+  foreground_color: white
+  status_element_properties:
+    background_color: None
+    background_shape: None
+    icon_color: foreground
+  element_properties:
+    clock:
+      font_color: foreground

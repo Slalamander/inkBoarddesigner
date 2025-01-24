@@ -2,13 +2,9 @@
 
 "inkBoard platform for kobo, and likely other devices with FBInk installed"
 
-import sys
-import os
-import socket
+import json
 import asyncio
 import logging
-import subprocess
-import concurrent.futures
 from typing import *
 
 from pathlib import Path
@@ -37,6 +33,7 @@ from .fbink import API as FBInk
 
 _LOGGER = logging.getLogger(__name__)
 
+SETTINGS_FILE = "kobo_settings.json"
 
 try:
 	import pywifi ##Implement pywifi rn but for the bare pssm implementation don't implement it.
@@ -54,6 +51,19 @@ class Device(BaseDevice, pssm_device.Device):
 			touch_debounce_time: DurationType = aioKIP.DEFAULT_DEBOUNCE_TIME, hold_touch_time: DurationType = aioKIP.DEFAULT_HOLD_TIME, input_device_path: str = aioKIP.DEFAULT_INPUT_DEVICE):
 		
 		features = pssm_device.feature_list.copy()
+
+		from inkBoard import core as CORE
+		file_folder = CORE.config.folders.file_folder
+
+		if (file_folder / SETTINGS_FILE).exists():
+			features.append(FEATURES.FEATURE_AUTOSTART)
+			self.__kobo_settings = file_folder / SETTINGS_FILE
+			with open(file_folder / SETTINGS_FILE) as f:
+				kobo_settings = json.load(f)
+				self.__autoStart = kobo_settings["auto_start"]
+		else:
+			self.__autoStart = "SETTINGS FILE NOT FOUND"
+
 		if pywifi_installed:
 			_LOGGER.debug("Setting up connection Network")
 			self._network = ConnectionNetwork()
@@ -81,8 +91,8 @@ class Device(BaseDevice, pssm_device.Device):
 		self._refreshRate = refresh_rate
 
 		FBInk.rotate_screen(rotation)
-		splashscreen = inkBoard.constants.INKBOARD_FOLDER / "files" / "images" / "default_background.png"
-		splash_img = ImageOps.fit(Image.open(splashscreen),(self.screenWidth,self.screenHeight))
+		splashscreen = inkBoard.constants.INKBOARD_FOLDER / "files" / "images" / "logo.png"
+		splash_img = ImageOps.pad(Image.open(splashscreen),(self.screenWidth,self.screenHeight), color=self.defaultColor)
 		FBInk.fbink_print_pil(splash_img)
 
 	#region
@@ -100,6 +110,10 @@ class Device(BaseDevice, pssm_device.Device):
 	@property
 	def imgMode(self):
 		return "RGBA"
+	
+	@property
+	def defaultColor(self):
+		return "white"
 
 	@property
 	def screenType(self):
@@ -109,6 +123,11 @@ class Device(BaseDevice, pssm_device.Device):
 	def refreshRate(self) -> DurationType:
 		"The interval between which the screen is fully refreshed"
 		return self._refreshRate
+	
+	@property
+	def autoStart(self) -> bool:
+		"Whether inkBoard automatically starts on boot"
+		return self.__autoStart
 	#endregion
 
 	def print_pil(self, imgData, x, y, isInverted=False):
@@ -139,33 +158,32 @@ class Device(BaseDevice, pssm_device.Device):
 
 	async def refresh_loop(self):
 		wait_time = tools.parse_duration_string(self.refreshRate)
+		self.refresh_screen()
 		while self.Screen.printing:
 			try:
 				await asyncio.sleep(wait_time)
 				self.refresh_screen()
 			except asyncio.CancelledError:
 				return
-		
-	async def _rotate(self, rotation=None):
-		await asyncio.to_thread(FBInk.rotate_screen(rotation))
-		await asyncio.to_thread(FBInk.screen_refresh())
-
-	@elementactionwrapper.method
-	def clear_screen(self):
-		"Clears the entire screen"
-		FBInk.screen_clear()
 	
 	@elementactionwrapper.method
-	def refresh_screen(self, skip_clear: bool = False):
-		"Refreshes the entire screen. By default clears it first"
-		if not skip_clear:
-			self.clear_screen()
+	def toggle_autostart(self, new_state = None):
+		if new_state == None:
+			new_state = not self.autoStart
 		
-		FBInk.screen_refresh()
+		with open(self.__kobo_settings, "r") as f:
+			kobo_settings = json.load(f)
 
-	def set_waveform(self, mode):
-		FBInk.set_waveform(mode)
-	
+		with open(self.__kobo_settings, "w") as f:
+			kobo_settings["auto_start"] = bool(new_state)
+			json.dump(kobo_settings, f, indent=4)
+			self.__autoStart = new_state
+
+			_LOGGER.info(f"Set autostart to {new_state}")
+		
+		return
+
+
 class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 	def __init__(self):
 		wifilogger = logging.getLogger(pywifi.__name__)
@@ -234,3 +252,4 @@ class ConnectionNetwork(pssm_device.Network, BaseConnectionNetwork):
 
 	def __wifi_disconnect(self):
 		self._iface.disconnect()
+

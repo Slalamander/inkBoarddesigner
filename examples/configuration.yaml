@@ -312,6 +312,7 @@ statusbar:
     background_color: None
     background_shape: None
     icon_color: foreground
+    show_feedback: true
   element_properties:
     clock:
       font_color: foreground

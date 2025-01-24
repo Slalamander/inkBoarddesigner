@@ -12,9 +12,9 @@ from PIL import Image
 
 from PythonScreenStackManager import elements as elts, tools
 import mdi_pil as mdi
-from inkBoard import core as CORE
+# from inkBoard import core as CORE
 
-from .constants import DEFAULT_DOMAIN_ACTIONS, UNKNOWN_ICON, UNAVAILABLE_ICON, UNAVAILABLE_COLOR, UNKNOWN_COLOR, all_entities
+from .constants import DEFAULT_DOMAIN_ACTIONS, UNKNOWN_ICON, UNAVAILABLE_ICON, UNAVAILABLE_COLOR, UNKNOWN_COLOR
 from .helpers import triggerDictType, request_image_threadsafe
 
 if TYPE_CHECKING:    
@@ -30,7 +30,7 @@ _LOGGER = logging.getLogger(__name__)
 attribute_styles_stateType = TypedDict('attribute_style_states', {"state": Any, 'properties': dict})
 attribute_stylesType = TypedDict('attribute_stylesDict', {'attribute': str, 'states': attribute_styles_stateType, 'else': dict})
 
-state_color_dict = CORE.config.styles.get("state_colors",{})
+state_color_dict: dict = {} 
 
 def get_condition_key(state : str, conditions : list[str]):
     """
@@ -290,7 +290,9 @@ async def icon_trigger(element: Union["elts.Icon", "HAelement"],trigger_dict : "
         ##Defining an icon in a state overwrites the attribute.
         _LOGGER.debug(f"{element}: Getting entity {element.entity} picture")
         if icon_attr == "entity_picture":
-            if element.iconData[0] != trigger_dict["to_state"]["attributes"]["entity_picture"] or element.iconData[1] != 200:
+            if icon_attr not in trigger_dict["to_state"]["attributes"]:
+                _LOGGER.warning(f"{element}: {trigger_dict['to_state']['attributes']['entity_id']} does not have attr {icon_attr}")
+            elif element.iconData[0] != trigger_dict["to_state"]["attributes"]["entity_picture"] or element.iconData[1] != 200:
 
                 picture_link =  trigger_dict["to_state"]["attributes"]["entity_picture"]
                 (resp, status) = await get_entity_picture(picture_link, client=element.HAclient)

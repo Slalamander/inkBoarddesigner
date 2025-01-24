@@ -23,3 +23,15 @@ For the Home Assistant example, you should fill out the `ha_substitutions.yaml` 
 
 Running the examples can be done by selecting the yaml file from the designer ui, or running `inkBoard designer configuration.yaml` from the examples folder.
 
+## Documentation
+
+The documentation is hosted on readthedocs:
+https://inkboard-documentation.readthedocs.io/en/latest/
+
+# Acknowledgements
+This project has been a labour of love (and sometimes hate), and I could not have done this without these projects:
+ - The ESPHome project, which is where the idea for an E-Ink based dashboard was born for me.
+ - The Home Assistant project, as it got me started with this obsession, and has inspired multiple aspects of the architecture.
+ - The original [PythonScreenStackManager](https://github.com/Mavireck/Python-Screen-Stack-Manager) by Mavireck, as it is the basis inkBoard was build on. Aside from providing the means to print stuff onto Kobo screens, it also provided the idea for an emulator
+ - [FBInk](https://github.com/NiLuJe/FBInk) and adjacent kobo packages by NileJule, for the kobostuff package, FBInk, and probably a lot more.
+ - The https://www.mobileread.com community as a whole, as they provided a whole lot of resources.
