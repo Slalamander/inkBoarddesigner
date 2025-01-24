@@ -9,6 +9,9 @@ on:
           - 'dev'
     workflow_dispatch:
 
+permissions:                    # Global permissions configuration starts here
+  contents: write               # 'read' access to repository contents
+
 jobs:
     create_index:
         name: Create inkBoard index file
