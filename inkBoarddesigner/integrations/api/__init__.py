@@ -22,8 +22,8 @@ async def async_run(core: "CORE", app : "APICoordinator"):
     await app.listen()
     return
 
-def stop(core: "CORE", app : "APICoordinator"):
-    app.stop()
+async def async_stop(core: "CORE", app : "APICoordinator"):
+    await app.stop()
 
 ##Considerations for platforms:
 ##Opted for tornado for lack of requirements and it being quite barebones
