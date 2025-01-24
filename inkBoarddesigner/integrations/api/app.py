@@ -183,13 +183,12 @@ class APICoordinator(tornado.web.Application):
         async with self.enabledCondition:
             self.enabledCondition.notify_all()
 
-    def stop(self):
+    async def stop(self):
         if self._server:
             _LOGGER.info("Closing all sockets")
             self._server.stop()
-            asyncio.create_task(self._server.close_all_connections())
-            for i, sock in self._server._sockets.items():
-                sock.close()
+            await self._server.close_all_connections()
+            _LOGGER.info("Closed all api connections")
 
     def remove_action_access(self, action: str):
         """Prevents an action shorthand from being callable via the api
