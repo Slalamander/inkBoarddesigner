@@ -32,3 +32,6 @@ jobs:
           with:
             name: python-package-distributions
             path: dist/
+        - name: Generate index file
+          if: ${{ matrix.python-version == '3.9' }}
+          run: python "scripts/create_index"
