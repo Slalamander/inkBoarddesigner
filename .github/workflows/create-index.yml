@@ -36,7 +36,7 @@ jobs:
           with:
             # Semantic version range syntax or exact version of a Python version
             python-version: '3.9'
-        - name: Install artifact
+        - name: Install editable inkBoard packages
           run: python3 -m pip install -e './designer' './inkBoard' './pssm' 
         - name: Generate index file
           run: python "designer/scripts/create_index.py"
@@ -48,12 +48,14 @@ jobs:
             path: index.json
         - name: update file and push to remote
           run: |
-              echo "Test push commit to the remote in the workflow" >> test.txt
+              echo "Pushing updated index.json file"
     
+              cd ./designer
+
               git config --global user.name "github-actions[bot]"
               git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-              git add index.json
+              git add ../index.json
               git commit -m "Update index.json"
               git fetch origin dev
               git push origin dev
