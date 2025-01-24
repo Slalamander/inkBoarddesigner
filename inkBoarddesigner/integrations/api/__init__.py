@@ -26,6 +26,7 @@ async def async_run(core: "CORE", app : "APICoordinator"):
     return
 
 def stop(core: "CORE", app : "APICoordinator"):
+    ##Rewrite this to async since I lost the changes when switching between branches
     app.stop()
 
 ##Considerations for platforms:
