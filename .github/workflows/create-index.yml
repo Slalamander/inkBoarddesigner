@@ -1,12 +1,12 @@
 name: Create the index.json file
 
 on: 
-    pull_request:
-        types:
-          - closed
-        branches:
-          - 'main'
-          - 'dev'
+    # pull_request:
+    #     types:
+    #       - closed
+    #     branches:
+    #       - 'main'
+    #       - 'dev'
     workflow_call:
 
 jobs:
