@@ -39,7 +39,7 @@ jobs:
         - name: Install artifact
           run: python3 -m pip install -e './designer' './inkBoard' './pssm' 
         - name: Generate index file
-          run: python "scripts/create_index.py"
+          run: python "designer/scripts/create_index.py"
         - name: Store the index file
           id: storedist
           uses: actions/upload-artifact@v4
