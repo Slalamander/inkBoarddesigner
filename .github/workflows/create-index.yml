@@ -38,8 +38,6 @@ jobs:
             python-version: '3.9'
         - name: Install editable inkBoard packages
           run: python3 -m pip install -e './designer' './inkBoard' './pssm' 
-        - name: update file and push to remote
-          run: cd "./designer"
         - name: Generate index file
           run: python "designer/scripts/create_index.py"
         - name: Store the index file
@@ -52,10 +50,13 @@ jobs:
           run: |
               echo "Pushing updated index.json file"
     
+              cd ./designer
+              cp ../index.json index.json
+
               git config --global user.name "github-actions[bot]"
               git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-              git add ../index.json
+              git add index.json
               git commit -m "Update index.json"
               git fetch origin dev
               git push origin dev
