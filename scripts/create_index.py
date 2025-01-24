@@ -56,5 +56,5 @@ if __name__ == "__main__":
         }
 
     print(index)
-    with open(Path(__file__).parent.parent / "index.json", "w") as file:
+    with open("index.json", "w") as file:
         json.dump(index,file,indent=4)

@@ -1,12 +1,12 @@
 name: Create the index.json file
 
 on: 
-    # pull_request:
-    #     types:
-    #       - closed
-    #     branches:
-    #       - 'main'
-    #       - 'dev'
+    pull_request:
+        types:
+          - closed
+        branches:
+          - 'main'
+          - 'dev'
     workflow_dispatch:
 
 jobs:
@@ -24,3 +24,10 @@ jobs:
           run: python3 -m pip install -e '.'
         - name: Generate index file
           run: python "scripts/create_index.py"
+        - name: Store the index file
+          id: storedist
+          uses: actions/upload-artifact@v4
+          with:
+            name: index-file
+            path: index.json
+        
