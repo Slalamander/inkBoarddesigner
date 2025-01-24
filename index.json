@@ -1,7 +1,7 @@
 {
     "inkBoard": "0.3.1.dev1",
     "PythonScreenStackManager": "0.4.1.dev1",
-    "inkBoarddesigner": "0.3.0",
+    "inkBoarddesigner": "0.3.0.dev1",
     "platforms": {
         "kobo": "0.2.2",
         "desktop": "0.0.2"
