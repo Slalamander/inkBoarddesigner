@@ -51,7 +51,7 @@ jobs:
               echo "Pushing updated index.json file"
     
               cd ./designer
-              cp ../index.json index.json
+              cp ../index.json ./
 
               git config --global user.name "github-actions[bot]"
               git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
