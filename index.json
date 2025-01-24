@@ -1,6 +1,6 @@
 {
-    "inkBoard": "0.3.0",
-    "PythonScreenStackManager": "0.4.0",
+    "inkBoard": "0.3.1.dev1",
+    "PythonScreenStackManager": "0.4.1.dev1",
     "inkBoarddesigner": "0.3.0",
     "platforms": {
         "kobo": "0.2.2",
