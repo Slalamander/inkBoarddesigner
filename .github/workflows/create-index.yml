@@ -1,0 +1,26 @@
+name: Create the index.json file
+
+on: 
+    pull_request:
+        types:
+          - closed
+        branches:
+          - 'main'
+          - 'dev'
+    workflow_call:
+
+jobs:
+    create_index:
+        name: Create inkBoard index file
+        runs-on: unbuntu-latest
+        steps:
+        - uses: actions/checkout@v4
+        - name: Set up Python
+          uses: actions/setup-python@v5
+          with:
+            # Semantic version range syntax or exact version of a Python version
+            python-version: '3.9'
+        - name: Install artifact
+          run: python3 -m pip install -e '.'
+        - name: Generate index file
+          run: python "scripts/create_index.py"
