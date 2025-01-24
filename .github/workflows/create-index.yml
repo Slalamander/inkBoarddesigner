@@ -16,20 +16,22 @@ jobs:
     create_index:
         name: Create inkBoard index file
         runs-on: ubuntu-latest
+        env:
+          branchtype: ${{ github.ref_name }}
         steps:
         - uses: actions/checkout@v4
           with:  
-            ref: dev
+            ref: ${{ env.branchtype }}
             path: designer
         - uses: actions/checkout@v4
           with:  
             repository: Slalamander/inkBoard
-            ref: dev
+            ref: ${{ env.branchtype }}
             path: inkBoard
         - uses: actions/checkout@v4
           with:  
             repository: Slalamander/PythonScreenStackManager
-            ref: dev
+            ref: ${{ env.branchtype }}
             path: pssm
         - name: Set up Python
           uses: actions/setup-python@v5
@@ -58,7 +60,6 @@ jobs:
         
               git add index.json
               git commit -m "Update index.json"
-              git fetch origin dev
-              git push origin dev
-
+              git fetch origin ${{ env.branchtype }}
+              git push origin ${{ env.branchtype }}
         
