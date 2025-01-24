@@ -35,6 +35,8 @@ jobs:
         - name: Install artifact
           if: ${{ matrix.python-version == '3.9' }}
           run: python3 -m pip install -e '.'
+        - name: Generate index file
+          run: python "scripts/create_index.py"
 
     # index:
     #     name: Create inkBoard index file

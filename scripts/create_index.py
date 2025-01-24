@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 
-# import inkBoard
-# from inkBoard import constants
-# from inkBoard.types import manifestjson, platformjson
+import inkBoard
+from inkBoard import constants
+from inkBoard.types import manifestjson, platformjson
 
 import inkBoarddesigner
-# import PythonScreenStackManager
+import PythonScreenStackManager
 
 
 def gather_folders(base_folder) -> list[Path]:
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     # folder = constants.DESIGNER_FOLDER / "integrations"
 
     index = {
-        # "inkBoard": inkBoard.__version__,
-        # "PythonScreenStackManager": PythonScreenStackManager.__version__,
+        "inkBoard": inkBoard.__version__,
+        "PythonScreenStackManager": PythonScreenStackManager.__version__,
         "inkBoarddesigner": inkBoarddesigner.__version__,
         "platforms": create_platform_index(),
         "integrations": create_integration_index()
