@@ -42,7 +42,7 @@ class RequestHandler(RequestHandler):
             else:
                 self.json_args = {}
         else:
-            self.json_args = None
+            raise ValueError("content-type must be application/json")
 
 class MainHandler(tornado.web.RequestHandler):
     async def get(self):

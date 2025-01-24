@@ -176,6 +176,7 @@ class APICoordinator(tornado.web.Application):
         else:
             if self._server:
                 self._server.stop()
+                await self._server.close_all_connections()
                 self._server = None
             else:
                 return
@@ -184,7 +185,11 @@ class APICoordinator(tornado.web.Application):
 
     def stop(self):
         if self._server:
+            _LOGGER.info("Closing all sockets")
             self._server.stop()
+            asyncio.create_task(self._server.close_all_connections())
+            for i, sock in self._server._sockets.items():
+                sock.close()
 
     def remove_action_access(self, action: str):
         """Prevents an action shorthand from being callable via the api

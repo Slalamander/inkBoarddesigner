@@ -15,6 +15,9 @@ async def async_setup(core : "CORE", config : "CORE.config"):
 
     apiapp = APICoordinator(core, **conf)
 
+    ##For remote logging:
+    ##As it seems, you need to specify the host (which would explain why I could not get it working)
+    ##So: use the api to request logs and from the response, connect to them?
     return apiapp
 
 
