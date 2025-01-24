@@ -58,8 +58,10 @@ jobs:
               git config --global user.name "github-actions[bot]"
               git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
         
-              git add index.json
-              git commit -m "Update index.json"
-              git fetch origin ${{ env.branchtype }}
-              git push origin ${{ env.branchtype }}
+              if ! git diff --exit-code; then
+                git add index.json
+                git commit -m "Update index.json"
+                git fetch origin ${{ env.branchtype }}
+                git push origin ${{ env.branchtype }}
+              fi
         
