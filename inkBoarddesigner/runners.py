@@ -176,7 +176,7 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(52, "Setting up integrations")
         max_integration_progress = 70
-        CORE.integration_objects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, 
+        CORE.integrationObjects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, 
                                                                                 (window._progressBar["value"],max_integration_progress))
 
         window.set_progress_bar(max_integration_progress, "Setting up dashboard")
