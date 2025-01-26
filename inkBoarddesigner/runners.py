@@ -154,7 +154,7 @@ async def run_inkboard_thread(config_file):
 
         ##Is there a reason to not do this after setting up the screen and stuff?
         ##Except disallowing defining the screen outside of core
-        CORE.custom_functions = bootstrap.import_custom_functions(CORE)
+        CORE.customFunctions = bootstrap.import_custom_functions(CORE)
 
         bootstrap.import_custom_elements(CORE)
 
