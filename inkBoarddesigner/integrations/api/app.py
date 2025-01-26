@@ -131,7 +131,7 @@ class APICoordinator(tornado.web.Application):
         conf["platform"] = self.core.device.platform
         conf["version"] = inkBoard.__version__
 
-        conf["integrations"] = tuple(self.core.integration_loader.imported_integrations.keys())
+        conf["integrations"] = tuple(self.core.integrationLoader.imported_integrations.keys())
         return conf
     #endregion
 

@@ -12,7 +12,8 @@ import asyncio
 import json
 
 from inkBoard import loaders
-from inkBoard.helpers import classproperty, reload_full_module
+from inkBoard.helpers import classproperty
+from inkBoard.util import reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
 
