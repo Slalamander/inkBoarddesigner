@@ -17,3 +17,4 @@ inkBoarddesigner/files/settings.ini
 scripts/*/*.zip
 examples/*.zip
 examples/*.yaml
+examples/logs/*
