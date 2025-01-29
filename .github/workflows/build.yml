@@ -32,3 +32,10 @@ jobs:
           with:
             name: python-package-distributions
             path: dist/
+        # - name: Install artifact
+        #   if: ${{ matrix.python-version == '3.9' }}
+        #   run: python3 -m pip install -e '.'
+        # - name: Generate index file
+        #   if: ${{ matrix.python-version == '3.9' }}
+        #   run: python "scripts/create_index.py"
+

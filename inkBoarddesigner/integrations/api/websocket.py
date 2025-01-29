@@ -421,7 +421,7 @@ class inkBoardWebSocket(WebSocketHandler):
 
 def add_websocket_handler(app: "APICoordinator"):
 
-    app.add_handlers(r'(localhost|127\.0\.0\.1)',
+    app.add_handlers(app._host_pattern,
                     [(r"/api/websocket", inkBoardWebSocket)]
     )
     return

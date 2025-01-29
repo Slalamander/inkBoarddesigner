@@ -6,6 +6,7 @@ import asyncio
 from functools import cached_property, wraps
 from contextlib import suppress
 import json
+import ssl
 
 import tornado
 from tornado.escape import json_encode as tornado_json_encode
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
     from .websocket import inkBoardWebSocket
 
 _LOGGER = inkBoard.getLogger(__name__)
+
+ssl_ctx = ssl.SSLContext()
 
 class _ALLOW_NONE:
     pass
@@ -131,7 +134,7 @@ class APICoordinator(tornado.web.Application):
         conf["platform"] = self.core.device.platform
         conf["version"] = inkBoard.__version__
 
-        conf["integrations"] = tuple(self.core.integration_loader.imported_integrations.keys())
+        conf["integrations"] = tuple(self.core.integrationLoader.imported_integrations.keys())
         return conf
     #endregion
 
@@ -170,7 +173,7 @@ class APICoordinator(tornado.web.Application):
             (len(self._allowed_networks) == 0 or
             network in self._allowed_networks)):
             if not self._server:
-                self._server = super().listen(self._port)
+                self._server = super().listen(self._port, ssl_options = ssl_ctx)
             else:
                 return
         else:
@@ -185,6 +188,7 @@ class APICoordinator(tornado.web.Application):
 
     async def stop(self):
         if self._server:
+            _LOGGER.info("Closing all sockets")
             self._server.stop()
             await self._server.close_all_connections()
             _LOGGER.info("Closed all api connections")

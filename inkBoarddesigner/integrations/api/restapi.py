@@ -10,7 +10,7 @@ import tornado
 from tornado.web import RequestHandler
 
 import inkBoard
-from inkBoard.platforms import InkboardDeviceFeatures, FEATURES
+from inkBoard.platforms.basedevice import FEATURES
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 
 import PythonScreenStackManager
@@ -42,7 +42,7 @@ class RequestHandler(RequestHandler):
             else:
                 self.json_args = {}
         else:
-            self.json_args = None
+            raise ValueError("content-type must be application/json")
 
 class MainHandler(tornado.web.RequestHandler):
     async def get(self):
@@ -197,7 +197,7 @@ class ActionGroupHandler(RequestHandler):
 
 def add_restapi_handlers(app: APICoordinator):
 
-    app.add_handlers(r'(localhost|127\.0\.0\.1)',
+    app.add_handlers(app._host_pattern,
         [
         (r"/api", MainHandler),    ##Main thing endpoint, returns text that the api is running
         (r"/api/config", ConfigGetter),

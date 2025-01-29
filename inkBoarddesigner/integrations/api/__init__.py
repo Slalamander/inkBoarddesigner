@@ -15,6 +15,9 @@ async def async_setup(core : "CORE", config : "CORE.config"):
 
     apiapp = APICoordinator(core, **conf)
 
+    ##For remote logging:
+    ##As it seems, you need to specify the host (which would explain why I could not get it working)
+    ##So: use the api to request logs and from the response, connect to them?
     return apiapp
 
 
@@ -29,6 +32,12 @@ async def async_stop(core: "CORE", app : "APICoordinator"):
 ##Opted for tornado for lack of requirements and it being quite barebones
 ##In the end speed is not a priority for inkBoard
 ##Benchmarks for apis: https://github.com/klen/py-frameworks-bench
+## -> Upon further review I may have misread the requirements?
+##starlette seems to be lowlevel too, with various ways to set up, but requires a seperate server install
+##With only daphne seeming to be possible, since it does not require uvloop
+
+##Another option: using a normal rest framework(?) for the restapi, and websockets for the websocket
+##websocket at least does not seem to have external dependencies
 
 ##encryption/token authentication:
 ##Will not implement it MYSELF.

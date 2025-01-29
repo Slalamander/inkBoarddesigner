@@ -4,7 +4,7 @@ The designer is meant to help design and create inkBoard packages, for example p
 This way, the inkBoard module itself should be able to stay at a relatively small size, which should hopefully make it more portable.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.0.dev1"
 
 from typing import TYPE_CHECKING
 import logging

@@ -842,6 +842,9 @@ class HAclient:
         if updated_entity in self.functionDict:
             _LOGGER.debug(f"Updating {updated_entity} functions: {self.functionDict[updated_entity]}")
             for (func, __) in self.functionDict[updated_entity]:
+                if not callable(func):
+                    _LOGGER.warning(f"A function in the function dict for entity {updated_entity} is not a callable function")
+                    continue
                 func_list.append(func)
                 coro_list.append(tools.wrap_to_coroutine(func, trigger_dict, self))
 
