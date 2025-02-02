@@ -122,10 +122,11 @@ class TrayIcon(pystray.Icon):
 
     def _set_window_position(self, x, y):
 
+
         window = self.window
 
-        w = self.window.winfo_width()
-        h = self.window.winfo_height()
+        w = window.winfo_width()
+        h = window.winfo_height()
 
         win_x = None
         win_y = None
@@ -174,7 +175,10 @@ class TrayIcon(pystray.Icon):
 
         new_geo = f"{w}x{h}+{win_x}+{win_y}"
         _LOGGER.verbose(f"Repositioning window via tray location to {(win_x,win_y)}")
-        self.window.wm_geometry(new_geo)
+        window.wm_geometry(new_geo)
+        ##If this turns out to not work for any other alignments than having a bottom taskbar:
+        ##Apparently microsoft removed the option to move the taskbar to a different edge of the screen (why???)
+        ##Since I always had it on the bottom, I did not know this. I may test it at a future point, but if anyone else tests it and can confirm it to be working, that would be great :)
 
     def _reload_inkboard(self, item):
         self.__core.screen.reload()
