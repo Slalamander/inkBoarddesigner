@@ -12,7 +12,8 @@ import asyncio
 import json
 
 from inkBoard import loaders
-from inkBoard.helpers import classproperty, reload_full_module
+from inkBoard.helpers import classproperty
+from inkBoard.util import reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -252,7 +253,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
         coro_list = set()
         for integration, module in cls._imported_modules.items():
             pkg = module.__package__
-            setup_res = core.integration_objects.get(integration,None)
+            setup_res = core.integrationObjects.get(integration,None)
 
             if hasattr(module, "async_start"):
                 if not asyncio.iscoroutinefunction(module.async_start):
@@ -332,7 +333,7 @@ class IntegrationLoader(loaders.IntegrationLoader):
         for integration, module in cls._imported_modules.items():
 
             pkg = module.__package__
-            setup_res = core.integration_objects.get(integration,None)
+            setup_res = core.integrationObjects.get(integration,None)
 
             if hasattr(module, "async_run"):
                 if not asyncio.iscoroutinefunction(module.async_run):

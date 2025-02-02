@@ -120,6 +120,8 @@ async def run_inkboard_thread(config_file):
 
         from inkBoard import core as CORE
 
+        CORE()
+
         from .emulator import pssm_functions
         pssm_functions.CORE = CORE
         tk_functions.CORE = CORE
@@ -130,7 +132,7 @@ async def run_inkboard_thread(config_file):
 
         from .integrationloader import IntegrationLoader
         
-        CORE.integration_loader = IntegrationLoader
+        CORE._integrationLoader = IntegrationLoader
 
         window.set_progress_bar(value=10, text="Gathering available integrations")
         folders = {"custom.integrations": custom_folder / "integrations"} | const.INTEGRATION_DIRS
@@ -143,16 +145,16 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(value=25, text="Reading out base config")
 
-        CORE.config = bootstrap.setup_base_config(config_file)
+        CORE._config = bootstrap.setup_base_config(config_file)
 
         bootstrap.setup_logging(CORE)
 
         window.set_progress_bar(30, "Importing integrations")
-        CORE.integration_loader.import_integrations(CORE,window.set_progress_bar,(30,42))
+        CORE.integrationLoader.import_integrations(CORE,window.set_progress_bar,(30,42))
 
         ##Is there a reason to not do this after setting up the screen and stuff?
         ##Except disallowing defining the screen outside of core
-        CORE.custom_functions = bootstrap.import_custom_functions(CORE)
+        CORE._customFunctions = bootstrap.import_custom_functions(CORE)
 
         bootstrap.import_custom_elements(CORE)
 
@@ -162,10 +164,10 @@ async def run_inkboard_thread(config_file):
 
         ##Implement error catchers for these as well
         window.set_progress_bar(42, "Setting up emulator device")
-        CORE.device = await bootstrap.setup_device(CORE)
+        CORE._device = await bootstrap.setup_device(CORE)
 
         window.set_progress_bar(45, "Setting up PythonScreenStackManager screen")
-        CORE.screen = await bootstrap.setup_screen(CORE)
+        CORE._screen = await bootstrap.setup_screen(CORE)
         screen = CORE.screen
         screen.add_shorthand_function_group("custom", CORE.parse_custom_function)
 
@@ -174,7 +176,7 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(52, "Setting up integrations")
         max_integration_progress = 70
-        CORE.integration_objects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, 
+        CORE._integrationObjects = await IntegrationLoader.async_setup_integrations(CORE, window.set_progress_bar, 
                                                                                 (window._progressBar["value"],max_integration_progress))
 
         window.set_progress_bar(max_integration_progress, "Setting up dashboard")
