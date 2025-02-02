@@ -2,7 +2,7 @@
     "name": "Meteocons",
     "config_entry": "meteocons",
     "codeowners": ["Slalamander"],
-    "documentation": "https://www.example.com",
+    "documentation": "https://inkboard-documentation.readthedocs.io/en/latest/integrations/meteocons.html",
     "requirements": [],
     "version": "0.1.0"
 }
