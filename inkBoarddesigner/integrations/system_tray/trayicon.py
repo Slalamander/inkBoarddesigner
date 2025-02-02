@@ -72,7 +72,8 @@ class TrayIcon(pystray.Icon):
             ),
         )
         super().__init__("inkBoard", img, "inkBoard", menu, **kwargs)
-
+        if self._toolwindow:
+            self.window.withdraw()
 
     @property
     def _device(self) -> "desktop.Device":
@@ -90,12 +91,19 @@ class TrayIcon(pystray.Icon):
         "Minimises the window. Must be called in the main thread"
         _LOGGER.debug(f"Minimising window via {item}")
 
-        self.window.update()
+        # self.window.update()
         x = self.window.winfo_pointerx()
         y = self.window.winfo_pointery()
-        # s = self.window.wm_state()
+        s = self.window.wm_state()
         
 
+        if self._toolwindow:
+            if self.window.wm_state() != "normal": self.window.deiconify()
+            self.window.focus_force()
+            self._set_window_position(x,y)
+            self.window.update()
+            return
+        
         if self.window.wm_state() != "normal":
             if self._minimise_action == HIDEACTIONS.WITHDRAW:
                 ##This simply makes the animation of the window appearing a lot smoother
@@ -108,11 +116,11 @@ class TrayIcon(pystray.Icon):
             else:
                 self.window.iconify()
 
+        # self.window.focus_force()
+
         self.window.update()
 
     def _set_window_position(self, x, y):
-
-        ##5 types of locations: top, right, bottom, left, middle
 
         window = self.window
 
@@ -183,6 +191,7 @@ class TrayIcon(pystray.Icon):
             else:
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
+                self.window.overrideredirect(True)
                 
         self.run_detached()
 
