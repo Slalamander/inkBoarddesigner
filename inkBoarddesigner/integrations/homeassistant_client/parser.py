@@ -1,6 +1,6 @@
 
 from inkBoard import core as CORE
-from inkBoard.core import util
+from inkBoard import util
 
 from . import HAelements, clientelements
 
@@ -11,9 +11,6 @@ element_dict = d_HA | d_client #dict with all elements of the Home Assistant int
 
 def parse_ha_element(elt_type : str):
     return element_dict.get(elt_type,None)
-
-
-# CORE.add_element_parser("HA",parse_ha_element)
 
 def setup_elements():
     clientelements.HomeAssistantMenu()
