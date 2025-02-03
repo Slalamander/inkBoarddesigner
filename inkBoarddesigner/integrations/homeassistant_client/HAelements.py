@@ -2865,7 +2865,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         self._rebuild_layout = True
         "Set this to rebuild the layout the next time the generator is called."
 
-        HAelement._client_instance.add_entity_function("sun.sun", (self._trigger_from_sun, False))
+        HAelement._client_instance.add_entity_function("sun.sun", [(self._trigger_from_sun, False)])
         return
 
     #region
@@ -2934,6 +2934,9 @@ class WeatherElement(_EntityLayout, base.TileElement):
             return self.__weather_data_layout
         
         data = self.__weather_data
+        if not data:
+            return []
+        
         layout = data[0]
 
         for data_key in data[1:]:
