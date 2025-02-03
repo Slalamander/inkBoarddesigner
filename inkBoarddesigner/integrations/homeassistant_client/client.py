@@ -377,7 +377,7 @@ class HAclient:
                 self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
                 runners = [self.listenerTask, self.commanderTask]
 
-                self._longrunningTasks = asyncio.gather(*runners, return_exceptions=True)
+                self._longrunningTasks = asyncio.gather(*runners, return_exceptions=False)
 
                 await self._longrunningTasks
 
@@ -472,7 +472,7 @@ class HAclient:
         '''
         _LOGGER.debug("Starting Listener")
         async with self._listenerLock:
-            try:
+            # try:
                 async for message in self.websocket: #@IgnoreException
                     message = json.loads(message)
                     id = message["id"]
@@ -495,11 +495,11 @@ class HAclient:
                         if not message.get("success", False):
                             err = message.get("error",{})
                             _LOGGER.warning(f"Unsuccesful request {err.get('code','unknown code')}: {err.get('message','No message')}")
-            except websockets.exceptions.ConnectionClosedError as exce:
-                _LOGGER.error(f"Listener stopped due to connection closing")
-                _LOGGER.debug(exce)
-            except asyncio.CancelledError:
-                pass
+            # except websockets.exceptions.ConnectionClosedError as exce:
+            #     _LOGGER.error(f"Listener stopped due to connection closing")
+            #     _LOGGER.debug(exce)
+            # except asyncio.CancelledError:
+            #     pass
                         
         _LOGGER.warning("Listener stopped")
         if not self.commanderTask.done():
@@ -543,12 +543,12 @@ class HAclient:
                         _LOGGER.warning(f"Sending message {cmd['type']} timed out")
                 except (TypeError, KeyError, IndexError, OSError) as exce:
                     _LOGGER.error(f"Exception occured in commander while sending command {cmd}: {exce}")
-                except websockets.exceptions.ConnectionClosedError as exce:
-                    _LOGGER.error(f"Commander stopped due to connection closing")
-                    _LOGGER.debug(exce)
-                    break
-                except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
-                    break
+                # except websockets.exceptions.ConnectionClosedError as exce:
+                #     _LOGGER.error(f"Commander stopped due to connection closing")
+                #     _LOGGER.debug(exce)
+                #     break
+                # except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
+                #     break
 
         _LOGGER.error("Commander stopped")
 
@@ -579,18 +579,18 @@ class HAclient:
                 if pongs_missed >= missed_max: 
                     self.__connection = False
                     break
-            except websockets.exceptions.ConnectionClosedError as exce:
-                _LOGGER.error(f"Ping Pong errored due to connection closing: {exce}")
-                self.__connection = False
-                break
+            # except websockets.exceptions.ConnectionClosedError as exce:
+            #     _LOGGER.error(f"Ping Pong errored due to connection closing: {exce}")
+            #     self.__connection = False
+            #     break
 
             _LOGGER.debug(f"Received pong from ping id {ping_id}")
 
         _LOGGER.warning("Ping pong function has stopped, Closing websocket to start reconnect")
-        await self.websocket.close()
-        async with self.websocketCondition:
-            self.websocketCondition.notify_all()
-        self.reconnect_client()
+        # await self.websocket.close()
+        # async with self.websocketCondition:
+        #     self.websocketCondition.notify_all()
+        # self.reconnect_client()
 
     async def _empty_message_queue(self):
         """
@@ -811,6 +811,8 @@ class HAclient:
             
             if isinstance(func,str):
                 func = self.pssmScreen.parse_shorthand_function(func)
+            
+            assert callable(func), f"Call functions must be called, not {func}"
 
             if isinstance(entity_id,str):
                 if entity_id not in self._all_entities:
