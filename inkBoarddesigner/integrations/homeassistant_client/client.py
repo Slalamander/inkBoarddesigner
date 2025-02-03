@@ -260,14 +260,24 @@ class HAclient:
             _LOGGER.error("A device needs to have a network to use the Home Assistant integration")
             return
 
-        uri = f"ws://{self.hass_data['url']}/api/websocket"
+        connect_params = {}
+        server_url = self.hass_data['url']
+        if server_url.startswith('https://'):
+            server_url = server_url.removeprefix('https://')
+            uri = f"wss://{server_url}/api/websocket"
+            connect_params['ssl'] = True
+        else:
+            if server_url.startswith('http://'):
+                server_url = server_url.removeprefix('http://')
+            uri = f"ws://{server_url}/api/websocket"
+
         token = self.hass_data["token"]
         auth_header =    {
             "type": "auth",
             "access_token": token     }
         _LOGGER.debug("Attempting connection to {}".format(uri))        
 
-        async for websocket in ws_client.connect(uri, additional_headers=auth_header):
+        async for websocket in ws_client.connect(uri, additional_headers=auth_header, **connect_params):
             _LOGGER.debug("Setting up websocket connection to Home Assistant")  
             try:                
                 self._websocket = websocket
