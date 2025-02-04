@@ -28,7 +28,7 @@ entity_tree.column("#0", minwidth=100, width=int(des_const.INTERFACE_WIDTH*0.6))
 entity_tree.column("#1", minwidth=50, width=int(des_const.INTERFACE_WIDTH*0.4))
 
 def get_client() -> "client.HAclient":
-    return CORE.integration_objects[__package__.split(".")[-2]]
+    return CORE.integrationObjects[__package__.split(".")[-2]]
 
 
 async def async_setup(core: "CORE", config : "config"):
@@ -57,7 +57,7 @@ def build_entity_tree(client:  "client.HAclient"):
 
 def select_tree(tree, event, iids):
 
-    client: "client.HAclient" = CORE.integration_objects[__package__.split(".")[-2]]
+    client: "client.HAclient" = CORE.integrationObjects[__package__.split(".")[-2]]
 
     iid = iids[0]
 
