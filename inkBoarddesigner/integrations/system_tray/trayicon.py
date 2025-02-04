@@ -2,6 +2,7 @@
 from typing import TYPE_CHECKING
 import threading
 import asyncio
+import tkinter as tk
 
 from PIL import Image
 from pathlib import Path
@@ -109,7 +110,6 @@ class TrayIcon(pystray.Icon):
                 ##This simply makes the animation of the window appearing a lot smoother
                 self.window.iconify()
             self.window.deiconify()
-            self._set_window_position(x,y)
         else:
             if self._minimise_action == HIDEACTIONS.ICONIFY:
                 self.window.withdraw()
@@ -122,12 +122,10 @@ class TrayIcon(pystray.Icon):
 
     def _set_window_position(self, x, y):
 
-
         window = self.window
 
         w = window.winfo_width()
         h = window.winfo_height()
-
         win_x = None
         win_y = None
 
@@ -172,7 +170,6 @@ class TrayIcon(pystray.Icon):
             else:
                 win_x = cx
 
-
         new_geo = f"{w}x{h}+{win_x}+{win_y}"
         _LOGGER.verbose(f"Repositioning window via tray location to {(win_x,win_y)}")
         window.wm_geometry(new_geo)
@@ -196,6 +193,15 @@ class TrayIcon(pystray.Icon):
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
                 self.window.overrideredirect(True)
+                self.window.bind('<FocusOut>',self.focus_change)
+                ##Considering this, make the icon itself keep track of the state, such that is can be minimised via the icon
+                ##Or maybe add a function to withdraw the window when it loses focus
+                ##see: https://stackoverflow.com/a/46567436/29028553; bind focusin and focusout
+                ##Also edit things: make a function for show/hide that handles it depending on setting
                 
         self.run_detached()
+
+    def focus_change(self, event: tk.Event):
+        print(event)
+        return
 
