@@ -49,7 +49,7 @@ class TrayIcon(pystray.Icon):
         ##Other options to add: custom icon; custom name
 
         toolwindow = tray_config.get("toolwindow", False)
-        if toolwindow and CORE.DESIGNER_RUN:
+        if toolwindow and inkBoard.core.DESIGNER_RUN:
             _LOGGER.info("Running the designer as a toolwindow is disabled")
             self._toolwindow = False
         else:
@@ -67,7 +67,7 @@ class TrayIcon(pystray.Icon):
 
         menu = pystray.Menu(
             pystray.MenuItem(
-                text="Minimise", action = self.minimise_window,
+                text="Dashboard", action = self.icon_click,
                 default=True, visible=False
                 ),
             pystray.MenuItem(
@@ -89,19 +89,34 @@ class TrayIcon(pystray.Icon):
     def window(self):
         return self._device.window
     
-    def minimise_window(self, item):
-        "Minimise the dashboard window"
-        self._device._call_in_main_thread(self._minimise_window, item)
+    @property
+    def hidden(self) -> bool:
+        """Indicates if the window is currently hidden
 
-    def _minimise_window(self, item):
-        "Minimises the window. Must be called in the main thread"
-        _LOGGER.debug(f"Minimising window via {item}")
+        May cause issuess if not called from the main thread
+        """
+        if self._toolwindow:
+            return not(self._is_shown)
+            # return self.window.focus_displayof() != self.window
 
-        # self.window.update()
-        x = self.window.winfo_pointerx()
-        y = self.window.winfo_pointery()
-        s = self.window.wm_state()
+        return self.window.wm_state() != 'normal'
         
+
+    def icon_click(self, item):
+        "Action ran when the icon is clicked"
+        self._device._call_in_main_thread(self._handle_icon_click, item)
+
+    def _handle_icon_click(self, item):
+        "Minimises the window. Must be called in the main thread"
+        # _LOGGER.debug(f"Minimising window via {item}")
+
+        p = self.hidden
+        print(f"window is hidden: {p}")
+        if self.hidden:
+            self.show_dashboard()
+        else:
+            self.hide_dashboard()
+        return
 
         if self._toolwindow:
             if self.window.wm_state() != "normal": self.window.deiconify()
@@ -187,6 +202,7 @@ class TrayIcon(pystray.Icon):
         self.stop()
     
     def _quit_inkboard(self, item):
+        
         self.__core.screen.quit(QuitInkboard("Quit via systemtray"))
         self.stop()
 
@@ -198,16 +214,14 @@ class TrayIcon(pystray.Icon):
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
                 self.window.overrideredirect(True)
+                self._is_shown = False
                 self.window.bind('<FocusOut>',self.focus_change)
-                ##Considering this, make the icon itself keep track of the state, such that is can be minimised via the icon
-                ##Or maybe add a function to withdraw the window when it loses focus
-                ##see: https://stackoverflow.com/a/46567436/29028553; bind focusin and focusout
-                ##Also edit things: make a function for show/hide that handles it depending on setting
-                
+
         self.run_detached()
 
     def focus_change(self, event: tk.Event):
-        print(event)
+        ##Handling this: add a small wait to see if the icon was clicked?
+        self.hide_dashboard()
         return
 
     def hide_dashboard(self):
@@ -215,21 +229,27 @@ class TrayIcon(pystray.Icon):
 
         Ensures the correct action is taken based on settings, but does not validate window state
         """        
-        if self._minimise_action == HIDEACTIONS.ICONIFY:
+        if self._minimise_action == HIDEACTIONS.WITHDRAW:
             self.window.withdraw()
         else:
             self.window.iconify()
+        if self._toolwindow: self._is_shown = False
     
     def show_dashboard(self):
         """Shows the dashboard
 
         Ensures the correct action is taken based on settings, but does not validate window state
         """
-        if self._minimise_action == HIDEACTIONS.WITHDRAW:
+        if self._minimise_action == HIDEACTIONS.WITHDRAW and not self._toolwindow:
             ##This simply makes the animation of the window appearing a lot smoother
             self.window.iconify()
         self.window.deiconify()
 
-        # if self._toolwindow:
+        if self._toolwindow:
+            self.window.focus_force()
+            x = self.window.winfo_pointerx()
+            y = self.window.winfo_pointery()
+            self._set_window_position(x,y)
+            self._is_shown = True
 
         return
