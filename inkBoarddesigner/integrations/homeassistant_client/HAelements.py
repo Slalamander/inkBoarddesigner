@@ -4456,6 +4456,10 @@ class ClimateElement(HAelement, base.TileElement):
     @property
     def _emulator_icon(cls): return "mdi:thermostat-box"
 
+    @classproperty
+    def tiles(cls):
+        return ("state-tile", "thermostat", "hvac-modes")
+
     def __init__(self, entity : EntityType, tile_layout : Union[PSSMLayoutString,Literal["horizontal","vertical","compact"]] = "compact",
                 foreground_color : ColorType = DEFAULT_FOREGROUND_COLOR, accent_color : ColorType = DEFAULT_ACCENT_COLOR,
                 element_properties : dict = {},
