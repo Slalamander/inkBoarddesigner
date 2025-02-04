@@ -3,6 +3,8 @@ from typing import TYPE_CHECKING
 import threading
 import asyncio
 import tkinter as tk
+from contextlib import suppress
+
 
 from PIL import Image
 from pathlib import Path
@@ -12,6 +14,7 @@ import pystray
 import inkBoard
 from inkBoard.constants import INKBOARD_ICON
 from inkBoard.helpers import QuitInkboard
+from inkBoard.util import DummyTask
 
 from . import system_tray_entry, TRAYSIZE, TOLERANCE
 
@@ -38,7 +41,7 @@ class TrayIcon(pystray.Icon):
         else:
             tray_config = default_config.copy() | tray_config
 
-        if tray_config.get("hide_window", False):
+        if tray_config["hide_window"]:
             if core.DESIGNER_RUN:
                 _LOGGER.info("Not running system_tray with hide_window in the designer")
                 self._minimise_action = HIDEACTIONS.ICONIFY
@@ -80,6 +83,7 @@ class TrayIcon(pystray.Icon):
         super().__init__("inkBoard", img, "inkBoard", menu, **kwargs)
         if self._toolwindow:
             self.window.withdraw()
+            self._focusouttask: asyncio.Task = DummyTask()
 
     @property
     def _device(self) -> "desktop.Device":
@@ -97,7 +101,6 @@ class TrayIcon(pystray.Icon):
         """
         if self._toolwindow:
             return not(self._is_shown)
-            # return self.window.focus_displayof() != self.window
 
         return self.window.wm_state() != 'normal'
         
@@ -110,35 +113,21 @@ class TrayIcon(pystray.Icon):
         "Minimises the window. Must be called in the main thread"
         # _LOGGER.debug(f"Minimising window via {item}")
 
-        p = self.hidden
-        print(f"window is hidden: {p}")
+        print(f"window is hidden: {self.hidden}")
+        if self._toolwindow and not self._focusouttask.done():
+            ##Two options:
+            ##- Hide the window on a second click (means just returning here without the two calls to the window)
+            ##- Keep the window as is, so cancelling the focus out task and forcing focus again
+            if self._minimise_action == HIDEACTIONS.ICONIFY:
+                self._focusouttask.cancel()
+                self.window.focus_force()
+            return
+        
         if self.hidden:
             self.show_dashboard()
         else:
             self.hide_dashboard()
         return
-
-        if self._toolwindow:
-            if self.window.wm_state() != "normal": self.window.deiconify()
-            self.window.focus_force()
-            self._set_window_position(x,y)
-            self.window.update()
-            return
-        
-        if self.window.wm_state() != "normal":
-            if self._minimise_action == HIDEACTIONS.WITHDRAW:
-                ##This simply makes the animation of the window appearing a lot smoother
-                self.window.iconify()
-            self.window.deiconify()
-        else:
-            if self._minimise_action == HIDEACTIONS.ICONIFY:
-                self.window.withdraw()
-            else:
-                self.window.iconify()
-
-        # self.window.focus_force()
-
-        self.window.update()
 
     def _set_window_position(self, x, y):
 
@@ -215,26 +204,30 @@ class TrayIcon(pystray.Icon):
                 self.window.wm_attributes("-toolwindow", True)
                 self.window.overrideredirect(True)
                 self._is_shown = False
-                self.window.bind('<FocusOut>',self.focus_change)
+                self.window.bind('<FocusOut>',self._toolwindow_focus_change)
 
         self.run_detached()
-
-    def focus_change(self, event: tk.Event):
-        ##Handling this: add a small wait to see if the icon was clicked?
-        self.hide_dashboard()
-        return
 
     def hide_dashboard(self):
         """Hides the dashboard
 
         Ensures the correct action is taken based on settings, but does not validate window state
-        """        
+        """
+        if self._toolwindow:
+            self._focusouttask = asyncio.create_task(self._hide_toolwindow())
+            return
+        
         if self._minimise_action == HIDEACTIONS.WITHDRAW:
             self.window.withdraw()
         else:
             self.window.iconify()
-        if self._toolwindow: self._is_shown = False
     
+    async def _hide_toolwindow(self):
+        with suppress(asyncio.CancelledError):
+            await asyncio.sleep(0.1)
+            self.window.withdraw()
+            self._is_shown = False
+
     def show_dashboard(self):
         """Shows the dashboard
 
@@ -252,4 +245,10 @@ class TrayIcon(pystray.Icon):
             self._set_window_position(x,y)
             self._is_shown = True
 
+        return
+
+    def _toolwindow_focus_change(self, event: tk.Event):
+        ##Handling this: add a small wait to see if the icon was clicked?
+        
+        self.hide_dashboard()
         return
