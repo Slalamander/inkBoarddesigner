@@ -12,6 +12,7 @@ from websockets import protocol as ws_protocol
 from websockets.asyncio import client as ws_client
 
 from PythonScreenStackManager.pssm import screen
+from PythonScreenStackManager.pssm.util import TriggerCondition
 
 import inkBoard
 from inkBoard.constants import FuncExceptions
@@ -115,7 +116,7 @@ class HAclient:
         self._stateDict : dict = {}
         self.updatingAll : bool = False
 
-        self.__websocketCondition = asyncio.Condition()
+        self.__websocketCondition = TriggerCondition()
 
         self.ping_interval = ping_interval
         self.listenerTask : asyncio.Task = DummyTask()
@@ -172,7 +173,7 @@ class HAclient:
                 return "connecting"
 
     @property
-    def websocketCondition(self) -> asyncio.Condition:
+    def websocketCondition(self) -> TriggerCondition:
         "Condition that is notified when something happends to the websocket connection, generally in case of loss of connect, or start of a reconnect."
         return self.__websocketCondition
 
@@ -276,6 +277,7 @@ class HAclient:
             "type": "auth",
             "access_token": token     }
         _LOGGER.debug("Attempting connection to {}".format(uri))        
+        await self.websocketCondition.trigger_all()
 
         async for websocket in ws_client.connect(uri, additional_headers=auth_header, **connect_params):
             _LOGGER.debug("Setting up websocket connection to Home Assistant")  
@@ -291,6 +293,8 @@ class HAclient:
                     _LOGGER.error(f"Authentication failed {auth_res}")
                     return
                 
+                await self.websocketCondition.trigger_all()
+
                 HAconf_header = {"id": self.next_id, "type": "get_config" }
                 await self.websocket.send(json.dumps(HAconf_header))
                 HAconf_res = json.loads(await self.websocket.recv())
@@ -408,7 +412,10 @@ class HAclient:
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}")
+                await self.websocketCondition.trigger_all()
                 raise
+            finally:
+                await self.websocketCondition.trigger_all()
         return
 
     async def __async__reconnect(self, init_Wait: float = 15, max_Attempts=0, wait_Increase: int =2, wait_Max: float = 300):
