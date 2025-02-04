@@ -48,8 +48,13 @@ class TrayIcon(pystray.Icon):
             self._minimise_action = HIDEACTIONS.ICONIFY
         ##Other options to add: custom icon; custom name
 
-        self._toolwindow = tray_config.get("toolwindow", False)
-
+        toolwindow = tray_config.get("toolwindow", False)
+        if toolwindow and CORE.DESIGNER_RUN:
+            _LOGGER.info("Running the designer as a toolwindow is disabled")
+            self._toolwindow = False
+        else:
+            self._toolwindow = toolwindow
+        
         self._tray_size = tray_config.get("tray_size", TRAYSIZE)
 
         if tray_config["icon"] == "circle":
@@ -205,3 +210,26 @@ class TrayIcon(pystray.Icon):
         print(event)
         return
 
+    def hide_dashboard(self):
+        """Hides the dashboard
+
+        Ensures the correct action is taken based on settings, but does not validate window state
+        """        
+        if self._minimise_action == HIDEACTIONS.ICONIFY:
+            self.window.withdraw()
+        else:
+            self.window.iconify()
+    
+    def show_dashboard(self):
+        """Shows the dashboard
+
+        Ensures the correct action is taken based on settings, but does not validate window state
+        """
+        if self._minimise_action == HIDEACTIONS.WITHDRAW:
+            ##This simply makes the animation of the window appearing a lot smoother
+            self.window.iconify()
+        self.window.deiconify()
+
+        # if self._toolwindow:
+
+        return
