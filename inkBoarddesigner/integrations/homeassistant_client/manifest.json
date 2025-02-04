@@ -4,5 +4,5 @@
     "codeowners": ["Slalamander"],
     "documentation": "https://inkboard-documentation.readthedocs.io/en/latest/integrations/homeassistant_client/index.html",
     "requirements": ["websockets>=13.0","requests"],
-    "version": "0.2.2"
+    "version": "0.2.3.dev1"
 }

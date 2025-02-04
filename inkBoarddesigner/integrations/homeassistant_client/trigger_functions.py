@@ -705,8 +705,7 @@ default_tap_action_setters = {
     }
 
 def set_trigger_function(element : "HAelement", savedattributes : dict = {}) -> Callable:
-    """
-    Applies the appropriate default trigger function to an element if none have been set.
+    """Applies the appropriate default trigger function to an element if none have been set.
 
     Parameters
     ----------
@@ -724,6 +723,7 @@ def set_trigger_function(element : "HAelement", savedattributes : dict = {}) -> 
     "Sets the base trigger function for the provided element type if it was not yet set."
     eCls =  element.__class__.__base__
     if "trigger_function" in savedattributes:
+        ##Maybe add a trigger_action property? That gets called whenever a trigger function is ran
         ##Perform the check here for possible custom functions
         if isinstance(element.trigger_function,str):
             if "custom:" in element.trigger_function.lower():
