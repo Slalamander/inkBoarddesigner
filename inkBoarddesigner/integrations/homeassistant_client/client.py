@@ -283,6 +283,8 @@ class HAclient:
             _LOGGER.debug("Setting up websocket connection to Home Assistant")  
             try:                
                 self._websocket = websocket
+                await self.websocketCondition.trigger_all()
+
                 await self.websocket.recv() #The first message send by the server requests authentication. Needs to be received to start it.
                 await self.websocket.send(json.dumps(auth_header))
                 auth_res = json.loads(await self.websocket.recv())
@@ -291,9 +293,9 @@ class HAclient:
                     _LOGGER.info(f"Connected to Home Assistant {auth_res}")
                 else:
                     _LOGGER.error(f"Authentication failed {auth_res}")
+                    self._websocket = None
+                    await self.websocketCondition.trigger_all()
                     return
-                
-                await self.websocketCondition.trigger_all()
 
                 HAconf_header = {"id": self.next_id, "type": "get_config" }
                 await self.websocket.send(json.dumps(HAconf_header))
@@ -404,7 +406,7 @@ class HAclient:
                 continue
             except ConnectionRefusedError as exce:
                 if not self.longrunningTasks.done(): self.longrunningTasks.cancel("Client connection closed")
-                _LOGGER.error("Hme Assistant refused connection", exc_info=True)
+                _LOGGER.error("Home Assistant refused connection", exc_info=True)
             except asyncio.CancelledError:
                 _LOGGER.debug("Connect task has been cancelled")
                 if not self.longrunningTasks.done(): 
@@ -412,9 +414,11 @@ class HAclient:
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}")
+                self._websocket = None
                 await self.websocketCondition.trigger_all()
                 raise
             finally:
+                self._websocket = None
                 await self.websocketCondition.trigger_all()
         return
 
