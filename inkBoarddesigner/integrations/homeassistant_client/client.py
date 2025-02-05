@@ -410,7 +410,7 @@ class HAclient:
             except asyncio.CancelledError:
                 _LOGGER.debug("Connect task has been cancelled")
                 if not self.longrunningTasks.done(): 
-                    self.longrunningTasks.cancel("Client connection closed")
+                    self.longrunningTasks.cancel("Connection task cancelled")
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}")
