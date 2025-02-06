@@ -233,7 +233,15 @@ class HAclient:
     #region [websocket stuff]
     def reconnect_client(self, initWait=5, *args, **kwargs):
         """Starts the task to reconnect to the client, and periodically retry doing so."""
-        self.reconnect_task = self.loop.create_task(self.__async__reconnect(initWait))
+        # self.reconnect_task = self.loop.create_task(self.__async__reconnect(initWait))
+        
+        ##Handling disconnects due to wifi etc. or just in general:
+        ##Watch if wifi disconnects, wait for reconnect
+        ##on reconnect -> immediately restart connection task (also watch if the ssid changes)
+        if not self.connectionTask.done():
+            self.connectionTask.cancel("Starting reconnect logic")
+        asyncio.create_task(self.connect_client())
+
     
     async def connect_client(self):
         """Starts the function that connects to Home Assistant""" 
@@ -246,9 +254,10 @@ class HAclient:
 
     async def disconnect_client(self):
         "Disconnects from the Home Assistant client."
-        await self.websocket.close()
-        async with self.websocketCondition:
-            self.websocketCondition.notify_all()
+        if self.websocket:
+            await self.websocket.close(reason="Disconnect called")
+
+        await self.websocketCondition.trigger_all()
 
     async def __async__connect(self):
         """Sets up a websocket connection to Home Assistant"""
