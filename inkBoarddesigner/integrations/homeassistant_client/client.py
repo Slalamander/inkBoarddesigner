@@ -12,6 +12,7 @@ from websockets import protocol as ws_protocol
 from websockets.asyncio import client as ws_client
 
 from PythonScreenStackManager.pssm import screen
+from PythonScreenStackManager.pssm.util import TriggerCondition
 
 import inkBoard
 from inkBoard.constants import FuncExceptions
@@ -115,7 +116,7 @@ class HAclient:
         self._stateDict : dict = {}
         self.updatingAll : bool = False
 
-        self.__websocketCondition = asyncio.Condition()
+        self.__websocketCondition = TriggerCondition()
 
         self.ping_interval = ping_interval
         self.listenerTask : asyncio.Task = DummyTask()
@@ -172,7 +173,7 @@ class HAclient:
                 return "connecting"
 
     @property
-    def websocketCondition(self) -> asyncio.Condition:
+    def websocketCondition(self) -> TriggerCondition:
         "Condition that is notified when something happends to the websocket connection, generally in case of loss of connect, or start of a reconnect."
         return self.__websocketCondition
 
@@ -260,14 +261,25 @@ class HAclient:
             _LOGGER.error("A device needs to have a network to use the Home Assistant integration")
             return
 
-        uri = f"ws://{self.hass_data['url']}/api/websocket"
+        connect_params = {}
+        server_url = self.hass_data['url']
+        if server_url.startswith('https://'):
+            server_url = server_url.removeprefix('https://')
+            uri = f"wss://{server_url}/api/websocket"
+            connect_params['ssl'] = True
+        else:
+            if server_url.startswith('http://'):
+                server_url = server_url.removeprefix('http://')
+            uri = f"ws://{server_url}/api/websocket"
+
         token = self.hass_data["token"]
         auth_header =    {
             "type": "auth",
             "access_token": token     }
         _LOGGER.debug("Attempting connection to {}".format(uri))        
+        await self.websocketCondition.trigger_all()
 
-        async for websocket in ws_client.connect(uri, additional_headers=auth_header):
+        async for websocket in ws_client.connect(uri, additional_headers=auth_header, **connect_params):
             _LOGGER.debug("Setting up websocket connection to Home Assistant")  
             try:                
                 self._websocket = websocket
@@ -281,6 +293,8 @@ class HAclient:
                     _LOGGER.error(f"Authentication failed {auth_res}")
                     return
                 
+                await self.websocketCondition.trigger_all()
+
                 HAconf_header = {"id": self.next_id, "type": "get_config" }
                 await self.websocket.send(json.dumps(HAconf_header))
                 HAconf_res = json.loads(await self.websocket.recv())
@@ -377,7 +391,7 @@ class HAclient:
                 self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
                 runners = [self.listenerTask, self.commanderTask]
 
-                self._longrunningTasks = asyncio.gather(*runners, return_exceptions=True)
+                self._longrunningTasks = asyncio.gather(*runners, return_exceptions=False)
 
                 await self._longrunningTasks
 
@@ -398,7 +412,10 @@ class HAclient:
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}")
+                await self.websocketCondition.trigger_all()
                 raise
+            finally:
+                await self.websocketCondition.trigger_all()
         return
 
     async def __async__reconnect(self, init_Wait: float = 15, max_Attempts=0, wait_Increase: int =2, wait_Max: float = 300):
@@ -472,7 +489,7 @@ class HAclient:
         '''
         _LOGGER.debug("Starting Listener")
         async with self._listenerLock:
-            try:
+            # try:
                 async for message in self.websocket: #@IgnoreException
                     message = json.loads(message)
                     id = message["id"]
@@ -495,11 +512,11 @@ class HAclient:
                         if not message.get("success", False):
                             err = message.get("error",{})
                             _LOGGER.warning(f"Unsuccesful request {err.get('code','unknown code')}: {err.get('message','No message')}")
-            except websockets.exceptions.ConnectionClosedError as exce:
-                _LOGGER.error(f"Listener stopped due to connection closing")
-                _LOGGER.debug(exce)
-            except asyncio.CancelledError:
-                pass
+            # except websockets.exceptions.ConnectionClosedError as exce:
+            #     _LOGGER.error(f"Listener stopped due to connection closing")
+            #     _LOGGER.debug(exce)
+            # except asyncio.CancelledError:
+            #     pass
                         
         _LOGGER.warning("Listener stopped")
         if not self.commanderTask.done():
@@ -543,12 +560,12 @@ class HAclient:
                         _LOGGER.warning(f"Sending message {cmd['type']} timed out")
                 except (TypeError, KeyError, IndexError, OSError) as exce:
                     _LOGGER.error(f"Exception occured in commander while sending command {cmd}: {exce}")
-                except websockets.exceptions.ConnectionClosedError as exce:
-                    _LOGGER.error(f"Commander stopped due to connection closing")
-                    _LOGGER.debug(exce)
-                    break
-                except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
-                    break
+                # except websockets.exceptions.ConnectionClosedError as exce:
+                #     _LOGGER.error(f"Commander stopped due to connection closing")
+                #     _LOGGER.debug(exce)
+                #     break
+                # except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
+                #     break
 
         _LOGGER.error("Commander stopped")
 
@@ -579,18 +596,18 @@ class HAclient:
                 if pongs_missed >= missed_max: 
                     self.__connection = False
                     break
-            except websockets.exceptions.ConnectionClosedError as exce:
-                _LOGGER.error(f"Ping Pong errored due to connection closing: {exce}")
-                self.__connection = False
-                break
+            # except websockets.exceptions.ConnectionClosedError as exce:
+            #     _LOGGER.error(f"Ping Pong errored due to connection closing: {exce}")
+            #     self.__connection = False
+            #     break
 
             _LOGGER.debug(f"Received pong from ping id {ping_id}")
 
         _LOGGER.warning("Ping pong function has stopped, Closing websocket to start reconnect")
-        await self.websocket.close()
-        async with self.websocketCondition:
-            self.websocketCondition.notify_all()
-        self.reconnect_client()
+        # await self.websocket.close()
+        # async with self.websocketCondition:
+        #     self.websocketCondition.notify_all()
+        # self.reconnect_client()
 
     async def _empty_message_queue(self):
         """
@@ -811,6 +828,8 @@ class HAclient:
             
             if isinstance(func,str):
                 func = self.pssmScreen.parse_shorthand_function(func)
+            
+            assert callable(func), f"Call functions must be called, not {func}"
 
             if isinstance(entity_id,str):
                 if entity_id not in self._all_entities:
