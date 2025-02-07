@@ -68,6 +68,8 @@ class TrayIcon(pystray.Icon):
             imgfile = Path(tray_config)
         img = Image.open(imgfile)
 
+        ##Add two(?) right click commands:
+        ##Show folder and show logs
         menu = pystray.Menu(
             pystray.MenuItem(
                 text="Dashboard", action = self.icon_click,
