@@ -5,7 +5,7 @@ from typing import *
 import inkBoard
 
 if TYPE_CHECKING:
-    from inkBoard import config, core as CORE
+    from inkBoard import config, CORE as CORE
     from .trayicon import TrayIcon
 
 _LOGGER = inkBoard.getLogger(__name__)

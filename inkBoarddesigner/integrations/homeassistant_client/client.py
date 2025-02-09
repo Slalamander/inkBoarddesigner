@@ -34,7 +34,7 @@ if TYPE_CHECKING:
     from PythonScreenStackManager.devices import PSSMdevice as pssm_device
     from PythonScreenStackManager import elements, tools #import pssm as screenFile, elements as pssm
     from PythonScreenStackManager.tools import DummyTask
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.debug(f"{_LOGGER.name} has loglevel {logging.getLevelName(_LOGGER.getEffectiveLevel())}")

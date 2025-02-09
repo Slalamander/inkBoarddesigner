@@ -12,7 +12,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
 import inkBoard
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 
 from PythonScreenStackManager import elements
 

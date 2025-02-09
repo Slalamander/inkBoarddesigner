@@ -13,7 +13,7 @@ from PythonScreenStackManager import constants as pssm_const
 from . import constants as const
 
 if TYPE_CHECKING:
-    from inkBoard import config, core as CORE
+    from inkBoard import config, CORE as CORE
     from mdi_pil import mdiType
     from PythonScreenStackManager import pssm_types as pssm
     from PythonScreenStackManager.pssm.screen import PSSMScreen

@@ -12,7 +12,7 @@ import tornado
 from tornado.escape import json_encode as tornado_json_encode
 
 import inkBoard
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 from inkBoard.constants import DEFAULT_MAIN_TABS_NAME
 
 import PythonScreenStackManager
@@ -26,7 +26,7 @@ from .constants import DEFAULT_PORT, DEFAULT_HOST_PATTERN
 from .apitypes import *
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
     from inkBoard.platforms import BaseDevice
     from PythonScreenStackManager.pssm import PSSMScreen
     from .websocket import inkBoardWebSocket

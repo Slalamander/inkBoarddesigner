@@ -52,7 +52,7 @@ class Device(BaseDevice, pssm_device.Device):
 		
 		features = pssm_device.feature_list.copy()
 
-		from inkBoard import core as CORE
+		from inkBoard import CORE as CORE
 		file_folder = CORE.config.folders.file_folder
 
 		if (file_folder / SETTINGS_FILE).exists():

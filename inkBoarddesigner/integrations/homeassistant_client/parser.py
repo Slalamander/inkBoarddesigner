@@ -1,5 +1,5 @@
 
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 from inkBoard import util
 
 from . import HAelements, clientelements
