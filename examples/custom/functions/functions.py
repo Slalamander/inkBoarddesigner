@@ -11,7 +11,7 @@ from PythonScreenStackManager.pssm.decorators import elementactionwrapper
 from PythonScreenStackManager.elements import Button, PopupMenu, Icon, GridLayout
 from PythonScreenStackManager.pssm_types import InteractEvent
 
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 
 
 if TYPE_CHECKING:

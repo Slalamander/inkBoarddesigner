@@ -13,13 +13,13 @@ import pystray
 
 import inkBoard
 from inkBoard.constants import INKBOARD_ICON
-from inkBoard.helpers import QuitInkboard
+from inkBoard.helpers import QuitInkboard, ParsedAction
 from inkBoard.util import DummyTask
 
 from . import system_tray_entry, TRAYSIZE, TOLERANCE
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE, config
+    from inkBoard import CORE as CORE, config
     from inkBoarddesigner.platforms.desktop import device as desktop
 
 _LOGGER = inkBoard.getLogger(__name__)
@@ -36,6 +36,7 @@ class TrayIcon(pystray.Icon):
     def __init__(self, core: "CORE", config: "config", **kwargs):
         self.__core = core
         tray_config = config["system_tray"]
+        
         if not tray_config:
             tray_config = default_config
         else:
@@ -81,6 +82,7 @@ class TrayIcon(pystray.Icon):
             pystray.MenuItem(
                 text="Quit", action = self._quit_inkboard
             ),
+            pystray.MenuItem(text="Test Action", action=lambda item: extra_action())
         )
         super().__init__("inkBoard", img, "inkBoard", menu, **kwargs)
         if self._toolwindow:

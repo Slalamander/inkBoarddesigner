@@ -22,7 +22,7 @@ from .constants import DEFAULT_PORT
 from .app import APICoordinator
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
     from inkBoard.platforms import BaseDevice
 
 class RequestHandler(RequestHandler):

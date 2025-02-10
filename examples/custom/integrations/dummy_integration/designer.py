@@ -5,7 +5,7 @@ import random as rnd
 
 import ttkbootstrap as ttk
 
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 
 from inkBoarddesigner.tkinter import window, functions as tk_functions
 from inkBoarddesigner.tkinter.widgets import Treeview
