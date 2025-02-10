@@ -60,7 +60,10 @@ class TrayIcon(pystray.Icon):
             imgfile = Path(tray_config)
         img = Image.open(imgfile)
 
-        extra_action = ParsedAction("custom:open_log_window")
+        extra_action = ParsedAction({"action" :"custom:open_log_window", "data": {"level": "DEBUG"}}, awaitable=False)
+        ##Currently throws error for this cause is coro
+        ##Add option such that it automatically wraps a coroutine into a task
+        ##(i.e. the result of the action is not used)
 
         menu = pystray.Menu(
             pystray.MenuItem(
