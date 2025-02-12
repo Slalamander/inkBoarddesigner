@@ -49,8 +49,11 @@ async def async_setup(core: "CORE", config : "config") -> None:
     return HAclient
 
 async def async_start(core: "CORE", client : "client.HAclient"):
-    client.setup_entity_functions()
-    await client.connect_client()
+    try:
+        client.setup_entity_functions()
+        await client.connect_client()
+    except Exception as exce:
+        _LOGGER.exception("Homeassistant client could not start", exc_info=True)
     return
 
 class home_assistantMap(TypedDict):
