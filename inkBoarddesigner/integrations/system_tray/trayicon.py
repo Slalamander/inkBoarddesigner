@@ -13,13 +13,13 @@ import pystray
 
 import inkBoard
 from inkBoard.constants import INKBOARD_ICON
-from inkBoard.helpers import QuitInkboard
+from inkBoard.helpers import QuitInkboard, ParsedAction, YAMLNodeDict
 from inkBoard.util import DummyTask
 
 from . import system_tray_entry, TRAYSIZE, TOLERANCE
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE, config
+    from inkBoard import CORE, config
     from inkBoarddesigner.platforms.desktop import device as desktop
 
 _LOGGER = inkBoard.getLogger(__name__)
@@ -52,7 +52,7 @@ class TrayIcon(pystray.Icon):
         ##Other options to add: custom icon; custom name
 
         toolwindow = tray_config.get("toolwindow", False)
-        if toolwindow and inkBoard.core.DESIGNER_RUN:
+        if toolwindow and core.DESIGNER_RUN:
             _LOGGER.info("Running the designer as a toolwindow is disabled")
             self._toolwindow = False
         else:
@@ -68,20 +68,50 @@ class TrayIcon(pystray.Icon):
             imgfile = Path(tray_config)
         img = Image.open(imgfile)
 
+        ##Currently throws error for this cause is coro
+        ##Add option such that it automatically wraps a coroutine into a task
+        ##(i.e. the result of the action is not used)
+
+
         ##Add two(?) right click commands:
         ##Show folder and show logs
-        menu = pystray.Menu(
-            pystray.MenuItem(
-                text="Dashboard", action = self.icon_click,
-                default=True, visible=False
-                ),
+
+        base_menu = [
+            pystray.Menu.SEPARATOR, ##Seperator can simply be here, pystray removed any at the head or tail of the menu
             pystray.MenuItem(
                 text="Reload", action = self._reload_inkboard
             ),
             pystray.MenuItem(
                 text="Quit", action = self._quit_inkboard
             ),
-        )
+            pystray.MenuItem(
+                text="Dashboard", action = self.icon_click,
+                default=True, visible=False
+                )
+        ]
+
+        extra_actions = []
+        menu_actions = tray_config.get("menu_actions", [])
+        for i, menuitem in enumerate(menu_actions):
+            if (not menuitem or
+                (isinstance(menuitem,str) and menuitem.upper() in ("SEPARATOR","NONE"))):
+                extra_actions.append(pystray.Menu.SEPARATOR)
+            elif "action" in menuitem and "title" and menuitem:
+                action = menuitem["action"]
+                title = menuitem["title"]
+                p_action = ParsedAction(action, awaitable=False)
+                run_action = self._wrap_parseaction(p_action)
+                item = pystray.MenuItem(text=title, action = run_action)  
+                ##Will need to turn these into partials I think; lambas apparently cause issues, as it will use the same action for each.
+                extra_actions.append(item)
+            else:
+                msg = "A menu action must have a title and action defined or be empty"
+                _LOGGER.error(msg, extra={"YAML": menuitem})
+
+        print(extra_actions)
+        menu_items = [*extra_actions, *base_menu]
+        menu = pystray.Menu(*menu_items)
+
         super().__init__("inkBoard", img, "inkBoard", menu, **kwargs)
         if self._toolwindow:
             self.window.withdraw()
@@ -105,7 +135,15 @@ class TrayIcon(pystray.Icon):
             return not(self._is_shown)
 
         return self.window.wm_state() != 'normal'
-        
+
+    def _wrap_parseaction(self, action):
+        """Wraps parsed menuactions to catch out the arguments
+        Doing it in lambdas or in the for loop would cause the wrong parseaction to be called.
+        This way does work. Probably something with stackframes? Idk.
+        """
+        def wrap_action(*args):
+            action()
+        return wrap_action
 
     def icon_click(self, item):
         "Action ran when the icon is clicked"
@@ -250,7 +288,5 @@ class TrayIcon(pystray.Icon):
         return
 
     def _toolwindow_focus_change(self, event: tk.Event):
-        ##Handling this: add a small wait to see if the icon was clicked?
-        
         self.hide_dashboard()
         return
