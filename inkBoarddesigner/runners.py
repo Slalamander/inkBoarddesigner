@@ -1,6 +1,8 @@
 "Runners for various important functions of the designer."
 
 import tkthread
+
+from inkBoard.exceptions import ConfigError, DashboardError, DeviceError, ScreenError
 tkthread.patch()
 
 from typing import TYPE_CHECKING
@@ -17,7 +19,7 @@ import ttkbootstrap as ttk
 
 import inkBoard
 from inkBoard import constants as ib_const, CORE as CORE
-from inkBoard.helpers import QuitInkboard, ConfigError, DashboardError, DeviceError, ScreenError
+from inkBoard.exceptions import QuitInkboard
 
 from . import util, const, _LOGGER
 from .settings import save_settings
