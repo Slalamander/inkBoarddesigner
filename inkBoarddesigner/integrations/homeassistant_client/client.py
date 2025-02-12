@@ -17,6 +17,8 @@ from PythonScreenStackManager.pssm.util import TriggerCondition
 import inkBoard
 from inkBoard.constants import FuncExceptions
 from inkBoard.platforms import FEATURES
+from inkBoard.helpers import ParsedAction
+from inkBoard.exceptions import ShorthandNotFound
 
 from PythonScreenStackManager import tools, elements
 from PythonScreenStackManager.tools import DummyTask
@@ -839,23 +841,30 @@ class HAclient:
                 call_after_add = False
                 func = func_tuple
             
-            if isinstance(func,str):
-                func = self.pssmScreen.parse_shorthand_function(func)
+            if isinstance(func,(str,dict)):
+                try:
+                    call_func = ParsedAction(func)
+                except ShorthandNotFound:
+                    _LOGGER.error(f"Could not parse entity function {func}", extra={"YAML": func})
+                    continue
+            else:
+                call_func = func
+                # func = self.pssmScreen.parse_shorthand_function(func)
             
-            assert callable(func), f"Call functions must be called, not {func}"
+            assert callable(call_func), f"Call functions must be called, not {func}"
 
             if isinstance(entity_id,str):
                 if entity_id not in self._all_entities:
                     _LOGGER.warning(f"{entity_id} is not defined in the configuration entities")
                 if entity_id in self.functionDict:
-                    self._functionDict[entity_id].append((func, call_after_add))
+                    self._functionDict[entity_id].append((call_func, call_after_add))
                 else:
-                    self._functionDict[entity_id] = [(func, call_after_add)]
+                    self._functionDict[entity_id] = [(call_func, call_after_add)]
                 
                 #Only calls if the function is added while connected. Otherwise it's handled in the connect script.
                 if call_after_add and self.connection:
                     trigger_dict = triggerDictType(entity_id=entity_id, to_state=self.stateDict[entity_id], from_state=None, context=None)
-                    func(trigger_dict, self)
+                    call_func(trigger_dict, self)
 
 
     async def update_states(self,trigger):
