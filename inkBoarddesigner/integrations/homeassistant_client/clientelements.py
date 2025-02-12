@@ -5,6 +5,8 @@ Elements that show info regarding the client, and not to any entities per say
 import asyncio
 from typing import TYPE_CHECKING
 
+from inkBoard import CORE
+
 from PythonScreenStackManager import tools
 from PythonScreenStackManager.elements import baseelements as base, menuelements as menu
 from PythonScreenStackManager.tools import DummyTask
@@ -16,7 +18,10 @@ if TYPE_CHECKING:
 class ClientElement(base.Icon):
     def __init__(self, icon = "home-assistant", tap_action = "show_client_popup", **kwargs):
         self._HAclient = None
+        
         self._monitorTask : asyncio.Task = DummyTask()
+        self._iconTask : asyncio.Task = DummyTask()
+
 
         if tap_action == "show_client_popup":
             tap_action = {"action": "element:show-popup", "element_id": "home-assistant-menu"}#"data": {"popupId": "home-assistant-menu"}}
@@ -31,6 +36,7 @@ class ClientElement(base.Icon):
     def on_add(self):
         loop = self.parentPSSMScreen.mainLoop
         self._monitorTask = loop.create_task(self._monitor_client_state())
+        return
 
     async def _monitor_client_state(self):
         "Async function that awaits the device conditions notifications and updates the element when needed"
@@ -38,7 +44,9 @@ class ClientElement(base.Icon):
         self.HAclient ##Is this still None? -> should not be the case
         condition : asyncio.Condition = self.HAclient.websocketCondition
         testVal = getattr(self.HAclient,"clientState")
-        asyncio.create_task(self.update_icon())
+
+        if not self._iconTask.done(): self._iconTask.cancel()
+        self._iconTask = asyncio.create_task(self.update_icon())
 
         while self.onScreen:
             try:
@@ -46,14 +54,16 @@ class ClientElement(base.Icon):
                     await condition.wait_for(lambda : testVal != self.HAclient.clientState)
                     testVal = self.HAclient.clientState
 
-                    asyncio.create_task(self.update_icon())
+                    if not self._iconTask.done(): self._iconTask.cancel()
+                    self._iconTask = asyncio.create_task(self.update_icon())
             except asyncio.CancelledError:
                 break
 
     async def update_icon(self):
         testVal = self.HAclient.clientState
         if testVal == "connected":
-            badge = None #"mdi:check-bold" ##Will change this, to show a checkmark for a second or so before dissapearing
+            badge = None 
+            ##Will change this, to show a checkmark for a second or so before dissapearing
             ##Keep in mind, that task should also be cancelled if still running
         elif testVal == "connecting":
             badge = "mdi:autorenew"
@@ -61,7 +71,11 @@ class ClientElement(base.Icon):
             badge = "mdi:close-thick"
 
         if testVal == "connected" and self.badge_icon != None:
-            await self.async_update({"badge_icon": "mdi:check-bold"})
+            if self.screen.isBatch:
+                self.badge_icon = "mdi:check-bold"
+                # self.update({"badge_icon": "mdi:check-bold"})
+            else:
+                await self.async_update({"badge_icon": "mdi:check-bold"})
             await asyncio.sleep(3)
 
         await self.async_update({"badge_icon": badge})
