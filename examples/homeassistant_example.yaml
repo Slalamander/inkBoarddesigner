@@ -13,7 +13,7 @@ meteocons:
 
 inkBoard:
   name: "Example Home Assistant"
-  integration_start_time: -1
+  # integration_start_time: 5
 
 home_assistant:
   url: ${instance_url}
