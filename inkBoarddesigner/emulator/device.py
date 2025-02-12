@@ -386,6 +386,7 @@ class Device(device.Device):
                 x, y = (self._lastEvent.x, self._lastEvent.y)
                 _LOGGER.verbose(f"Passing touch at {(x,y)} as {t}")
                 await self.eventQueue.put(TouchEvent(x,y,t))
+                return
 
 
     async def event_bindings(self, eventQueue = None, grabInput=False):
@@ -394,7 +395,8 @@ class Device(device.Device):
         if self.has_feature(FEATURES.FEATURE_INTERACTIVE):
             self._eventQueue = eventQueue
             self._interactEvent = asyncio.Event()
-            self.Screen.mainLoop.create_task(self.simple_canvas_event_handler())
+            if not self.has_feature(FEATURES.FEATURE_PRESS_RELEASE):
+                self.Screen.mainLoop.create_task(self.simple_canvas_event_handler())
         
         self._updateWindowTask = asyncio.create_task(self._update_canvas_loop())
 
