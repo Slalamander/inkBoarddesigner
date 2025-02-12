@@ -13,7 +13,8 @@ import pystray
 
 import inkBoard
 from inkBoard.constants import INKBOARD_ICON, ICON_FOLDER
-from inkBoard.helpers import QuitInkboard, ParsedAction, YAMLNodeDict
+from inkBoard.helpers import ParsedAction
+from inkBoard.exceptions import QuitInkboard
 from inkBoard.util import DummyTask
 
 from . import system_tray_entry, TRAYSIZE, TOLERANCE
@@ -62,10 +63,8 @@ class TrayIcon(pystray.Icon):
         self._tray_size = tray_config.get("tray_size", TRAYSIZE)
 
         if tray_config["icon"] == "circle":
-            # imgfile = Path(__file__).parent / "files" / f"icon_circle.ico"
             imgfile = ICON_FOLDER / "circle.ico"
         elif tray_config["icon"] == "droplet":
-            # imgfile = Path(__file__).parent / "files" / f"icon_droplet.ico"
             imgfile = ICON_FOLDER / "droplet.ico"
         else:
             imgfile = Path(tray_config)
