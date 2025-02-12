@@ -17,7 +17,7 @@ from PIL import Image
 from .constants import ENTITY_TAG_KEY
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
 
 _LOGGER = logging.getLogger(__name__)
 

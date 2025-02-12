@@ -16,7 +16,7 @@ from pathlib import Path
 import ttkbootstrap as ttk
 
 import inkBoard
-from inkBoard import constants as ib_const, core as CORE
+from inkBoard import constants as ib_const, CORE as CORE
 from inkBoard.helpers import QuitInkboard, ConfigError, DashboardError, DeviceError, ScreenError
 
 from . import util, const, _LOGGER
@@ -118,7 +118,7 @@ async def run_inkboard_thread(config_file):
 
         window.set_progress_bar(5, "Importing base functions")
 
-        from inkBoard import core as CORE
+        from inkBoard import CORE as CORE
 
         CORE()
 

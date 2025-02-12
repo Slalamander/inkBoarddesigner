@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Callable
 if TYPE_CHECKING:
     from PythonScreenStackManager import elements
     from PythonScreenStackManager.pssm import PSSMScreen
-    from inkBoard import core
+    from inkBoard import CORE
 
 ##The core object holds e.g. the config object, the screen and device instance.
 ##It is reloaded when the running instance gets reloaded, and the various attributes are set by inkBoard at the appropriate time.
@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 ##Also why inkBoard sets a global module to the screen instance.
 
 class DummyClient:
-    def __init__(self, screen = None, CORE: "core" = None) -> None:
+    def __init__(self, screen = None, CORE: "CORE" = None) -> None:
         # logger.info("Fry, you fool, you've imported the dummy integration!")
 
         self.CORE = CORE

@@ -36,6 +36,7 @@ class TrayIcon(pystray.Icon):
     def __init__(self, core: "CORE", config: "config", **kwargs):
         self.__core = core
         tray_config = config["system_tray"]
+        
         if not tray_config:
             tray_config = default_config
         else:

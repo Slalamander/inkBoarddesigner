@@ -25,14 +25,14 @@ import asyncio
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel("INFO")
 
-from inkBoard import core as CORE
+from inkBoard import CORE as CORE
 
 if TYPE_CHECKING:
     ##During type checking it is fine to import these, 
     ##however importing anything from pssm will break things since the config is not yet loaded.
     ##Same goes for importing config.
     from .dummy import DummyClient
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
     from inkBoard.configuration.types import MainEntry as ConfigMap
     from mdi_pil import mdiType
     from PythonScreenStackManager import pssm_types as pssm

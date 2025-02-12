@@ -26,7 +26,7 @@ from ..const import REFRESH_RATE
 if TYPE_CHECKING:
     from PythonScreenStackManager.elements import Element
     from inkBoarddesigner.emulator.device import Device
-    from inkBoard import core
+    from inkBoard import CORE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -745,7 +745,7 @@ class DeviceWindow(_AdditionalWindow):
 
 class ConfigWindow(_AdditionalWindow):
 
-    def __init__(self, core: "core", **kwargs):
+    def __init__(self, core: "CORE", **kwargs):
         ##Need to determine what to show in this window
         ##At least: config name; platform; loaded integrations
         ##Also: allow for installing integration/platform requirements from here
