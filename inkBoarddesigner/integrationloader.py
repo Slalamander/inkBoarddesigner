@@ -12,13 +12,13 @@ import asyncio
 import json
 
 from inkBoard import loaders
-from inkBoard.helpers import classproperty
+from inkBoard.decorators import classproperty
 from inkBoard.util import reload_full_module
 
 _LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
 
 class IntegrationLoader(loaders.IntegrationLoader):
     "Provides bindings to load inkBoard integrations including those in the designer."

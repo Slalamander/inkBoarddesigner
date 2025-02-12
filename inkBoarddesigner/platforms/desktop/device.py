@@ -19,6 +19,8 @@ from inkBoard.constants import INKBOARD_FOLDER
 from PythonScreenStackManager.devices import windowed, trigger_condition
 from PythonScreenStackManager.tools import DummyTask
 
+from . import functions
+
 try:
     #plyer module is optional, provides additional device features
     import plyer #@IgnoreExceptions
@@ -110,6 +112,11 @@ class Device(BaseDevice, windowed.Device):
             self.window.title(f"inkBoard")
         else:
             self.window.title(self.name)
+
+    def _set_screen(self):
+        self.Screen.add_shorthand_function("log-terminal", functions.open_log_terminal)
+        self.Screen.add_shorthand_function("show-config-file", functions.open_config_folder)
+        return super()._set_screen()
 
 class Battery(BaseBattery):
         "Device battery. Not used if unsupported by plyer."

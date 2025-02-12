@@ -3,9 +3,10 @@
 from typing import *
 
 import inkBoard
+from inkBoard.types import *
 
 if TYPE_CHECKING:
-    from inkBoard import config, core as CORE
+    from inkBoard import config, CORE as CORE
     from .trayicon import TrayIcon
 
 _LOGGER = inkBoard.getLogger(__name__)
@@ -31,6 +32,13 @@ def stop(core: "CORE", trayicon: "TrayIcon"):
     trayicon.stop()
     return
 
+class menuaction(TypedDict):
+
+    title: str
+    "The title of the entry in the menu"
+
+    action: actiontype
+
 class system_tray_entry(TypedDict):
 
     icon: Union[str,Literal["circle","droplet"]] = "circle"
@@ -49,3 +57,12 @@ class system_tray_entry(TypedDict):
 
     tray_size: int = TRAYSIZE
     "Size of the system tray, in pixels. Used when using the toolwindow option"
+
+    menu_actions: list[None,Literal["SEPARATOR"],menuaction]
+    """List of additional actions to add to the right click menu
+    
+    By default, the menu provides the option to quit and reload inkBoard. These cannot be removed.
+    Actions defined here are added on top of those two, divided by a separator line.
+    Leaving a list entry empty, or giving it the value ``separator`` (case indifferent) will add another separator line.
+    Keep in mind the python package handling this removed any separators that are two in a row, or at the start or end of the list.
+    """

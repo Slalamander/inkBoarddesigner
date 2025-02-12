@@ -2,6 +2,9 @@
 from typing import TYPE_CHECKING
 import threading
 import asyncio
+import tkinter as tk
+from contextlib import suppress
+
 
 from PIL import Image
 from pathlib import Path
@@ -9,13 +12,15 @@ from pathlib import Path
 import pystray
 
 import inkBoard
-from inkBoard.constants import INKBOARD_ICON
-from inkBoard.helpers import QuitInkboard
+from inkBoard.constants import INKBOARD_ICON, ICON_FOLDER
+from inkBoard.helpers import ParsedAction
+from inkBoard.exceptions import QuitInkboard
+from inkBoard.util import DummyTask
 
 from . import system_tray_entry, TRAYSIZE, TOLERANCE
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE, config
+    from inkBoard import CORE, config
     from inkBoarddesigner.platforms.desktop import device as desktop
 
 _LOGGER = inkBoard.getLogger(__name__)
@@ -32,12 +37,13 @@ class TrayIcon(pystray.Icon):
     def __init__(self, core: "CORE", config: "config", **kwargs):
         self.__core = core
         tray_config = config["system_tray"]
+        
         if not tray_config:
             tray_config = default_config
         else:
             tray_config = default_config.copy() | tray_config
 
-        if tray_config.get("hide_window", False):
+        if tray_config["hide_window"]:
             if core.DESIGNER_RUN:
                 _LOGGER.info("Not running system_tray with hide_window in the designer")
                 self._minimise_action = HIDEACTIONS.ICONIFY
@@ -47,33 +53,70 @@ class TrayIcon(pystray.Icon):
             self._minimise_action = HIDEACTIONS.ICONIFY
         ##Other options to add: custom icon; custom name
 
-        self._toolwindow = tray_config.get("toolwindow", False)
-
+        toolwindow = tray_config.get("toolwindow", False)
+        if toolwindow and core.DESIGNER_RUN:
+            _LOGGER.info("Running the designer as a toolwindow is disabled")
+            self._toolwindow = False
+        else:
+            self._toolwindow = toolwindow
+        
         self._tray_size = tray_config.get("tray_size", TRAYSIZE)
 
         if tray_config["icon"] == "circle":
-            imgfile = Path(__file__).parent / "files" / f"icon_circle.ico"
+            imgfile = ICON_FOLDER / "circle.ico"
         elif tray_config["icon"] == "droplet":
-            imgfile = Path(__file__).parent / "files" / f"icon_droplet.ico"
+            imgfile = ICON_FOLDER / "droplet.ico"
         else:
             imgfile = Path(tray_config)
         img = Image.open(imgfile)
 
-        menu = pystray.Menu(
-            pystray.MenuItem(
-                text="Minimise", action = self.minimise_window,
-                default=True, visible=False
-                ),
+        ##Currently throws error for this cause is coro
+        ##Add option such that it automatically wraps a coroutine into a task
+        ##(i.e. the result of the action is not used)
+
+
+        ##Add two(?) right click commands:
+        ##Show folder and show logs
+
+        base_menu = [
+            pystray.Menu.SEPARATOR, ##Seperator can simply be here, pystray removed any at the head or tail of the menu
             pystray.MenuItem(
                 text="Reload", action = self._reload_inkboard
             ),
             pystray.MenuItem(
                 text="Quit", action = self._quit_inkboard
             ),
-        )
+            pystray.MenuItem(
+                text="Dashboard", action = self.icon_click,
+                default=True, visible=False
+                )
+        ]
+
+        extra_actions = []
+        menu_actions = tray_config.get("menu_actions", [])
+        for menuitem in menu_actions:
+            if (not menuitem or
+                (isinstance(menuitem,str) and menuitem.upper() in ("SEPARATOR","NONE"))):
+                extra_actions.append(pystray.Menu.SEPARATOR)
+            elif "action" in menuitem and "title" and menuitem:
+                action = menuitem["action"]
+                title = menuitem["title"]
+                p_action = ParsedAction(action, awaitable=False)
+                run_action = self._wrap_parseaction(p_action)
+                item = pystray.MenuItem(text=title, action = run_action)  
+                ##Will need to turn these into partials I think; lambas apparently cause issues, as it will use the same action for each.
+                extra_actions.append(item)
+            else:
+                msg = "A menu action must have a title and action defined or be empty"
+                _LOGGER.error(msg, extra={"YAML": menuitem})
+
+        menu_items = [*extra_actions, *base_menu]
+        menu = pystray.Menu(*menu_items)
+
         super().__init__("inkBoard", img, "inkBoard", menu, **kwargs)
         if self._toolwindow:
             self.window.withdraw()
+            self._focusouttask: asyncio.Task = DummyTask()
 
     @property
     def _device(self) -> "desktop.Device":
@@ -83,51 +126,56 @@ class TrayIcon(pystray.Icon):
     def window(self):
         return self._device.window
     
-    def minimise_window(self, item):
-        "Minimise the dashboard window"
-        self._device._call_in_main_thread(self._minimise_window, item)
+    @property
+    def hidden(self) -> bool:
+        """Indicates if the window is currently hidden
 
-    def _minimise_window(self, item):
-        "Minimises the window. Must be called in the main thread"
-        _LOGGER.debug(f"Minimising window via {item}")
-
-        # self.window.update()
-        x = self.window.winfo_pointerx()
-        y = self.window.winfo_pointery()
-        s = self.window.wm_state()
-        
-
+        May cause issuess if not called from the main thread
+        """
         if self._toolwindow:
-            if self.window.wm_state() != "normal": self.window.deiconify()
-            self.window.focus_force()
-            self._set_window_position(x,y)
-            self.window.update()
+            return not(self._is_shown)
+
+        return self.window.wm_state() != 'normal'
+
+    def _wrap_parseaction(self, action):
+        """Wraps parsed menuactions to catch out the arguments
+        Doing it in lambdas or in the for loop would cause the wrong parseaction to be called.
+        This way does work. Probably something with stackframes? Idk.
+        """
+        def wrap_action(*args):
+            action()
+        return wrap_action
+
+    def icon_click(self, item):
+        "Action ran when the icon is clicked"
+        self._device._call_in_main_thread(self._handle_icon_click, item)
+
+    def _handle_icon_click(self, item):
+        "Minimises the window. Must be called in the main thread"
+        # _LOGGER.debug(f"Minimising window via {item}")
+
+        print(f"window is hidden: {self.hidden}")
+        if self._toolwindow and not self._focusouttask.done():
+            ##Two options:
+            ##- Hide the window on a second click (means just returning here without the two calls to the window)
+            ##- Keep the window as is, so cancelling the focus out task and forcing focus again
+            if self._minimise_action == HIDEACTIONS.ICONIFY:
+                self._focusouttask.cancel()
+                self.window.focus_force()
             return
         
-        if self.window.wm_state() != "normal":
-            if self._minimise_action == HIDEACTIONS.WITHDRAW:
-                ##This simply makes the animation of the window appearing a lot smoother
-                self.window.iconify()
-            self.window.deiconify()
-            self._set_window_position(x,y)
+        if self.hidden:
+            self.show_dashboard()
         else:
-            if self._minimise_action == HIDEACTIONS.ICONIFY:
-                self.window.withdraw()
-            else:
-                self.window.iconify()
-
-        # self.window.focus_force()
-
-        self.window.update()
+            self.hide_dashboard()
+        return
 
     def _set_window_position(self, x, y):
-
 
         window = self.window
 
         w = window.winfo_width()
         h = window.winfo_height()
-
         win_x = None
         win_y = None
 
@@ -172,7 +220,6 @@ class TrayIcon(pystray.Icon):
             else:
                 win_x = cx
 
-
         new_geo = f"{w}x{h}+{win_x}+{win_y}"
         _LOGGER.verbose(f"Repositioning window via tray location to {(win_x,win_y)}")
         window.wm_geometry(new_geo)
@@ -185,6 +232,7 @@ class TrayIcon(pystray.Icon):
         self.stop()
     
     def _quit_inkboard(self, item):
+        
         self.__core.screen.quit(QuitInkboard("Quit via systemtray"))
         self.stop()
 
@@ -196,6 +244,50 @@ class TrayIcon(pystray.Icon):
                 self.window.update_idletasks()
                 self.window.wm_attributes("-toolwindow", True)
                 self.window.overrideredirect(True)
-                
+                self._is_shown = False
+                self.window.bind('<FocusOut>',self._toolwindow_focus_change)
+
         self.run_detached()
 
+    def hide_dashboard(self):
+        """Hides the dashboard
+
+        Ensures the correct action is taken based on settings, but does not validate window state
+        """
+        if self._toolwindow:
+            self._focusouttask = asyncio.create_task(self._hide_toolwindow())
+            return
+        
+        if self._minimise_action == HIDEACTIONS.WITHDRAW:
+            self.window.withdraw()
+        else:
+            self.window.iconify()
+    
+    async def _hide_toolwindow(self):
+        with suppress(asyncio.CancelledError):
+            await asyncio.sleep(0.1)
+            self.window.withdraw()
+            self._is_shown = False
+
+    def show_dashboard(self):
+        """Shows the dashboard
+
+        Ensures the correct action is taken based on settings, but does not validate window state
+        """
+        if self._minimise_action == HIDEACTIONS.WITHDRAW and not self._toolwindow:
+            ##This simply makes the animation of the window appearing a lot smoother
+            self.window.iconify()
+        self.window.deiconify()
+
+        if self._toolwindow:
+            self.window.focus_force()
+            x = self.window.winfo_pointerx()
+            y = self.window.winfo_pointery()
+            self._set_window_position(x,y)
+            self._is_shown = True
+
+        return
+
+    def _toolwindow_focus_change(self, event: tk.Event):
+        self.hide_dashboard()
+        return

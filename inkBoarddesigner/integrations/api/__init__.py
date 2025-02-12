@@ -3,7 +3,7 @@
 from typing import *
 
 if TYPE_CHECKING:
-    from inkBoard import core as CORE
+    from inkBoard import CORE as CORE
     from .app import APICoordinator
 
 async def async_setup(core : "CORE", config : "CORE.config"):
