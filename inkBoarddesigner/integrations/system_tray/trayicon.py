@@ -93,7 +93,7 @@ class TrayIcon(pystray.Icon):
 
         extra_actions = []
         menu_actions = tray_config.get("menu_actions", [])
-        for i, menuitem in enumerate(menu_actions):
+        for menuitem in menu_actions:
             if (not menuitem or
                 (isinstance(menuitem,str) and menuitem.upper() in ("SEPARATOR","NONE"))):
                 extra_actions.append(pystray.Menu.SEPARATOR)
@@ -109,7 +109,6 @@ class TrayIcon(pystray.Icon):
                 msg = "A menu action must have a title and action defined or be empty"
                 _LOGGER.error(msg, extra={"YAML": menuitem})
 
-        print(extra_actions)
         menu_items = [*extra_actions, *base_menu]
         menu = pystray.Menu(*menu_items)
 
