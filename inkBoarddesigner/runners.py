@@ -19,6 +19,7 @@ import ttkbootstrap as ttk
 
 import inkBoard
 from inkBoard import constants as ib_const, CORE as CORE
+from inkBoard.constants import CORESTAGES
 from inkBoard.exceptions import QuitInkboard
 
 from . import util, const, _LOGGER
@@ -122,6 +123,8 @@ async def run_inkboard_thread(config_file):
 
         from inkBoard import CORE as CORE
 
+        CORE._set_stage(CORESTAGES.NONE)
+
         CORE()
 
         from .emulator import pssm_functions
@@ -130,7 +133,9 @@ async def run_inkboard_thread(config_file):
 
         _LOGGER.debug(f"CORE imported at {CORE.IMPORT_TIME}")
 
-        from inkBoard import bootstrap 
+        CORE._set_stage(CORESTAGES.SETUP)
+
+        from inkBoard import bootstrap
 
         from .integrationloader import IntegrationLoader
         
@@ -148,6 +153,7 @@ async def run_inkboard_thread(config_file):
         window.set_progress_bar(value=25, text="Reading out base config")
 
         CORE._config = bootstrap.setup_base_config(config_file)
+        CORE._set_stage
 
         bootstrap.setup_logging(CORE)
 
@@ -185,6 +191,7 @@ async def run_inkboard_thread(config_file):
         main_layout = bootstrap.setup_dashboard_config(CORE)
 
         window.set_progress_bar(75, "Readying screen")
+        CORE._set_stage(CORESTAGES.START)
         screen.clear()
         screen.start_batch_writing()
 
