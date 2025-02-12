@@ -20,9 +20,12 @@ from inkBoard.exceptions import QuitInkboard
 ##Suspect this one won't work here.
 ##Seems to at least with quit? Check with screenshot too though.
 
+from inkBoarddesigner.platforms.desktop import functions as desktop_functions
+
 from .. import const
 from ..const import THEME_DARK, THEME_LIGHT
 from ..settings import EM_SETTINGS
+
 
 if TYPE_CHECKING:
     from .widgets import DesignerWindow
@@ -401,10 +404,8 @@ def highlight_elements(*element_list : "Element"):
         _INDICATOR_RECTANGLES.append(rect)    
 
 def open_config_folder(*args):
-    with suppress(AttributeError):  #Suppressing in case it's called too early e.g.
-        folder = CORE.config.baseFolder ##Better to use the folder, using the file seemed to open it in vscode
-        webbrowser.open("file:///" + str(folder))
-    
+    if hasattr(CORE,"config"):  ##Check if a config has been set on CORE
+        desktop_functions.open_config_folder()
 
     ##Current solution (using webbrowerser) found here: https://stackoverflow.com/a/54641180
     ##Should work regardless of platform?
