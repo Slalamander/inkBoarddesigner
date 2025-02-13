@@ -4551,6 +4551,10 @@ class ClimateElement(HAelement, base.TileElement):
     
     @property
     def preset_colors(self) -> dict[str,ColorType]:
+        """Colors to use for different preset modes
+
+        Can be a dict mapping the mode to a color, or a single color, which means the active preset always has that color
+        """
         return self._preset_colors
     
     @preset_colors.setter
@@ -4586,6 +4590,10 @@ class ClimateElement(HAelement, base.TileElement):
     
     @property
     def hvac_colors(self) -> dict[str,ColorType]:
+        """Colors to use for different hvac modes
+
+        Can be a dict mapping the mode to a color, or a single color, which means the active mode always has that color
+        """        
         return self._hvac_colors
     
     @hvac_colors.setter
@@ -4673,8 +4681,6 @@ class ClimateElement(HAelement, base.TileElement):
         
         if update_coros or attr_updated:
             await self.async_update(updated=True)
-
-            print(f"Preset color is now {self.presetSelect.active_color}")
         return
     
     def make_mode_selectors(self, modes):
