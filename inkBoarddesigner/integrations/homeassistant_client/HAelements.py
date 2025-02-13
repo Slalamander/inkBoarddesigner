@@ -4525,6 +4525,8 @@ class ClimateElement(HAelement, base.TileElement):
         base.TileElement.__init__(self, tile_layout=tile_layout, element_properties=element_properties, foreground_color=foreground_color, accent_color=accent_color,  **kwargs)
         if "hide" in kwargs:
             self.hide = kwargs["hide"]
+        
+        HAelement.__init__(self)
         return
 
     #region
