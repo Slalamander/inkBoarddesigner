@@ -13,16 +13,16 @@ if TYPE_CHECKING:
     from .. import meteocons
 
 METEOCONS_INSTALLED: bool = False
-s = importlib.util.find_spec("inkBoard.integrations.meteocons")
+__s = importlib.util.find_spec("inkBoard.integrations.meteocons")
 if DESIGNER_INSTALLED:
     try:
-        s = importlib.util.find_spec("inkBoarddesigner.integrations.meteocons")
+        __s = importlib.util.find_spec("inkBoarddesigner.integrations.meteocons")
     except:
         pass
 
-if s:
+if __s:
     METEOCONS_INSTALLED = True
-    METEOCONS = importlib.import_module(s.name)
+    METEOCONS = importlib.import_module(__s.name)
 
 ##Should be able to parse from both inkBoard or designer integration.
 
@@ -36,3 +36,15 @@ HVAC_MODES_ICONS : dict = {
     "auto": "mdi:thermostat-auto"
 }
 "Default icons for the possible HVAC modes"
+
+CLIMATE_PRESET_ICONS : dict = {
+    "none" : "mdi:knob",
+    "eco": "mdi:leaf",
+    "away": "mdi:map-marker",
+    "boost": "mdi:rocket-launch",
+    "comfort": "mdi:sofa",
+    "home": "mdi:home",
+    "sleep": "mdi:bed-king",
+    "activity": "mdi:walk",
+    "frost": "mdi:snowflake"
+}
