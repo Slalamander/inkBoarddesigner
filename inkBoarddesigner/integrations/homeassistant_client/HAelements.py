@@ -4449,20 +4449,20 @@ class ClimateElement(HAelement, base.TileElement):
         return {"active": "active_color"} | base.TileElement._color_shorthands
 
     defaultLayouts = {
-                "horizontal": "[state-tile,thermostat];hvac-modes",
-                "vertical": "state-tile;thermostat;modes",
-                "compact": "[state-tile,hvac-modes];thermostat"}
+                "horizontal": "[state-tile,thermostat];[hvac-modes,presets]",
+                "vertical": "state-tile;thermostat;hvac-modes;presets",
+                "compact": "[state-tile,[hvac-modes;presets]];thermostat"}
 
     @property
     def _emulator_icon(cls): return "mdi:thermostat-box"
 
     @classproperty
     def tiles(cls):
-        return ("state-tile", "thermostat", "hvac-modes")
+        return ("state-tile", "thermostat", "hvac-modes", "presets")
 
     def __init__(self, entity : EntityType, tile_layout : Union[PSSMLayoutString,Literal["horizontal","vertical","compact"]] = "compact",
                 foreground_color : ColorType = DEFAULT_FOREGROUND_COLOR, accent_color : ColorType = DEFAULT_ACCENT_COLOR,
-                element_properties : dict = {},
+                element_properties : dict = {}, preset_colors : Union[dict,str] = "foreground", hvac_colors : Union[dict,str] = "foreground",
                 **kwargs):
 
         self.entity = entity
@@ -4490,7 +4490,20 @@ class ClimateElement(HAelement, base.TileElement):
 
         self.__HVACModeLayout = mode_layout
 
-        self.__elements = {"state-tile": tile, "thermostat": temp_count, "hvac-modes": mode_layout}
+        preset_layout = elements.GridLayout([], rows=1, columns=None)
+        base._ElementSelect(preset_layout,{}, allow_deselect=False,
+                                        active_properties={}, inactive_properties= {"icon_color": "inactive"}, on_select=self.select_preset_mode)
+        self.__presetSelect = preset_layout
+
+        preset_layout._skip_select_update = True
+        mode_layout._skip_select_update = True
+        self.preset_colors = preset_colors
+        self.hvac_colors = hvac_colors
+
+        self.__elements = {"state-tile": tile,
+                            "thermostat": temp_count,
+                            "hvac-modes": mode_layout,
+                            "presets": preset_layout}
 
         HAelement.__init__(self)
 
@@ -4499,6 +4512,7 @@ class ClimateElement(HAelement, base.TileElement):
             "state-tile": {"accent_color": "accent", "foreground_color": "foreground", "background_color": None},
             "thermostat": {"accent_color": "accent", "foreground_color": "foreground"}
             }
+        default_properties["presets"] = default_properties["hvac-modes"].copy()
         
         for elt, props in default_properties.items():
             if elt not in element_properties:
@@ -4524,9 +4538,84 @@ class ClimateElement(HAelement, base.TileElement):
         return self.__unit
 
     @property
-    def HVACModeLayout(self) -> Union[elements.GridLayout, base._ElementSelect]:
+    def HVACModeSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
         "The layout with icons to set the hvac mode"
         return self.__HVACModeLayout
+    
+    @property
+    def presetSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
+        "The layout with icons to set a preset"
+        return self.__presetSelect
+    
+    @property
+    def preset_colors(self) -> dict[str,ColorType]:
+        return self._preset_colors
+    
+    @preset_colors.setter
+    def preset_colors(self, value: dict[str,ColorType]):
+        if not self.screen.printing:
+            self.screen._add_element_attribute_check(self,"preset_colors", value)
+            return
+
+        if not value:
+            self._preset_colors = {"default": "foreground"}
+            return
+        elif isinstance(value,str):
+            if not Style.is_valid_color(value, self):
+                raise ValueError(f"{self}: {value} is not a valid color")
+            else:
+                self._preset_colors = {"default": value}
+                return
+
+        inv = set()
+        cols = {}
+        for k, v in (value.copy()).items():
+            if not Style.is_valid_color(v):
+                inv.add((k,v))
+            else:
+                cols[k.lower()] = v
+        
+        if inv:
+            msg = f"{self}: the following preset colors are not valid colors {inv}"
+            raise ValueError(msg)
+        
+        self._preset_colors = cols
+        return
+    
+    @property
+    def hvac_colors(self) -> dict[str,ColorType]:
+        return self._hvac_colors
+    
+    @hvac_colors.setter
+    def hvac_colors(self, value: dict[str,ColorType]):
+        if not self.screen.printing:
+            self.screen._add_element_attribute_check(self,"hvac_colors", value)
+            return
+
+        if not value:
+            self._hvac_colors = {"default": "foreground"}
+            return
+        elif isinstance(value,str):
+            if not Style.is_valid_color(value, self):
+                raise ValueError(f"{self}: {value} is not a valid color")
+            else:
+                self._hvac_colors = {"default": value}
+                return
+
+        inv = set()
+        cols = {}
+        for k, v in (value.copy()).items():
+            if not Style.is_valid_color(v):
+                inv.add((k,v))
+            else:
+                cols[k.lower()] = v
+        
+        if inv:
+            msg = f"{self}: the following hvac mode colors are not valid colors {inv}"
+            raise ValueError(msg)
+        
+        self._hvac_colors = cols
+        return
     #endregion
 
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggerDictType):
@@ -4544,6 +4633,7 @@ class ClimateElement(HAelement, base.TileElement):
             await t_elt.async_update({"suffix": " " + self.unit, "suffix_attribute": None})
             await therm.async_update({"unit": " " + self.unit})
             self.make_mode_selectors(state_attr.get("hvac_modes", []))
+            self.make_preset_selectors(state_attr.get("preset_modes", []))
 
         element_state = triggers.get_new_state(self,trigger_dict)
         update_props = self.state_styles.get(element_state,{})
@@ -4557,8 +4647,20 @@ class ClimateElement(HAelement, base.TileElement):
         update_coros =  set()
         async with self._updateLock:
 
-            if new_state["state"] not in ERROR_STATES and self.HVACModeLayout.selected !=  new_state["state"]:
-                update_coros.add(self.HVACModeLayout.async_select(new_state["state"], call_on_select=False))
+            if new_state["state"] not in ERROR_STATES:
+                preset = state_attr["preset_mode"]
+                hvac = state_attr["hvac_mode"]
+
+                if self.HVACModeSelect.selected != hvac:
+                    update_coros.add(self.HVACModeSelect.async_select(hvac, call_on_select=False, skip_update = True))
+
+                if self.presetSelect.selected != preset:
+                    update_coros.add(self.presetSelect.async_select(preset, call_on_select=False, skip_update = True))
+                    if preset in self.preset_colors:
+                        col = self.preset_colors[preset]
+                    else:
+                        col = self.preset_colors.get("default","foreground")
+                    await self.presetSelect.async_update({"active_color": col}, skipGen=True, skipPrint=True)
 
             update_coros.add(therm.trigger_function(therm, trigger_dict))
             update_coros.add(state_elt.trigger_function(state_elt, trigger_dict))
@@ -4569,31 +4671,78 @@ class ClimateElement(HAelement, base.TileElement):
         
         if update_coros or attr_updated:
             await self.async_update(updated=True)
+
+            print(f"Preset color is now {self.presetSelect.active_color}")
         return
     
     def make_mode_selectors(self, modes):
         for mode in modes:
-            if mode in self.HVACModeLayout.option_elements:
-                elt = self.HVACModeLayout.option_elements[mode]
+            if mode in self.HVACModeSelect.option_elements:
+                elt = self.HVACModeSelect.option_elements[mode]
             else:
                 icon = icon_sets.HVAC_MODES_ICONS.get(mode,"mdi:thermostat")
                 elt = base.Icon(icon)
-                self.HVACModeLayout.add_option(mode, elt)
-                self.HVACModeLayout.add_elements(elt)
+                self.HVACModeSelect.add_option(mode, elt)
+                self.HVACModeSelect.add_elements(elt)
         
         if self._tile_layout == "compact":
             self.horizontal_sizes = {"hvac-modes": f"r*{len(modes)}"}
+        return
 
     async def select_hvac_mode(self, element, selected):
         ##Don't forget to update the set mode in the trigger
         ##Will be called again but that should be ok
         ##Do add a check to prevent it from selecting again
 
-        _LOGGER.debug(f"{self}: New mode is {selected}")
+        _LOGGER.debug(f"{self}: New hvac mode is {selected}")
         
         action = "climate.set_hvac_mode"
         data = {"hvac_mode": selected}
         self.HAclient.call_service_action(action=action, target=self.entity, action_data=data)
+        
+        return
+    
+    def make_preset_selectors(self, presets):
+        if len(presets) == 1:
+            # self.hide = "presets"
+            pass
+
+        for preset in presets:
+            if preset in self.presetSelect.option_elements:
+                elt = self.presetSelect.option_elements[preset]
+            else:
+                icon = icon_sets.CLIMATE_PRESET_ICONS.get(preset.lower(), icon_sets.CLIMATE_PRESET_ICONS["none"])
+                elt = base.Icon(icon)
+                self.presetSelect.add_option(preset, elt)
+                self.presetSelect.add_elements(elt)
+        
+        if self._tile_layout == "compact":
+            # self.horizontal_sizes = {"presets": f"r*{len(presets)}"}
+            # self.presetSelect.column_sizes = f"w/{len(presets)}"
+            pass
+        return
+    
+    async def select_preset_mode(self, element, selected):
+        
+        _LOGGER.info(f"{self}: New preset mode is {selected}")
+
+        action = "climate.set_preset_mode"
+        data = {"preset_mode": selected}
+        self.HAclient.call_service_action(action=action, target=self.entity, action_data=data)
+
+        if self.preset_colors:
+
+            ##Ok so thingy not updating:
+            ##Somehow the color changing does not lead to a color reparse
+            ##The value is False as it is already reparsed when selecting
+            if selected in self.preset_colors:
+                col = self.preset_colors[selected]
+            else:
+                col = self.preset_colors.get("default","foreground")
+            await self.presetSelect.async_update({"active_color": col})
+        return
+
+    async def set_preset_color(self, attr):
         
         return
 
