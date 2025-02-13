@@ -390,7 +390,8 @@ class Device(device.Device):
 
 
     async def event_bindings(self, eventQueue = None, grabInput=False):
-        pssm_functions.build_element_tree(self.Screen)
+        # pssm_functions.build_element_tree(self.Screen)
+        asyncio.create_task(self._update_element_tree())
 
         if self.has_feature(FEATURES.FEATURE_INTERACTIVE):
             self._eventQueue = eventQueue
@@ -399,6 +400,11 @@ class Device(device.Device):
                 self.Screen.mainLoop.create_task(self.simple_canvas_event_handler())
         
         self._updateWindowTask = asyncio.create_task(self._update_canvas_loop())
+
+    async def _update_element_tree(self):
+        while self.Screen.printing:
+            pssm_functions.build_element_tree(self.Screen)
+            await asyncio.sleep(5)
 
     async def _update_canvas_loop(self):
 
