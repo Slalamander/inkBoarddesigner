@@ -4505,8 +4505,6 @@ class ClimateElement(HAelement, base.TileElement):
                             "hvac-modes": mode_layout,
                             "presets": preset_layout}
 
-        HAelement.__init__(self)
-
         default_properties = {
             "hvac-modes": {"accent_color": "accent", "foreground_color": "foreground", "active_color": "foreground", "inactive_color": "accent", "active_properties": {"icon_color": "active"}, "inactive_properties": {"icon_color": "inactive"}},
             "state-tile": {"accent_color": "accent", "foreground_color": "foreground", "background_color": None},
@@ -4549,6 +4547,24 @@ class ClimateElement(HAelement, base.TileElement):
         "The layout with icons to set a preset"
         return self.__presetSelect
     
+    @property
+    def hide_presets(self) -> list[str]:
+        "Hides the provided presets from the preset selector"
+        # return list(self.presetSelect._hidden_options.keys())
+        return self._hide_presets
+    
+    @hide_presets.setter
+    def hide_presets(self, value):
+
+        ##How to handle unhiding values?
+        
+        if value == None:
+            value = []
+        elif isinstance(value, str):
+            value = [value]
+        self._hide_selectors(self.presetSelect, value)
+        self._hide_presets = value
+
     @property
     def preset_colors(self) -> dict[str,ColorType]:
         """Colors to use for different preset modes
@@ -4724,6 +4740,8 @@ class ClimateElement(HAelement, base.TileElement):
                 self.presetSelect.add_option(preset, elt)
                 self.presetSelect.add_elements(elt)
         
+        self._hide_selectors(self.presetSelect, self.hide_presets)
+
         if self._tile_layout == "compact":
             # self.horizontal_sizes = {"presets": f"r*{len(presets)}"}
             # self.presetSelect.column_sizes = f"w/{len(presets)}"
@@ -4748,9 +4766,22 @@ class ClimateElement(HAelement, base.TileElement):
             else:
                 col = self.preset_colors.get("default","foreground")
             await self.presetSelect.async_update({"active_color": col})
-        return
-
-    async def set_preset_color(self, attr):
         
         return
 
+    def _hide_selectors(self, element, hide):
+
+        element = self.presetSelect
+
+        hide_list = set(hide) & set(element.options)
+        unhide = set(element._hidden_options) - set(hide)
+
+        for opt in hide_list:
+            elt = element.remove_option(opt, hide=True)
+            element.remove_elements(elt)
+        
+        for opt in unhide:
+            elt = element._hidden_options[opt]
+            element.add_option(opt,elt)
+            element.add_elements(elt)
+            
