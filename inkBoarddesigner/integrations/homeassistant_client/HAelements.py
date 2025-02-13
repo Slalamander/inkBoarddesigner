@@ -175,7 +175,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
     def __init__(self, baseElement : Optional[elements.Element] = None,
-                entity_attribute: str = None,
+                entity_attribute: str = False,
                 state_styles: dict = {}, attribute_styles: list[dict] = [],
                 state_colors: bool = False, state_conditionals: bool = False):
         if baseElement != None:
@@ -186,20 +186,20 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             if not hasattr(self,"_HAclient"):
                 self._HAclient = None
             if not hasattr(self,"_entity_attribute"):
-                self._entity_attribute = False
+                self._entity_attribute = entity_attribute
             if not hasattr(self,"_serviceCallTime"):
                 self._serviceCallTime = None
             if getattr(self,"link_element", False):
                 self.__link_element_to_config(self)
             else:
                 if not hasattr(self,"_state_styles"):
-                    self._state_styles = {}
+                    self._state_styles = state_styles
                 if not hasattr(self,"_attribute_styles"):
-                    self._attribute_styles = []
+                    self._attribute_styles = attribute_styles
                 if not hasattr(self,"_state_conditionals"):
-                    self.state_conditionals = False
+                    self.state_conditionals = state_conditionals
                 if not hasattr(self,"_state_colors"):
-                    self.state_colors = False
+                    self.state_colors = state_colors
 
             if not hasattr(self, "__HAwrapper"):
                 self.__setattr__("__HAwrapper",HAelement.__HAwrapper)
