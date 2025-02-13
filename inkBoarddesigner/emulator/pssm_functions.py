@@ -116,7 +116,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
             else:
                 iid = parentiid
 
-            if isinstance(elt,elements.Layout):
+            if isinstance(elt,elements.Layout) or getattr(elt,"isLayout", False):
                 make_layout_tree(elt, iid)
 
     for elt in eltStack:
@@ -140,7 +140,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
             )
             _ELEMENT_DICT[iid] = elt
 
-        if isinstance(elt,elements.Layout):
+        if isinstance(elt,elements.Layout) or getattr(elt,"isLayout", False):
             make_layout_tree(elt, iid)
 
         for id, elt in screen.popupRegister.items():
@@ -165,7 +165,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                 open = open_init
             )
             _ELEMENT_DICT[iid] = elt
-            if isinstance(elt,elements.Layout):
+            if isinstance(elt,elements.Layout) or getattr(elt,"isLayout", False):
                 make_layout_tree(elt, iid)
 
     treeview.enable()
