@@ -4462,8 +4462,9 @@ class ClimateElement(HAelement, base.TileElement):
 
     def __init__(self, entity : EntityType, tile_layout : Union[PSSMLayoutString,Literal["horizontal","vertical","compact"]] = "compact",
                 foreground_color : ColorType = DEFAULT_FOREGROUND_COLOR, accent_color : ColorType = DEFAULT_ACCENT_COLOR,
-                element_properties : dict = {}, preset_colors : Union[dict,str] = "foreground", hvac_mode_colors : Union[dict,str] = "foreground",
-                hide_presets : list[str] = [], hide_hvac_modes : list[str] = [],
+                element_properties : dict = {}, 
+                hvac_mode_colors : Union[dict,str] = "foreground", deselect_hvac_mode : Union[str,False] = "off", hide_hvac_modes : list[str] = [],
+                preset_colors : Union[dict,str] = "foreground", deselect_preset : Union[str,False] = "none", hide_presets : list[str] = [], 
                 **kwargs):
 
         self.entity = entity
@@ -4501,6 +4502,9 @@ class ClimateElement(HAelement, base.TileElement):
 
         self.preset_colors = preset_colors
         self.hide_presets = hide_presets
+
+        self.deselect_preset = deselect_preset
+        self.deselect_hvac_mode = deselect_hvac_mode
 
         self.hvac_mode_colors = hvac_mode_colors
         self.hide_hvac_modes = hide_hvac_modes
@@ -4546,7 +4550,24 @@ class ClimateElement(HAelement, base.TileElement):
     def HVACModeSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
         "The layout with icons to set the hvac mode"
         return self.__HVACModeLayout
-    
+
+    @property
+    def deselect_hvac_mode(self) -> Union[str,Literal[False]]:
+        """An hvac mode to apply when deselecting the current one
+
+        Setting this to ``False`` disables deselecting, otherwise the value of the desired mode should be given
+        """    
+        return self._deselect_hvac_mode
+
+    @deselect_hvac_mode.setter
+    def deselect_hvac_mode(self, value):
+        if value == False:
+            self.HVACModeSelect.allow_deselect = False
+        else:
+            self.HVACModeSelect.allow_deselect = True
+        
+        self._deselect_hvac_mode = value
+
     @property
     def hide_hvac_modes(self) -> list[str]:
         "Hides the provided hvac modes from the hvac selector"
@@ -4563,10 +4584,66 @@ class ClimateElement(HAelement, base.TileElement):
         self._hide_hvac_modes = value
 
     @property
+    def hvac_mode_colors(self) -> dict[str,ColorType]:
+        """Colors to use for different hvac modes
+
+        Can be a dict mapping the mode to a color, or a single color, which means the active mode always has that color
+        """        
+        return self._hvac_mode_colors
+    
+    @hvac_mode_colors.setter
+    def hvac_mode_colors(self, value: dict[str,ColorType]):
+        if not self.screen.printing:
+            self.screen._add_element_attribute_check(self,"hvac_mode_colors", value)
+            return
+
+        if not value:
+            self._hvac_mode_colors = {"default": "foreground"}
+            return
+        elif isinstance(value,str):
+            if not Style.is_valid_color(value, self):
+                raise ValueError(f"{self}: {value} is not a valid color")
+            else:
+                self._hvac_mode_colors = {"default": value}
+                return
+
+        inv = set()
+        cols = {}
+        for k, v in (value.copy()).items():
+            if not Style.is_valid_color(v):
+                inv.add((k,v))
+            else:
+                cols[k.lower()] = v
+        
+        if inv:
+            msg = f"{self}: the following hvac mode colors are not valid colors {inv}"
+            raise ValueError(msg)
+        
+        self._hvac_mode_colors = cols
+        return
+
+    @property
     def presetSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
         "The layout with icons to set a preset"
         return self.__presetSelect
-    
+
+    @property
+    def deselect_preset(self) -> Union[str,Literal[False]]:
+        """A preset to apply when deselecting the current one
+
+        Setting this to ``False`` disables deselecting, otherwise the value of the desired preset should be given
+        """        
+        return self._deselect_preset
+
+    @deselect_preset.setter
+    def deselect_preset(self, value):
+        if value == False:
+            self.presetSelect.allow_deselect = value
+        else:
+            self.presetSelect.allow_deselect = True
+        
+        self._deselect_preset = value
+
     @property
     def hide_presets(self) -> list[str]:
         "Hides the provided presets from the preset selector"
@@ -4620,45 +4697,6 @@ class ClimateElement(HAelement, base.TileElement):
         
         self._preset_colors = cols
         return
-    
-    @property
-    def hvac_mode_colors(self) -> dict[str,ColorType]:
-        """Colors to use for different hvac modes
-
-        Can be a dict mapping the mode to a color, or a single color, which means the active mode always has that color
-        """        
-        return self._hvac_mode_colors
-    
-    @hvac_mode_colors.setter
-    def hvac_mode_colors(self, value: dict[str,ColorType]):
-        if not self.screen.printing:
-            self.screen._add_element_attribute_check(self,"hvac_mode_colors", value)
-            return
-
-        if not value:
-            self._hvac_mode_colors = {"default": "foreground"}
-            return
-        elif isinstance(value,str):
-            if not Style.is_valid_color(value, self):
-                raise ValueError(f"{self}: {value} is not a valid color")
-            else:
-                self._hvac_mode_colors = {"default": value}
-                return
-
-        inv = set()
-        cols = {}
-        for k, v in (value.copy()).items():
-            if not Style.is_valid_color(v):
-                inv.add((k,v))
-            else:
-                cols[k.lower()] = v
-        
-        if inv:
-            msg = f"{self}: the following hvac mode colors are not valid colors {inv}"
-            raise ValueError(msg)
-        
-        self._hvac_mode_colors = cols
-        return
     #endregion
 
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggerDictType):
@@ -4675,7 +4713,7 @@ class ClimateElement(HAelement, base.TileElement):
             t_elt = self.elements["state-tile"].elements["text"]
             await t_elt.async_update({"suffix": " " + self.unit, "suffix_attribute": None})
             await therm.async_update({"unit": " " + self.unit})
-            self.make_mode_selectors(state_attr.get("hvac_modes", []))
+            self.make_hvac_mode_selectors(state_attr.get("hvac_modes", []))
             self.make_preset_selectors(state_attr.get("preset_modes", []))
 
         element_state = triggers.get_new_state(self,trigger_dict)
@@ -4721,7 +4759,7 @@ class ClimateElement(HAelement, base.TileElement):
             await self.async_update(updated=True)
         return
     
-    def make_mode_selectors(self, modes):
+    def make_hvac_mode_selectors(self, modes):
         for mode in modes:
             if mode in self.HVACModeSelect.option_elements:
                 elt = self.HVACModeSelect.option_elements[mode]
@@ -4733,6 +4771,9 @@ class ClimateElement(HAelement, base.TileElement):
         
         self._hide_selectors(self.HVACModeSelect, self.hide_hvac_modes)
 
+        if self.deselect_hvac_mode and self.deselect_hvac_mode not in modes:
+            _LOGGER.error(f"{self}: deselect hvac mode {self.deselect_hvac_mode} is not a valid mode for the entity")
+
         if self._tile_layout == "compact":
             self.horizontal_sizes = {"hvac-modes": f"r*{len(modes)}"}
         return
@@ -4741,6 +4782,11 @@ class ClimateElement(HAelement, base.TileElement):
         ##Don't forget to update the set mode in the trigger
         ##Will be called again but that should be ok
         ##Do add a check to prevent it from selecting again
+
+        if selected == None:
+            await self.HVACModeSelect.async_select(self.deselect_hvac_mode)
+            await self.HVACModeSelect.async_update(updated=True)    ##Need to call this again to properly update
+            return
 
         _LOGGER.debug(f"{self}: New hvac mode is {selected}")
         
@@ -4770,6 +4816,10 @@ class ClimateElement(HAelement, base.TileElement):
         
         self._hide_selectors(self.presetSelect, self.hide_presets)
 
+        if self.deselect_preset and self.deselect_preset not in presets:
+            _LOGGER.error(f"{self}: deselect preset {self.deselect_preset} is not a valid preset for the entity")
+
+
         if self._tile_layout == "compact":
             # self.horizontal_sizes = {"presets": f"r*{len(presets)}"}
             # self.presetSelect.column_sizes = f"w/{len(presets)}"
@@ -4778,7 +4828,12 @@ class ClimateElement(HAelement, base.TileElement):
     
     async def select_preset_mode(self, element, selected):
         
-        _LOGGER.info(f"{self}: New preset mode is {selected}")
+        if selected == None:
+            await self.presetSelect.async_select(self.deselect_preset)
+            await self.presetSelect.async_update(updated=True)
+            return
+
+        _LOGGER.debug(f"{self}: New preset mode is {selected}")
 
         action = "climate.set_preset_mode"
         data = {"preset_mode": selected}
