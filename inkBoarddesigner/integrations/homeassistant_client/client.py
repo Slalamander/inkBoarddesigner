@@ -124,7 +124,7 @@ class HAclient:
         self.listenerTask : asyncio.Task = DummyTask()
         self.commanderTask : asyncio.Task = DummyTask()
         self.pingpongTask : asyncio.Task = DummyTask()
-        self.longrunningTasks: asyncio.Task = DummyTask()
+        self._longrunningTasks: asyncio.Task = DummyTask()
         self.reconnect_task : asyncio.Task = DummyTask()
 
         self._callback_queues : dict["id", asyncio.Queue]= {} ##Dict with keys corresponding to message id's, values being asyncio events
@@ -134,6 +134,8 @@ class HAclient:
 
         HAelement._client_instance = self
         trigger_functions.state_color_dict = core.config.styles.get("state_colors",{})
+
+        self._connected = False
 
     #region client properties
     @property
@@ -169,10 +171,11 @@ class HAclient:
         if self.websocket == None or self.connectionTask.done():
             return "disconnected"
         else:
-            if self.connection:
-                return "connected"
-            else:
+            # if self.connection:
+            if self._longrunningTasks.done():
                 return "connecting"
+            else:
+                return "connected"
 
     @property
     def websocketCondition(self) -> TriggerCondition:
@@ -412,8 +415,8 @@ class HAclient:
                 async with self.websocketCondition:
                     self.websocketCondition.notify_all()
 
-                if not self.longrunningTasks.done():
-                    self.longrunningTasks.cancel()
+                if not self._longrunningTasks.done():
+                    self._longrunningTasks.cancel()
 
                 self.listenerTask = self.loop.create_task(self.__async_listen())
                 self.commanderTask = self.loop.create_task(self.__async_command())
@@ -425,24 +428,25 @@ class HAclient:
                                             # self.pingpongTask,           
                                             return_exceptions=False)
 
+                await self.websocketCondition.trigger_all()
                 await self._longrunningTasks
 
                 _LOGGER.debug("Listener and Commander task have returned")
 
             except websockets.exceptions.ConnectionClosed:
-                if not self.longrunningTasks.done(): 
-                    self.longrunningTasks.cancel("Client connection closed")
+                if not self._longrunningTasks.done(): 
+                    self._longrunningTasks.cancel("Client connection closed")
                 _LOGGER.warning("Websocket connection has closed")
                 continue
             except ConnectionRefusedError as exce:
-                if not self.longrunningTasks.done(): self.longrunningTasks.cancel("Client connection was refused")
+                if not self._longrunningTasks.done(): self._longrunningTasks.cancel("Client connection was refused")
                 _LOGGER.error("Home Assistant refused connection", exc_info=True)
             except asyncio.exceptions.TimeoutError as exce:
                 _LOGGER.exception(exce)
             except asyncio.CancelledError:
                 _LOGGER.exception("Connect task has been cancelled")
-                if not self.longrunningTasks.done(): 
-                    self.longrunningTasks.cancel("Connection task cancelled")
+                if not self._longrunningTasks.done(): 
+                    self._longrunningTasks.cancel("Connection task cancelled")
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}; retrying")
@@ -452,6 +456,8 @@ class HAclient:
             else:
                 continue
             finally:
+                if not self._longrunningTasks.done(): 
+                    self._longrunningTasks.cancel("Handling websocket cleanup")
                 await self._empty_message_queue()
                 _LOGGER.warning("Cleaning up websocket connection")
                 self._websocket = None
