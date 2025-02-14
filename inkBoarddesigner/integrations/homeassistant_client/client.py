@@ -311,6 +311,20 @@ class HAclient:
                 HAconf_header = {"id": self.next_id, "type": "get_config" }
                 await self.websocket.send(json.dumps(HAconf_header))
                 HAconf_res = json.loads(await self.websocket.recv())
+                
+                if not HAconf_res["success"]:
+                    _LOGGER.error("Something went wrong getting the server's configuration")
+                    continue
+
+                while HAconf_res["result"].get("state", None) != "RUNNING":
+                    wait_time = 5
+                    _LOGGER.debug(f"Home assistant is not running yet, checking again in {wait_time} seconds")
+                    await asyncio.sleep(wait_time)
+                    HAconf_header = {"id": self.next_id, "type": "get_config" }
+                    await self.websocket.send(json.dumps(HAconf_header))
+                    HAconf_res = json.loads(await self.websocket.recv())
+
+
                 if HAconf_res["success"]:
                     HAconf_res = HAconf_res["result"]
                     self._HAconfig = {
@@ -343,6 +357,8 @@ class HAclient:
                     
                     _LOGGER.debug("Updating all elements after connecting")
                     coro_list = []
+
+
                     coro_list.append(self.client_update_elements(update_all=True, timeout=timeout))
                     called_functions = [self.client_update_elements]
                     
@@ -401,10 +417,13 @@ class HAclient:
 
                 self.listenerTask = self.loop.create_task(self.__async_listen())
                 self.commanderTask = self.loop.create_task(self.__async_command())
-                self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
-                runners = [self.listenerTask, self.commanderTask]
+                # self.pingpongTask = self.loop.create_task(self.__async_ping_pong())
 
-                self._longrunningTasks = asyncio.gather(*runners, return_exceptions=False)
+                self._longrunningTasks = asyncio.gather(
+                                            self.listenerTask,
+                                            self.commanderTask,
+                                            # self.pingpongTask,           
+                                            return_exceptions=False)
 
                 await self._longrunningTasks
 
@@ -416,19 +435,25 @@ class HAclient:
                 _LOGGER.warning("Websocket connection has closed")
                 continue
             except ConnectionRefusedError as exce:
-                if not self.longrunningTasks.done(): self.longrunningTasks.cancel("Client connection closed")
+                if not self.longrunningTasks.done(): self.longrunningTasks.cancel("Client connection was refused")
                 _LOGGER.error("Home Assistant refused connection", exc_info=True)
+            except asyncio.exceptions.TimeoutError as exce:
+                _LOGGER.exception(exce)
             except asyncio.CancelledError:
-                _LOGGER.debug("Connect task has been cancelled")
+                _LOGGER.exception("Connect task has been cancelled")
                 if not self.longrunningTasks.done(): 
                     self.longrunningTasks.cancel("Connection task cancelled")
                 return
             except Exception as e:
-                _LOGGER.exception(f"Something went wrong in the client: {e}")
+                _LOGGER.exception(f"Something went wrong in the client: {e}; retrying")
                 self._websocket = None
                 await self.websocketCondition.trigger_all()
-                raise
+                continue
+            else:
+                continue
             finally:
+                await self._empty_message_queue()
+                _LOGGER.warning("Cleaning up websocket connection")
                 self._websocket = None
                 await self.websocketCondition.trigger_all()
         return
@@ -533,11 +558,11 @@ class HAclient:
             # except asyncio.CancelledError:
             #     pass
                         
-        _LOGGER.warning("Listener stopped")
-        if not self.commanderTask.done():
-            self.commanderTask.cancel()
-        async with self.websocketCondition:
-            self.websocketCondition.notify_all()
+        # _LOGGER.warning("Listener stopped")
+        # if not self.commanderTask.done():
+        #     self.commanderTask.cancel()
+        # async with self.websocketCondition:
+        #     self.websocketCondition.notify_all()
 
     async def __async_command(self):
         '''
@@ -579,8 +604,8 @@ class HAclient:
                 #     _LOGGER.error(f"Commander stopped due to connection closing")
                 #     _LOGGER.debug(exce)
                 #     break
-                # except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
-                #     break
+                except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
+                    break
 
         _LOGGER.error("Commander stopped")
 
@@ -1182,65 +1207,65 @@ class HAclient:
             coro_list = []
             self.updatingAll = True
             self.pssmScreen.start_batch_writing()
-            for entity in self._all_entities:
-                coro_list.extend(
-                    await self.client_update_elements(entity_id=entity,internalbatch=False))
-            if coro_list:
-                try:
-                    done, pending = await asyncio.wait(coro_list,timeout=timeout)
-                except Exception as exce:
-                    _LOGGER.error(exce)
-                    pass
-                
-                if pending:
-                    msgs = set()
-                    for task in pending:
-                        task : asyncio.Task
-                        coro = task.get_coro()
-                        vars = coro.cr_frame.f_locals
-                        if "self" in vars:
-                            elt = vars["self"]
-                            func = getattr(elt,"trigger_function",None)
-                        elif "element" in vars:
-                            elt = vars["element"]
-                            func = getattr(elt,"trigger_function",None)
-                        else:
-                            elt = getattr(vars,"args", [None])[0]
-                            func = getattr(vars,"func",None)
-                        
-                        if callable(func):
-                            if "HomeAssistantClient" in func.__module__:
-                                func = func.__name__
-                            else:
-                                func = f"{func.__module__}.{func.__name__}"
-                        
-                        if elt == None:
-                            msg = func
-                        else:
-                            msg = f"{elt}: {func}"
-                        
-                        if msg != None:
-                            msgs.add(msg)
-
-                    _LOGGER.warning(f"Element updates are taking a long time: {msgs}. Continuing in background.")
-                
-                    for task in done:
-                        task : asyncio.Task
-                        if task.exception() != None:
+            try:
+                for entity in self._all_entities:
+                    coro_list.extend(
+                        await self.client_update_elements(entity_id=entity,internalbatch=False))
+                if coro_list:
+                    try:
+                        done, pending = await asyncio.wait(coro_list,timeout=timeout)
+                    except Exception as exce:
+                        _LOGGER.error(exce)
+                        pass
+                    
+                    if pending:
+                        msgs = set()
+                        for task in pending:
+                            task : asyncio.Task
                             coro = task.get_coro()
-                            vars = getattr(coro.cr_frame,"f_locals", {})
+                            vars = coro.cr_frame.f_locals
                             if "self" in vars:
                                 elt = vars["self"]
+                                func = getattr(elt,"trigger_function",None)
                             elif "element" in vars:
                                 elt = vars["element"]
+                                func = getattr(elt,"trigger_function",None)
                             else:
                                 elt = getattr(vars,"args", [None])[0]
+                                func = getattr(vars,"func",None)
+                            
+                            if callable(func):
+                                if "HomeAssistantClient" in func.__module__:
+                                    func = func.__name__
+                                else:
+                                    func = f"{func.__module__}.{func.__name__}"
+                            
+                            if elt == None:
+                                msg = func
+                            else:
+                                msg = f"{elt}: {func}"
+                            
+                            if msg != None:
+                                msgs.add(msg)
 
-                            _LOGGER.warning(f"Element {elt} raised an error in it's trigger_function {getattr(coro,'__qualname__','unknown_function_name')}")
+                        _LOGGER.warning(f"Element updates are taking a long time: {msgs}. Continuing in background.")
                     
+                        for task in done:
+                            task : asyncio.Task
+                            if task.exception() != None:
+                                coro = task.get_coro()
+                                vars = getattr(coro.cr_frame,"f_locals", {})
+                                if "self" in vars:
+                                    elt = vars["self"]
+                                elif "element" in vars:
+                                    elt = vars["element"]
+                                else:
+                                    elt = getattr(vars,"args", [None])[0]
 
-            self.updatingAll = False
-            self.pssmScreen.stop_batch_writing()
+                                _LOGGER.warning(f"Element {elt} raised an error in it's trigger_function {getattr(coro,'__qualname__','unknown_function_name')}")
+            finally:
+                self.updatingAll = False
+                self.pssmScreen.stop_batch_writing()
             return
         else:
             try:
@@ -1282,9 +1307,10 @@ class HAclient:
                 return coro_list
             except FuncExceptions as exce:
                 msg = exce
-                _LOGGER.error(f"Caught error updating elements: {exce}")
+                _LOGGER.error(f"Caught error updating elements: {type(exce)}({exce})")
                 _LOGGER.debug(msg)
-                return []
+                raise
+                # return []
         
     async def __async_update_later(self, entity_id, element, wait_time=5):
         await asyncio.sleep(wait_time)
