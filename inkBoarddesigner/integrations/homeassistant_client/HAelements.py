@@ -4463,8 +4463,8 @@ class ClimateElement(HAelement, base.TileElement):
     def __init__(self, entity : EntityType, tile_layout : Union[PSSMLayoutString,Literal["horizontal","vertical","compact"]] = "compact",
                 foreground_color : ColorType = DEFAULT_FOREGROUND_COLOR, accent_color : ColorType = DEFAULT_ACCENT_COLOR,
                 element_properties : dict = {}, 
-                hvac_mode_colors : Union[dict,str] = "foreground", deselect_hvac_mode : Union[str,False] = "off", hide_hvac_modes : list[str] = [],
-                preset_colors : Union[dict,str] = "foreground", deselect_preset : Union[str,False] = "none", hide_presets : list[str] = [], 
+                hvac_mode_colors : Union[dict,str] = "foreground", hvac_mode_icons : dict[str,str] = {}, deselect_hvac_mode : Union[str,False] = "off", hide_hvac_modes : list[str] = [],
+                preset_colors : Union[dict,str] = "foreground", preset_icons : dict[str,str] = {}, deselect_preset : Union[str,False] = "none", hide_presets : list[str] = [], 
                 **kwargs):
 
         self.entity = entity
@@ -4502,12 +4502,15 @@ class ClimateElement(HAelement, base.TileElement):
 
         self.preset_colors = preset_colors
         self.hide_presets = hide_presets
-
         self.deselect_preset = deselect_preset
-        self.deselect_hvac_mode = deselect_hvac_mode
+        self._preset_icons = {}
+        self.preset_icons = preset_icons
 
         self.hvac_mode_colors = hvac_mode_colors
         self.hide_hvac_modes = hide_hvac_modes
+        self.deselect_hvac_mode = deselect_hvac_mode
+        self._hvac_mode_icons = {}
+        self.hvac_mode_icons = hvac_mode_icons
 
         self.__elements = {"state-tile": tile,
                             "thermostat": temp_count,
@@ -4621,6 +4624,18 @@ class ClimateElement(HAelement, base.TileElement):
         
         self._hvac_mode_colors = cols
         return
+    
+    @property
+    def hvac_mode_icons(self) -> dict[str,str]:
+        "Icons to use for various hvac modes"
+        return self._hvac_mode_icons
+
+    @hvac_mode_icons.setter
+    def hvac_mode_icons(self, value : dict):
+        for k, v in value.items():
+            if elt := self.HVACModeSelect.option_elements.get(k,None):
+                elt.update({"icon": v})
+        self._hvac_mode_icons = self._hvac_mode_icons | value
 
     @property
     def presetSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
@@ -4697,6 +4712,17 @@ class ClimateElement(HAelement, base.TileElement):
         
         self._preset_colors = cols
         return
+    
+    @property
+    def preset_icons(self) -> dict[str,str]:
+        return self._preset_icons
+    
+    @preset_icons.setter
+    def preset_icons(self, value : dict):
+        for k, v in value.items():
+            if elt := self.presetSelect.option_elements.get(k,None):
+                elt.update({"icon": v})
+        self._preset_icons = self._preset_icons | value
     #endregion
 
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggerDictType):
@@ -4760,13 +4786,15 @@ class ClimateElement(HAelement, base.TileElement):
         return
     
     def make_hvac_mode_selectors(self, modes):
+        
+        icon_set = icon_sets.HVAC_MODES_ICONS | self.hvac_mode_icons
         for mode in modes:
             if mode in self.HVACModeSelect.option_elements:
                 elt = self.HVACModeSelect.option_elements[mode]
             else:
-                icon = icon_sets.HVAC_MODES_ICONS.get(mode,"mdi:thermostat")
+                icon = icon_set.get(mode,"mdi:thermostat")
                 elt = base.Icon(icon)
-                self.HVACModeSelect.add_option(mode, elt)
+                self.HVACModeSelect.add_option(mode, elt, overwrite=True)
                 self.HVACModeSelect.add_elements(elt)
         
         self._hide_selectors(self.HVACModeSelect, self.hide_hvac_modes)
@@ -4805,13 +4833,14 @@ class ClimateElement(HAelement, base.TileElement):
     
     def make_preset_selectors(self, presets):
 
+        icon_set = icon_sets.CLIMATE_PRESET_ICONS | self.preset_icons
         for preset in presets:
             if preset in self.presetSelect.option_elements:
                 elt = self.presetSelect.option_elements[preset]
             else:
-                icon = icon_sets.CLIMATE_PRESET_ICONS.get(preset.lower(), icon_sets.CLIMATE_PRESET_ICONS["none"])
+                icon = icon_set.get(preset.lower(), icon_set["none"])
                 elt = base.Icon(icon)
-                self.presetSelect.add_option(preset, elt)
+                self.presetSelect.add_option(preset, elt, overwrite=True)
                 self.presetSelect.add_elements(elt)
         
         self._hide_selectors(self.presetSelect, self.hide_presets)
