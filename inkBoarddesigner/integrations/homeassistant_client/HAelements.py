@@ -2690,7 +2690,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
     @classproperty
     def tiles(cls):
-        return ("condition", "title", "weather-data")
+        return ("condition", "title", "weather-data","forecast")
 
     _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
@@ -2812,7 +2812,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
             forecast_properties.setdefault("time_format",self.time_format)
             forecast_properties.setdefault("foreground_color",'foreground')
             forecast_properties.setdefault("accent_color",'accent')
-            forecast_properties.setdefault("background_color",None)
+            forecast_properties.setdefault("background_color",'background')
 
             w_props : dict = forecast_properties.get("element_properties",{})
             w_props.setdefault("condition_icons", condition_icons)
@@ -2875,7 +2875,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         return self.__isForecast
 
     @property
-    def elements(self)-> MappingProxyType[Literal["condition","title","weather-data"],base.Element]:
+    def elements(self)-> MappingProxyType[Literal["condition","title","weather-data", "forecast"],base.Element]:
         return MappingProxyType(self.__elements)
 
     @property
@@ -3784,12 +3784,17 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         ##Idea  to have a unify_text_size is fun and all, but tbh let users just set the font_size in weather-data[data] properties if they want a single fontsize I think
         return img
 
-    async def async_generate(self, area=None, skipNonLayoutGen=False):
-        async with self._generatorLock:
-            if self._rebuild_layout:
+    async def pre_generate(self, area=None, skipNonLayoutGen=False):
+        if self._rebuild_layout:
                 self.build_layout()
+        return await super().pre_generate(area, skipNonLayoutGen)
 
-        return await super().async_generate(area, skipNonLayoutGen)
+    # async def async_generate(self, area=None, skipNonLayoutGen=False):
+    #     async with self._generatorLock:
+    #         if self._rebuild_layout:
+    #             self.build_layout()
+
+    #     return await super().async_generate(area, skipNonLayoutGen)
 
     def build_layout(self):
         
@@ -3887,6 +3892,10 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         await self.get_forecasts()
 
     async def get_forecasts(self):
+
+        if not self.HAclient.commanding:
+            await self.HAclient.websocketCondition.await_trigger()
+            await asyncio.sleep(1)
 
         if self.__forecastLock.locked():
             _LOGGER.debug(f"{self}: already getting forecasts, not adding a new call.")
