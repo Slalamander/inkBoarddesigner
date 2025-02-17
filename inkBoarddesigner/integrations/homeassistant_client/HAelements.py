@@ -787,7 +787,8 @@ class StateButton(HAelement, elements.Button):
                 newAttributes["suffix"] = suffix_val
 
         if newAttributes:
-            await self.async_update(newAttributes)
+            await self.async_update(newAttributes, updated=True)
+            # self._requestGenerate = True
 
         return
 
@@ -985,6 +986,7 @@ class EntityTile(_EntityLayout, elements.Tile):
         if trigger_dict["from_state"] == None:
             for elt  in [self._IconElement, self._TextElement, self._TitleElement]:
                 if elt.HAclient == None: elt._HAclient = self._HAclient
+                if elt.parentLayout != self: elt._parentLayout = self
 
         newAttributes = {}
         new_state = triggers.get_new_state(self,trigger_dict)
@@ -2690,7 +2692,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
     @classproperty
     def tiles(cls):
-        return ("condition", "title", "weather-data","forecast")
+        return ("condition", "title", "weather-data","forecast","forecast-popup")
 
     _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
@@ -2820,9 +2822,17 @@ class WeatherElement(_EntityLayout, base.TileElement):
             forecast_properties["element_properties"] = w_props
 
             self.__ForecastElement = WeatherForecast(forecast_properties["entity"])
+
+            print("Fix forecast outline not being set correctly (must be passed to popup)")
+            ##Maybe best to add it to the element itself. forecast elt does have an outline color property
+            ##But that is the alternating one like the background color etc.
+            ##May be easiest to add a forecast-popup in the elements lol.
             self.__ForecastPopup = base.Popup([["?", (self.__ForecastElement,"?")]])
             self.__elements["forecast"] = self.__ForecastElement
+            self.__elements["forecast-popup"] = self.__ForecastPopup
+
             set_element_properties["forecast"] = forecast_properties
+            set_element_properties["forecast-popup"] = element_properties.get("forecast-popup",{})
 
             self.forecast_update = forecast_update
             self.popup_properties = popup_properties
@@ -3358,8 +3368,9 @@ class WeatherElement(_EntityLayout, base.TileElement):
         ##Seems to work fine even if the forecast is on screen?
         ##Then don't log the warning. Just put it in the docstring.
 
-        if self.forecast_update == "on-open":
+        if self.forecast_update == "on-open" or self.__ForecastElement._force_get_forecasts:
             await self.__ForecastElement.get_forecasts()
+            # self.__ForecastElement.imgData.show()
         await self.__ForecastPopup.async_show()
 
 class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
@@ -3435,9 +3446,10 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         self._rebuild_layout = True
 
         self.__forecastLock = asyncio.Lock()
-        self.__force_get_forecasts = False
+        self._force_get_forecasts = False
         "Indicates the element should get the forecast data during the current or next update cycle"
 
+        self.__elements : dict[int, WeatherElement] = {}
         self._element_properties = {}
         self._background_colorList = [None]
         self._foreground_colorList = [None]
@@ -3454,8 +3466,6 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
         self.time_format = time_format
         self.forecast_data = forecast_data
-
-        self.__elements : dict[int, WeatherElement] = {}
 
         HAelement.__init__(self)
         base._IntervalUpdate.__init__(self,False,False,False, update_every=None, update_interval=update_interval)
@@ -3500,7 +3510,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         HAelement.entity.fset(self, entity_id)
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
     
     @property
     def elements(self) -> dict[int,WeatherElement]:
@@ -3572,7 +3582,8 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
     
     @element_properties.setter
     def element_properties(self, value : dict[str, dict]):
-        self._element_properties.update(value)
+        self._element_properties = tools.update_nested_dict(value, self._element_properties)
+        # self._element_properties.update(value)
         self._reparse_colors = True
 
     def __make_color_list(self, value, color_property):
@@ -3668,7 +3679,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__forecast_type = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def num_forecasts(self) -> int:
@@ -3683,7 +3694,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         
         self.__num_forecasts = value
         self._rebuild_layout = True
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def skip_forecasts(self) -> Union[int,Literal["now"]]:
@@ -3706,7 +3717,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__skip_forecasts = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def time_format(self) -> str:
@@ -3724,7 +3735,9 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
         self._time_format = value
         self._reparse_colors = True
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
+        for elt in self.elements.values():
+            elt.update({"time_format": value})
 
     @property
     def forecast_data(self) -> Union[Literal["datetime"], WeatherData]:
@@ -3748,7 +3761,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__forecast_data = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
         self._reparse_colors = True
 
     @property
@@ -3772,7 +3785,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
     async def async_update(self, updateAttributes={}, skipGen=False, forceGen: bool = False, skipPrint=False, reprintOnTop=False, updated: bool = False) -> bool:
         attr_updated = await super().async_update(updateAttributes, skipGen=True, skipPrint=True)
-        if self.HAclient.connection and self.__force_get_forecasts:
+        if self.HAclient.connection and self._force_get_forecasts:
             await asyncio.wait([self.get_forecasts()],timeout=0.25)
         return await super().async_update({}, skipGen, forceGen, skipPrint, reprintOnTop, updated= (updated or attr_updated))
 
@@ -3915,7 +3928,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         if "success" in result and not result["success"]:
             return
         else:
-            self.__force_get_forecasts = False
+            self._force_get_forecasts = False
 
         response = result["result"]["response"]
 
