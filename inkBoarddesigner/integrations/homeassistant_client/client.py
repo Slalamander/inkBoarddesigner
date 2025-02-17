@@ -556,7 +556,7 @@ class HAclient:
         '''
         _LOGGER.debug("Starting Listener")
         async with self._listenerLock:
-            # try:
+            try:
                 async for message in self.websocket: #@IgnoreException
                     message = json.loads(message)
                     id = message["id"]
@@ -582,8 +582,11 @@ class HAclient:
             # except websockets.exceptions.ConnectionClosedError as exce:
             #     _LOGGER.error(f"Listener stopped due to connection closing")
             #     _LOGGER.debug(exce)
-            # except asyncio.CancelledError:
-            #     pass
+            except asyncio.CancelledError:
+                _LOGGER.info("homeassistant listener was cancelled")
+                return
+            finally:
+                _LOGGER.info("homeassistant listener has stopped")
                         
         # _LOGGER.warning("Listener stopped")
         # if not self.commanderTask.done():
