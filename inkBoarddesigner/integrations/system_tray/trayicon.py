@@ -152,9 +152,8 @@ class TrayIcon(pystray.Icon):
 
     def _handle_icon_click(self, item):
         "Minimises the window. Must be called in the main thread"
-        # _LOGGER.debug(f"Minimising window via {item}")
 
-        print(f"window is hidden: {self.hidden}")
+        _LOGGER.debug(f"inkBoard window is hidden: {self.hidden}")
         if self._toolwindow and not self._focusouttask.done():
             ##Two options:
             ##- Hide the window on a second click (means just returning here without the two calls to the window)
