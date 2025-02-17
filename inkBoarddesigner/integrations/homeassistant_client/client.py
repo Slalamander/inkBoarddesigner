@@ -19,6 +19,7 @@ from inkBoard.constants import FuncExceptions
 from inkBoard.platforms import FEATURES
 from inkBoard.helpers import ParsedAction
 from inkBoard.exceptions import ShorthandNotFound
+from inkBoard.decorators import elementactionwrapper
 
 from PythonScreenStackManager import tools, elements
 from PythonScreenStackManager.tools import DummyTask
@@ -91,7 +92,8 @@ class HAclient:
         screen: instance of PSSMScreen that handles the printing of layouts and elements etc
     '''
     
-    def __init__(self, screen: screen.PSSMScreen, core: "CORE", ping_interval:int = DEFAULT_PING_INTERVAL):
+    def __init__(self, screen: screen.PSSMScreen, core: "CORE",
+                ping_interval:int = DEFAULT_PING_INTERVAL):
 
         self._websocket: ws_client.ClientConnection
         self._pssmScreen = screen
@@ -107,6 +109,11 @@ class HAclient:
         self._core = core
 
         self.hass_data = core.config.configuration["home_assistant"]
+        ##What to configure:
+        ##Will eventually allow not using key and url
+        ##home_networks
+        ##trusted_networks
+        ##internal_url
 
         self._all_entities, self._all_service_actions = _gather_entities_and_actions(core)
 
@@ -125,6 +132,7 @@ class HAclient:
         self.commanderTask : asyncio.Task = DummyTask()
         self.pingpongTask : asyncio.Task = DummyTask()
         self._longrunningTasks: asyncio.Task = DummyTask()
+        self.connectionTask : asyncio.Task = DummyTask()
         self.reconnect_task : asyncio.Task = DummyTask()
 
         self._callback_queues : dict["id", asyncio.Queue]= {} ##Dict with keys corresponding to message id's, values being asyncio events
@@ -236,20 +244,30 @@ class HAclient:
     #endregion
 
     #region [websocket stuff]
-    def reconnect_client(self, initWait=5, *args, **kwargs):
+
+    @elementactionwrapper
+    async def reconnect_client(self, initWait=5, *args, **kwargs):
         """Starts the task to reconnect to the client, and periodically retry doing so."""
         # self.reconnect_task = self.loop.create_task(self.__async__reconnect(initWait))
         
         ##Handling disconnects due to wifi etc. or just in general:
         ##Watch if wifi disconnects, wait for reconnect
         ##on reconnect -> immediately restart connection task (also watch if the ssid changes)
+        # asyncio.set_event_loop(self.pssmScreen.mainLoop)
         if not self.connectionTask.done():
-            self.connectionTask.cancel("Starting reconnect logic")
-        asyncio.create_task(self.connect_client())
+            self.connectionTask.cancel("Reconnect requested")
+            await self.connectionTask
+            # await self.websocketCondition.await_trigger()
+        
+        self.pssmScreen.create_task(self.connect_client())
 
-    
+    @elementactionwrapper
     async def connect_client(self):
         """Starts the function that connects to Home Assistant""" 
+        if not self.connectionTask.done():
+            _LOGGER.error("Client is already connected to Home Assistant")
+            return
+
         self.loop = asyncio.get_event_loop()
         self.connectionTask = asyncio.create_task(self.__async__connect())
         async with self.websocketCondition:
@@ -257,10 +275,13 @@ class HAclient:
         
         return
 
+    @elementactionwrapper
     async def disconnect_client(self):
         "Disconnects from the Home Assistant client."
-        if self.websocket:
-            await self.websocket.close(reason="Disconnect called")
+        # if self.websocket:
+            # await self.websocket.close(reason="Disconnect called")
+        if not self.connectionTask.done():
+            self.connectionTask.cancel("Disconnect Requested")
 
         await self.websocketCondition.trigger_all()
 
@@ -444,7 +465,7 @@ class HAclient:
             except asyncio.exceptions.TimeoutError as exce:
                 _LOGGER.exception(exce)
             except asyncio.CancelledError:
-                _LOGGER.exception("Connect task has been cancelled")
+                _LOGGER.error("Home Assistant Connect task has been cancelled")
                 if not self._longrunningTasks.done(): 
                     self._longrunningTasks.cancel("Connection task cancelled")
                 return
