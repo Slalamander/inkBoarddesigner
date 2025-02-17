@@ -55,7 +55,7 @@ def run_designer(args):
     from inkBoard import logging as ib_logging
 
     ib_logging.init_logging()
-    debug = const.DEBUG
+    debug = const.DEBUGGING
     # debug = False
 
     try:

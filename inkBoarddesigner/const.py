@@ -3,7 +3,7 @@ from pathlib import Path
 
 import ttkbootstrap as ttk
 
-from inkBoard.constants import INKBOARD_COLORS, ARGUMENT_CONFIG, DEBUG
+from inkBoard.constants import INKBOARD_COLORS, ARGUMENT_CONFIG, DEBUGGING
 from PythonScreenStackManager.devices.const import CANVASNAME
 
 PSSM_FOLDER = Path(pkgutil.get_loader("PythonScreenStackManager").get_filename()).parent
