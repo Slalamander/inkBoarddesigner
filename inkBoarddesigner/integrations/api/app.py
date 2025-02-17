@@ -422,3 +422,5 @@ class APICoordinator(tornado.web.Application):
         conf = self.device.backlight.get_feature_state()
         return conf
     
+    ##Add function for screen state (to get i.e. if a batch is running, top element in stack etc.)
+    
