@@ -706,6 +706,23 @@ class HAclient:
                 ##Picking the correct url will happen in the connect function though
                 pass
 
+    async def __cleanup_websocket(self):
+        _LOGGER.warning("Cleaning up websocket connection tasks")
+        if not self.listenerTask.done(): 
+            self.listenerTask.cancel()
+        if not self.commanderTask.done():
+            self.commanderTask.cancel()
+        
+        if not self._longrunningTasks.done():
+            _LOGGER.info(f'Listner is {"done" if self.listenerTask.done() else "not done"}')
+            _LOGGER.info(f'Commander is {"done" if self.commanderTask.done() else "not done"}')
+            await self._longrunningTasks
+        await self._empty_message_queue()
+
+        assert not self.listening and not self.commanding, "Cleanup did not result in the listener and/or commander becoming available"
+        _LOGGER.warning("websocket connection tasks cleaned up")
+
+
     async def _empty_message_queue(self):
         """
         Empties the queue with messages to be send to the commander, to prevent any service-actions from being performed on reconnect
