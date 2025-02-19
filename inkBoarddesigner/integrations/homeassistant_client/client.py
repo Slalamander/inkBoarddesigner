@@ -483,8 +483,10 @@ class HAclient:
             finally:
                 if not self._longrunningTasks.done(): 
                     self._longrunningTasks.cancel("Handling websocket cleanup")
-                await self._empty_message_queue()
-                _LOGGER.warning("Cleaning up websocket connection")
+                
+                with suppress(Exception):
+                    await self.__cleanup_websocket()
+                
                 self._websocket = None
                 await self.websocketCondition.trigger_all()
         return
