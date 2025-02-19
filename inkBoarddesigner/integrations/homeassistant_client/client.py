@@ -6,6 +6,7 @@ from datetime import datetime
 import logging
 from typing import Union, Callable, TYPE_CHECKING, TypedDict, Optional, Literal, TypeVar, Any, Coroutine, Sequence
 from types import MappingProxyType
+from contextlib import suppress
 
 import websockets
 from websockets import protocol as ws_protocol
@@ -319,7 +320,8 @@ class HAclient:
         await self.websocketCondition.trigger_all()
 
         async for websocket in ws_client.connect(uri, additional_headers=auth_header, **connect_params):
-            _LOGGER.debug("Setting up websocket connection to Home Assistant")  
+            _LOGGER.info("Setting up websocket connection to Home Assistant")  
+            assert not self.listening and not self.commanding, "Trying to start websocket connection without the listener and commander being available"
             try:                
                 self._websocket = websocket
                 await self.websocketCondition.trigger_all()
@@ -342,6 +344,7 @@ class HAclient:
                 
                 if not HAconf_res["success"]:
                     _LOGGER.error("Something went wrong getting the server's configuration")
+                    raise ConnectionRefusedError
                     continue
 
                 while HAconf_res["result"].get("state", None) != "RUNNING":
@@ -468,6 +471,7 @@ class HAclient:
                 _LOGGER.error("Home Assistant refused connection", exc_info=True)
             except asyncio.exceptions.TimeoutError as exce:
                 _LOGGER.exception(exce)
+                continue
             except asyncio.CancelledError:
                 _LOGGER.error("Home Assistant Connect task has been cancelled")
                 if not self._longrunningTasks.done(): 
@@ -475,8 +479,6 @@ class HAclient:
                 return
             except Exception as e:
                 _LOGGER.exception(f"Something went wrong in the client: {e}; retrying")
-                self._websocket = None
-                await self.websocketCondition.trigger_all()
                 continue
             else:
                 continue
@@ -589,8 +591,9 @@ class HAclient:
             #     _LOGGER.error(f"Listener stopped due to connection closing")
             #     _LOGGER.debug(exce)
             except asyncio.CancelledError:
-                _LOGGER.info("homeassistant listener was cancelled")
-                return
+                _LOGGER.warning("homeassistant listener was cancelled")
+                raise
+                # return
             finally:
                 _LOGGER.info("homeassistant listener has stopped")
                         
@@ -641,6 +644,8 @@ class HAclient:
                 #     _LOGGER.debug(exce)
                 #     break
                 except (asyncio.CancelledError, asyncio.exceptions.CancelledError):
+                    _LOGGER.warning("Commander was cancelled")
+                    raise
                     break
 
         _LOGGER.error("Commander stopped")
@@ -1600,8 +1605,7 @@ class dummyClient:
         
         except websockets.exceptions.ConnectionClosedError as exce:
             _LOGGER.error(f"Websocket connection closed, calling reconnect {exce}")
-            self.__connection = False
-            self.reconnect_client()
+            raise
                         
         _LOGGER.warning("Listener stopped")
 
