@@ -170,7 +170,7 @@ class HAclient:
     @property
     def connection(self) -> bool:
         "True if the client websocket is open."
-        if self.websocket == None:
+        if self.websocket is None:
             return False
         else:
             return self.websocket.state is ws_protocol.State.OPEN
@@ -178,7 +178,7 @@ class HAclient:
     @property
     def clientState(self) -> Literal["disconnected", "connecting", "connected"]:
         "Returns the state the client is currently in"
-        if self.websocket == None or self.connectionTask.done():
+        if self.websocket is None or self.connectionTask.done():
             return "disconnected"
         else:
             # if self.connection:
@@ -259,9 +259,8 @@ class HAclient:
         if not self.connectionTask.done():
             self.connectionTask.cancel("Reconnect requested")
             await self.connectionTask
-            # await self.websocketCondition.await_trigger()
-        
-        self.pssmScreen.create_task(self.connect_client())
+
+        CORE.create_task(self.connect_client())
 
     @elementactionwrapper
     async def connect_client(self):
@@ -393,7 +392,7 @@ class HAclient:
                     coro_list.append(self.client_update_elements(update_all=True, timeout=timeout))
                     called_functions = [self.client_update_elements]
                     
-                    _LOGGER.debug(f"Updating functions in function dict") #{self.functionDict}")
+                    _LOGGER.debug("Updating functions in function dict") #{self.functionDict}")
                     for func_entity in self.functionDict:
                         if func_entity not in self.stateDict:
                             _LOGGER.warning(f"Entity {func_entity} is not found in the acquired entity states. Not calling its functions.")
@@ -422,7 +421,7 @@ class HAclient:
                         
                         for task in done:
                             task : asyncio.Task
-                            if task.exception() != None:
+                            if task.exception() is not None:
                                 coro = task.get_coro()
                                 _LOGGER.warning(f"{coro.__qualname__} raised an error while connecting: {task.exception()}")
 
@@ -473,7 +472,7 @@ class HAclient:
                 _LOGGER.exception(exce)
                 continue
             except asyncio.CancelledError:
-                _LOGGER.error("Home Assistant Connect task has been cancelled")
+                _LOGGER.exception("Home Assistant Connect task has been cancelled")
                 if not self._longrunningTasks.done(): 
                     self._longrunningTasks.cancel("Connection task cancelled")
                 return
@@ -481,6 +480,7 @@ class HAclient:
                 _LOGGER.exception(f"Something went wrong in the client: {e}; retrying")
                 continue
             else:
+                _LOGGER.warning("Nothing went wrong connecting, but the loop has ended")
                 continue
             finally:
                 if not self._longrunningTasks.done(): 
@@ -491,6 +491,9 @@ class HAclient:
                 
                 self._websocket = None
                 await self.websocketCondition.trigger_all()
+                _LOGGER.info("Going into new websocket cycle")
+        
+        _LOGGER.warning("homeassistant connection task function has fully ended")
         return
 
     async def __async__reconnect(self, init_Wait: float = 15, max_Attempts=0, wait_Increase: int =2, wait_Max: float = 300):
@@ -519,7 +522,7 @@ class HAclient:
         while not self.connection:
             _LOGGER.debug("Trying to get IP")
             ip = await self.device.network.get_ip_async()
-            if ip == None:
+            if ip is None:
                 _LOGGER.info("Got no IP adress, Trying to get SSID")
                 ssid = await self.device.network.get_SSID_async()
                 if ssid == "Wifi off":
@@ -529,7 +532,7 @@ class HAclient:
                     _LOGGER.info(f"Got network {ssid}")
 
                 ip = await self.device.network.get_ip_async()
-                if ip == None:
+                if ip is None:
                     _LOGGER.error("Still got no IP adress, stopping reconnect")
                     return
             else:
@@ -614,7 +617,7 @@ class HAclient:
 
             while self.connection:
                 try:
-                    _LOGGER.verbose(f"Waiting for message from commander queue")
+                    _LOGGER.verbose("Waiting for message from commander queue")
                     cmd = await self.messageQueue.get()
 
                     if "id" not in cmd:
@@ -630,7 +633,7 @@ class HAclient:
                                 self._callback_queues[new_id] = self._callback_queues.pop(msg_id)
 
                     send = await asyncio.wait_for(self.websocket.send(json.dumps(cmd)), timeout=10) #@IgnoreException
-                    _LOGGER.debug(f"Command send")
+                    _LOGGER.debug(f"Command {cmd['id']} send")
                     _LOGGER.verbose(cmd)
                 except TimeoutError:
                     if cmd["type"] == "call_service":
@@ -675,11 +678,9 @@ class HAclient:
                 pongs_missed += 1
                 _LOGGER.error(f"Did not receive pong back from Home Assistant within {pong_timeout} seconds, missed {pongs_missed} pongs in a row")
                 if pongs_missed >= missed_max: 
-                    self.__connection = False
                     break
             # except websockets.exceptions.ConnectionClosedError as exce:
             #     _LOGGER.error(f"Ping Pong errored due to connection closing: {exce}")
-            #     self.__connection = False
             #     break
 
             _LOGGER.debug(f"Received pong from ping id {ping_id}")
@@ -895,7 +896,7 @@ class HAclient:
             _LOGGER.debug(f"Updating {element} entity from {old_entity} to {new_entity}")
             if old_entity in self.elementDict:
                 if element in self.elementDict[old_entity]:
-                    _LOGGER.debug(f"Removing {element} from {old_entity}")
+                    _LOGGER.verbose(f"Removing {element} from {old_entity}")
                     self._elementDict[old_entity].remove(element)
 
         if new_entity in self.elementDict:                       
@@ -987,7 +988,7 @@ class HAclient:
         coro_list = []
         func_list = []
         if updated_entity in self.functionDict:
-            _LOGGER.debug(f"Updating {updated_entity} functions: {self.functionDict[updated_entity]}")
+            _LOGGER.verbose(f"Updating {updated_entity} functions: {self.functionDict[updated_entity]}")
             for (func, __) in self.functionDict[updated_entity]:
                 if not callable(func):
                     _LOGGER.warning(f"A function in the function dict for entity {updated_entity} is not a callable function")
@@ -998,7 +999,7 @@ class HAclient:
         if self.connection and self.authenthicated:
             if not self.updatingAll:
                 ent_elts = self.elementDict.get(updated_entity,[])
-                _LOGGER.debug(f"Updating {updated_entity} elements: {ent_elts}")
+                _LOGGER.verbose(f"Updating {updated_entity} elements: {ent_elts}")
                 for element in ent_elts:
                     element : HAelement
                     if not hasattr(element,"trigger_function"):
@@ -1448,7 +1449,6 @@ class dummyClient:
         self.__last_id = 0
         self.stateDict = {}
 
-        self.__connection = False
         self.listenerTask = DummyTask()
         self.commanderTask = DummyTask()
         self.pingpongTask = DummyTask()
@@ -1502,7 +1502,6 @@ class dummyClient:
         try:
             self._websocket = await websockets.connect(uri)           
             await self.websocket.recv()
-            self.__connection = True
             await self.websocket.send(json.dumps(auth_header))
             auth_res = json.loads(await self.websocket.recv())
             if auth_res["type"] == "auth_ok":
@@ -1577,7 +1576,7 @@ class dummyClient:
             async for message in self.websocket:
                 message = json.loads(message)
                 id = message["id"]
-                _LOGGER.verbose(f"Received message {id}")
+                _LOGGER.verbose(f"Received message with id {id}")
                 _LOGGER.verbose(message)
                 if id in self._callback_queues:
                     ##Maybe have a seperate queue for service responses and one for pings/pongs.
@@ -1587,7 +1586,7 @@ class dummyClient:
                     # attempt to add an item
                         queue.put_nowait(message)
                     except asyncio.QueueFull:
-                        _LOGGER.debug(f"Message id {id} has already queued a response")
+                        _LOGGER.warning(f"Message id {id} has already queued a response")
                 
                 if message.get("type") == "event":
                     # [ ]: remove this try once the illegal instruction error is fixed
@@ -1598,7 +1597,6 @@ class dummyClient:
                 elif message.get("type") == "result":
                     if not message.get("succes", True):
                         _LOGGER.warning("Unsuccesful request: {}".format(message))
-                        self.update_Icon()
                 ##Catch all other message types that are not pongs
                 elif message.get("type") != "pong":
                     _LOGGER.warning("Message seems unfamiliar: {}".format(message))
