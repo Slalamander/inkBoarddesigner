@@ -3267,7 +3267,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         if update_props:
             await self.async_update(update_props, skipGen=True, skipPrint=True)
 
-        _LOGGER.debug("Weather: " + str(new_state["state"]))
+        _LOGGER.verbose(f"{self}: Weather is " + str(new_state["state"]))
 
         
         ##This is for support for forecasts.
@@ -3276,7 +3276,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
             nighttime = False
             if "is_daytime" in new_state["attributes"]:
                 nighttime = not new_state["attributes"]["is_daytime"]
-            elif self.HAclient != None:
+            elif self.HAclient is not None:
                 sunstate = self.HAclient.stateDict.get("sun.sun", {"state": None})
                 nighttime = True if sunstate["state"] == "below_horizon" else False
             
