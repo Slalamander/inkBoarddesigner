@@ -651,8 +651,8 @@ class HAclient:
                     _LOGGER.error(f"Exception occured in commander while sending command {cmd}: {exce}")
                 except (asyncio.CancelledError, asyncio.exceptions.CancelledError) as exce:
                     _LOGGER.warning(f"Commander was cancelled: {exce}")
-                    raise
-                    break
+                    # raise
+                    return
 
         _LOGGER.error("Commander stopped")
 
