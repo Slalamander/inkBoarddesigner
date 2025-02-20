@@ -320,7 +320,9 @@ class HAclient:
 
         async for websocket in ws_client.connect(uri, additional_headers=auth_header, **connect_params):
             _LOGGER.info("Setting up websocket connection to Home Assistant")  
-            assert not self.listening and not self.commanding, "Trying to start websocket connection without the listener and commander being available"
+            assert not self.listening and not self.commanding, f"""Trying to start websocket connection without the listener and commander being available
+                                            Listener lock is {'released' if self.listening else 'not released'}. Task is {'done' if self.listenerTask.done() else 'not done'}
+                                            Commander lock is {'released' if self.commanding else 'not released'}. Task is {'done' if self.commanderTask.done() else 'not done'}"""
             try:                
                 self._websocket = websocket
                 await self.websocketCondition.trigger_all()
@@ -571,7 +573,7 @@ class HAclient:
                 async for message in self.websocket: #@IgnoreException
                     message = json.loads(message)
                     id = message["id"]
-                    _LOGGER.debug(f"Received message {id}")
+                    _LOGGER.debug(f"Received message with id {id}")
                     _LOGGER.verbose(message)
                     if id in self._callback_queues:
                         queue = self._callback_queues[id]
@@ -595,6 +597,10 @@ class HAclient:
             #     _LOGGER.debug(exce)
             except asyncio.CancelledError as exce:
                 _LOGGER.warning(f"homeassistant listener was cancelled: {exce}")
+                ##Maybe raise this as a different error? Not sure
+                return
+            except Exception as exce:
+                _LOGGER.error(f"Listener has stopped due to to {exce}")
                 raise
                 # return
             finally:
@@ -613,6 +619,7 @@ class HAclient:
         _LOGGER.info("Starting Commander")
         async with self._commanderLock:
             if not self.messageQueue.empty():
+                _LOGGER.info("Emptying message queue")
                 await self._empty_message_queue()
 
             while self.connection:
