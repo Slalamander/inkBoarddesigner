@@ -725,27 +725,29 @@ class HAclient:
             if not self.commanderTask.done():
                 self.commanderTask.cancel("Doing websocket cleanup")
 
-        _LOGGER.info("Cancelled listener and commander tasks")
-        
-        if not self._longrunningTasks.done():
-            _LOGGER.info(f'Listner is {"done" if self.listenerTask.done() else "not done"}')
-            _LOGGER.info(f'Commander is {"done" if self.commanderTask.done() else "not done"}')
-            await self._longrunningTasks
+            _LOGGER.info("Cancelled listener and commander tasks")
+            
+            if not self._longrunningTasks.done():
+                _LOGGER.info(f'Listner is {"done" if self.listenerTask.done() else "not done"}')
+                _LOGGER.info(f'Commander is {"done" if self.commanderTask.done() else "not done"}')
+                await self._longrunningTasks
 
-        _LOGGER.info("Emptying message queue")
-        await self._empty_message_queue()
+            _LOGGER.info("Emptying message queue")
+            await self._empty_message_queue()
 
-        try:
-            _LOGGER.info("Ensuring everything is cleaned up")
-            assert not self.listening and not self.commanding, "Cleanup did not result in the listener and/or commander becoming available"
-        except AssertionError as exce:
-            _LOGGER.error(exce)
-            if self.listening:
-                _LOGGER.warning(f"Listener lock is not released. Task is {'done' if self.listenerTask.done() else 'not done'}")
-            if self.commanding:
-                _LOGGER.warning(f"Commander lock is not released. Task is {'done' if self.commanderTask.done() else 'not done'}")
-        else:
-            _LOGGER.warning("websocket connection tasks cleaned up")
+            try:
+                _LOGGER.info("Ensuring everything is cleaned up")
+                assert not self.listening and not self.commanding, "Cleanup did not result in the listener and/or commander becoming available"
+            except AssertionError as exce:
+                _LOGGER.error(exce)
+                if self.listening:
+                    _LOGGER.warning(f"Listener lock is not released. Task is {'done' if self.listenerTask.done() else 'not done'}")
+                if self.commanding:
+                    _LOGGER.warning(f"Commander lock is not released. Task is {'done' if self.commanderTask.done() else 'not done'}")
+            else:
+                _LOGGER.warning("websocket connection tasks cleaned up")
+        except Exception as exce:
+            _LOGGER.exception(f"Unable to properly cleanup websocket: {exce}")
 
 
     async def _empty_message_queue(self):
