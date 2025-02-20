@@ -718,11 +718,12 @@ class HAclient:
                 pass
 
     async def __cleanup_websocket(self):
-        _LOGGER.warning("Cleaning up websocket connection tasks")
-        if not self.listenerTask.done("Doing websocket cleanup"): 
-            self.listenerTask.cancel()
-        if not self.commanderTask.done():
-            self.commanderTask.cancel("Doing websocket cleanup")
+        try:
+            _LOGGER.warning("Cleaning up websocket connection tasks")
+            if not self.listenerTask.done(): 
+                self.listenerTask.cancel("Doing websocket cleanup")
+            if not self.commanderTask.done():
+                self.commanderTask.cancel("Doing websocket cleanup")
 
         _LOGGER.info("Cancelled listener and commander tasks")
         
