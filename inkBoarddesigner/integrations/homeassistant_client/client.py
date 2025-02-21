@@ -721,9 +721,13 @@ class HAclient:
         try:
             _LOGGER.warning("Cleaning up websocket connection tasks")
             if not self.listenerTask.done(): 
+                _LOGGER.info("Cancelling listener")
                 self.listenerTask.cancel("Doing websocket cleanup")
+                await self.listenerTask
             if not self.commanderTask.done():
+                _LOGGER.info("Cancelling Commander")
                 self.commanderTask.cancel("Doing websocket cleanup")
+                await self.commanderTask
 
             _LOGGER.info("Cancelled listener and commander tasks")
             
