@@ -5,8 +5,11 @@ Elements that show info regarding the client, and not to any entities per say
 import asyncio
 from typing import TYPE_CHECKING
 
+from inkBoard import CORE
+
 from PythonScreenStackManager import tools
-from PythonScreenStackManager.elements import baseelements as base, menuelements as menu
+from PythonScreenStackManager.elements import baseelements as base, menuelements as menu, layoutelements as layouts
+from PythonScreenStackManager.pssm.decorators import elementactionwrapper
 from PythonScreenStackManager.tools import DummyTask
 
 if TYPE_CHECKING:
@@ -16,7 +19,10 @@ if TYPE_CHECKING:
 class ClientElement(base.Icon):
     def __init__(self, icon = "home-assistant", tap_action = "show_client_popup", **kwargs):
         self._HAclient = None
+        
         self._monitorTask : asyncio.Task = DummyTask()
+        self._iconTask : asyncio.Task = DummyTask()
+
 
         if tap_action == "show_client_popup":
             tap_action = {"action": "element:show-popup", "element_id": "home-assistant-menu"}#"data": {"popupId": "home-assistant-menu"}}
@@ -31,6 +37,7 @@ class ClientElement(base.Icon):
     def on_add(self):
         loop = self.parentPSSMScreen.mainLoop
         self._monitorTask = loop.create_task(self._monitor_client_state())
+        return
 
     async def _monitor_client_state(self):
         "Async function that awaits the device conditions notifications and updates the element when needed"
@@ -38,7 +45,9 @@ class ClientElement(base.Icon):
         self.HAclient ##Is this still None? -> should not be the case
         condition : asyncio.Condition = self.HAclient.websocketCondition
         testVal = getattr(self.HAclient,"clientState")
-        asyncio.create_task(self.update_icon())
+
+        if not self._iconTask.done(): self._iconTask.cancel()
+        self._iconTask = asyncio.create_task(self.update_icon())
 
         while self.onScreen:
             try:
@@ -46,14 +55,16 @@ class ClientElement(base.Icon):
                     await condition.wait_for(lambda : testVal != self.HAclient.clientState)
                     testVal = self.HAclient.clientState
 
-                    asyncio.create_task(self.update_icon())
+                    if not self._iconTask.done(): self._iconTask.cancel()
+                    self._iconTask = asyncio.create_task(self.update_icon())
             except asyncio.CancelledError:
                 break
 
     async def update_icon(self):
         testVal = self.HAclient.clientState
         if testVal == "connected":
-            badge = None #"mdi:check-bold" ##Will change this, to show a checkmark for a second or so before dissapearing
+            badge = None 
+            ##Will change this, to show a checkmark for a second or so before dissapearing
             ##Keep in mind, that task should also be cancelled if still running
         elif testVal == "connecting":
             badge = "mdi:autorenew"
@@ -61,7 +72,11 @@ class ClientElement(base.Icon):
             badge = "mdi:close-thick"
 
         if testVal == "connected" and self.badge_icon != None:
-            await self.async_update({"badge_icon": "mdi:check-bold"})
+            if self.screen.isBatch:
+                self.badge_icon = "mdi:check-bold"
+                # self.update({"badge_icon": "mdi:check-bold"})
+            else:
+                await self.async_update({"badge_icon": "mdi:check-bold"})
             await asyncio.sleep(3)
 
         await self.async_update({"badge_icon": badge})
@@ -81,7 +96,7 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
         buttonSettings["text_x_position"] = "center"
 
         self.__connectButton = base.Button("Connect", **buttonSettings)
-        self.__reconnectButton = base.Button("Reconnect", **buttonSettings)
+        self.__reconnectButton = base.Button("(Re)connect", **buttonSettings)
         self.__disconnectButton = base.Button("Disconnect", **buttonSettings)
 
         ##No background means badge doesn't show --> fix that
@@ -114,9 +129,12 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
 
     def _client_set(self):
         "Called after the element's Client has been set"
-        self.__connectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.connect_client)
-        self.__reconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.reconnect_client)
-        self.__disconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.disconnect_client)
+        # self.__connectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.connect_client)
+        # self.__reconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.reconnect_client)
+        # self.__disconnectButton.tap_action = tools.wrap_to_tap_action(self.HAclient.disconnect_client)
+        self.__connectButton.tap_action = self.HAclient.connect_client
+        self.__reconnectButton.tap_action = self.HAclient.reconnect_client
+        self.__disconnectButton.tap_action = self.HAclient.disconnect_client
         asyncio.create_task(self.__clientElt.update_icon())
 
     def build_menu(self):
@@ -125,11 +143,11 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
         h = 50
         h_margin = 5
         layout = [
-            [h, (None,m), (self.__clientElt, "r"), (None,m), (self.__titleButton,"?")],
+            [h, (None,m), (self.__clientElt, "r"), (None,m), (self.__titleButton,"?"), (base.Icon("mdi:bug", icon_color = "homeassistant", tap_action = self.show_debug_menu),"r")],
             [h_margin],
             [h, (None,m), (self.__integrationIcon, "r"), (None,m), (self.__integrationButton,"?")],
             [h_margin],
-            ["?", (self.__reconnectButton,"?"), (self.__connectButton,"?"), (self.__disconnectButton,"?")]
+            ["?", (self.__reconnectButton,"?"), (self.__disconnectButton,"?")]
         ]
         
         self.menuLayout = base.Layout(layout)
@@ -183,3 +201,32 @@ class HomeAssistantMenu(menu.UniquePopupMenu):
 
         await asyncio.gather(*update_coros)
         return
+    
+    def show_debug_menu(self, element: base.Element, coords):
+
+        font_size = f"{base.DEFAULT_FONT_SIZE}*0.5"
+        listener_state = self.HAclient.listening
+        listener_text = "Listening to client" if listener_state else "NOT Listening to client"
+        
+        commander_state = self.HAclient.commanding
+        commander_text = "Commanding with client" if commander_state else "NOT commanding with client"
+
+        layout = layouts.GridLayout(
+            [base.Button(listener_text, fit_text=True, font_size=font_size), base.Button(commander_text, fit_text=True, font_size=font_size)],
+            rows=2)
+        
+        popup_loc = element.area[0]
+        popup_v = popup_loc[1]
+        popup_h = f"{popup_loc[0]}-w"
+        popup = base.Popup([["?", (layout,"?")]],
+                        width="W/2", height=f"{base.DEFAULT_FONT_SIZE}*2.5",
+                        horizontal_position=popup_h, vertical_position=popup_v,
+                        blur_background=False, radius=0,
+                        outline_color="gray", outline_width=2)
+
+        popup.show()        
+        return
+
+        
+
+        

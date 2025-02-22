@@ -175,7 +175,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
     def __init__(self, baseElement : Optional[elements.Element] = None,
-                entity_attribute: str = None,
+                entity_attribute: str = False,
                 state_styles: dict = {}, attribute_styles: list[dict] = [],
                 state_colors: bool = False, state_conditionals: bool = False):
         if baseElement != None:
@@ -186,20 +186,20 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
             if not hasattr(self,"_HAclient"):
                 self._HAclient = None
             if not hasattr(self,"_entity_attribute"):
-                self._entity_attribute = False
+                self._entity_attribute = entity_attribute
             if not hasattr(self,"_serviceCallTime"):
                 self._serviceCallTime = None
             if getattr(self,"link_element", False):
                 self.__link_element_to_config(self)
             else:
                 if not hasattr(self,"_state_styles"):
-                    self._state_styles = {}
+                    self._state_styles = state_styles
                 if not hasattr(self,"_attribute_styles"):
-                    self._attribute_styles = []
+                    self._attribute_styles = attribute_styles
                 if not hasattr(self,"_state_conditionals"):
-                    self.state_conditionals = False
+                    self.state_conditionals = state_conditionals
                 if not hasattr(self,"_state_colors"):
-                    self.state_colors = False
+                    self.state_colors = state_colors
 
             if not hasattr(self, "__HAwrapper"):
                 self.__setattr__("__HAwrapper",HAelement.__HAwrapper)
@@ -787,7 +787,8 @@ class StateButton(HAelement, elements.Button):
                 newAttributes["suffix"] = suffix_val
 
         if newAttributes:
-            await self.async_update(newAttributes)
+            await self.async_update(newAttributes, updated=True)
+            # self._requestGenerate = True
 
         return
 
@@ -985,6 +986,7 @@ class EntityTile(_EntityLayout, elements.Tile):
         if trigger_dict["from_state"] == None:
             for elt  in [self._IconElement, self._TextElement, self._TitleElement]:
                 if elt.HAclient == None: elt._HAclient = self._HAclient
+                if elt.parentLayout != self: elt._parentLayout = self
 
         newAttributes = {}
         new_state = triggers.get_new_state(self,trigger_dict)
@@ -2690,7 +2692,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
 
     @classproperty
     def tiles(cls):
-        return ("condition", "title", "weather-data")
+        return ("condition", "title", "weather-data","forecast","forecast-popup")
 
     _resricted_properties = {"icon": {"icon"},"title": {"entity"}, "forecast": {"update_interval", "update_every"}} ##Technically, element_properties can be used here to set stuff but is not quite supposed to.    "Properties not allowed to be set in element_properties. Not in use, preferably use `_restricted_element_properties`"
 
@@ -2812,7 +2814,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
             forecast_properties.setdefault("time_format",self.time_format)
             forecast_properties.setdefault("foreground_color",'foreground')
             forecast_properties.setdefault("accent_color",'accent')
-            forecast_properties.setdefault("background_color",None)
+            forecast_properties.setdefault("background_color",'background')
 
             w_props : dict = forecast_properties.get("element_properties",{})
             w_props.setdefault("condition_icons", condition_icons)
@@ -2820,9 +2822,17 @@ class WeatherElement(_EntityLayout, base.TileElement):
             forecast_properties["element_properties"] = w_props
 
             self.__ForecastElement = WeatherForecast(forecast_properties["entity"])
+
+            print("Fix forecast outline not being set correctly (must be passed to popup)")
+            ##Maybe best to add it to the element itself. forecast elt does have an outline color property
+            ##But that is the alternating one like the background color etc.
+            ##May be easiest to add a forecast-popup in the elements lol.
             self.__ForecastPopup = base.Popup([["?", (self.__ForecastElement,"?")]])
             self.__elements["forecast"] = self.__ForecastElement
+            self.__elements["forecast-popup"] = self.__ForecastPopup
+
             set_element_properties["forecast"] = forecast_properties
+            set_element_properties["forecast-popup"] = element_properties.get("forecast-popup",{})
 
             self.forecast_update = forecast_update
             self.popup_properties = popup_properties
@@ -2875,7 +2885,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         return self.__isForecast
 
     @property
-    def elements(self)-> MappingProxyType[Literal["condition","title","weather-data"],base.Element]:
+    def elements(self)-> MappingProxyType[Literal["condition","title","weather-data", "forecast"],base.Element]:
         return MappingProxyType(self.__elements)
 
     @property
@@ -3257,7 +3267,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         if update_props:
             await self.async_update(update_props, skipGen=True, skipPrint=True)
 
-        _LOGGER.debug("Weather: " + str(new_state["state"]))
+        _LOGGER.verbose(f"{self}: Weather is " + str(new_state["state"]))
 
         
         ##This is for support for forecasts.
@@ -3266,7 +3276,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
             nighttime = False
             if "is_daytime" in new_state["attributes"]:
                 nighttime = not new_state["attributes"]["is_daytime"]
-            elif self.HAclient != None:
+            elif self.HAclient is not None:
                 sunstate = self.HAclient.stateDict.get("sun.sun", {"state": None})
                 nighttime = True if sunstate["state"] == "below_horizon" else False
             
@@ -3358,8 +3368,9 @@ class WeatherElement(_EntityLayout, base.TileElement):
         ##Seems to work fine even if the forecast is on screen?
         ##Then don't log the warning. Just put it in the docstring.
 
-        if self.forecast_update == "on-open":
+        if self.forecast_update == "on-open" or self.__ForecastElement._force_get_forecasts:
             await self.__ForecastElement.get_forecasts()
+            # self.__ForecastElement.imgData.show()
         await self.__ForecastPopup.async_show()
 
 class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
@@ -3435,9 +3446,10 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         self._rebuild_layout = True
 
         self.__forecastLock = asyncio.Lock()
-        self.__force_get_forecasts = False
+        self._force_get_forecasts = False
         "Indicates the element should get the forecast data during the current or next update cycle"
 
+        self.__elements : dict[int, WeatherElement] = {}
         self._element_properties = {}
         self._background_colorList = [None]
         self._foreground_colorList = [None]
@@ -3454,8 +3466,6 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
         self.time_format = time_format
         self.forecast_data = forecast_data
-
-        self.__elements : dict[int, WeatherElement] = {}
 
         HAelement.__init__(self)
         base._IntervalUpdate.__init__(self,False,False,False, update_every=None, update_interval=update_interval)
@@ -3500,7 +3510,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         HAelement.entity.fset(self, entity_id)
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
     
     @property
     def elements(self) -> dict[int,WeatherElement]:
@@ -3572,7 +3582,8 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
     
     @element_properties.setter
     def element_properties(self, value : dict[str, dict]):
-        self._element_properties.update(value)
+        self._element_properties = tools.update_nested_dict(value, self._element_properties)
+        # self._element_properties.update(value)
         self._reparse_colors = True
 
     def __make_color_list(self, value, color_property):
@@ -3668,7 +3679,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__forecast_type = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def num_forecasts(self) -> int:
@@ -3683,7 +3694,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         
         self.__num_forecasts = value
         self._rebuild_layout = True
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def skip_forecasts(self) -> Union[int,Literal["now"]]:
@@ -3706,7 +3717,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__skip_forecasts = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
 
     @property
     def time_format(self) -> str:
@@ -3724,7 +3735,9 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
         self._time_format = value
         self._reparse_colors = True
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
+        for elt in self.elements.values():
+            elt.update({"time_format": value})
 
     @property
     def forecast_data(self) -> Union[Literal["datetime"], WeatherData]:
@@ -3748,7 +3761,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
             return
         
         self.__forecast_data = value
-        self.__force_get_forecasts = True
+        self._force_get_forecasts = True
         self._reparse_colors = True
 
     @property
@@ -3772,7 +3785,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
     async def async_update(self, updateAttributes={}, skipGen=False, forceGen: bool = False, skipPrint=False, reprintOnTop=False, updated: bool = False) -> bool:
         attr_updated = await super().async_update(updateAttributes, skipGen=True, skipPrint=True)
-        if self.HAclient.connection and self.__force_get_forecasts:
+        if self.HAclient.connection and self._force_get_forecasts:
             await asyncio.wait([self.get_forecasts()],timeout=0.25)
         return await super().async_update({}, skipGen, forceGen, skipPrint, reprintOnTop, updated= (updated or attr_updated))
 
@@ -3784,12 +3797,17 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         ##Idea  to have a unify_text_size is fun and all, but tbh let users just set the font_size in weather-data[data] properties if they want a single fontsize I think
         return img
 
-    async def async_generate(self, area=None, skipNonLayoutGen=False):
-        async with self._generatorLock:
-            if self._rebuild_layout:
+    async def pre_generate(self, area=None, skipNonLayoutGen=False):
+        if self._rebuild_layout:
                 self.build_layout()
+        return await super().pre_generate(area, skipNonLayoutGen)
 
-        return await super().async_generate(area, skipNonLayoutGen)
+    # async def async_generate(self, area=None, skipNonLayoutGen=False):
+    #     async with self._generatorLock:
+    #         if self._rebuild_layout:
+    #             self.build_layout()
+
+    #     return await super().async_generate(area, skipNonLayoutGen)
 
     def build_layout(self):
         
@@ -3888,6 +3906,10 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
 
     async def get_forecasts(self):
 
+        if not self.HAclient.commanding:
+            await self.HAclient.websocketCondition.await_trigger()
+            await asyncio.sleep(1)
+
         if self.__forecastLock.locked():
             _LOGGER.debug(f"{self}: already getting forecasts, not adding a new call.")
             return
@@ -3906,7 +3928,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
         if "success" in result and not result["success"]:
             return
         else:
-            self.__force_get_forecasts = False
+            self._force_get_forecasts = False
 
         response = result["result"]["response"]
 
@@ -4449,20 +4471,22 @@ class ClimateElement(HAelement, base.TileElement):
         return {"active": "active_color"} | base.TileElement._color_shorthands
 
     defaultLayouts = {
-                "horizontal": "[state-tile,thermostat];hvac-modes",
-                "vertical": "state-tile;thermostat;modes",
-                "compact": "[state-tile,hvac-modes];thermostat"}
+                "horizontal": "[state-tile,thermostat];[hvac-modes,presets]",
+                "vertical": "state-tile;thermostat;hvac-modes;presets",
+                "compact": "[state-tile,[hvac-modes;presets]];thermostat"}
 
     @property
     def _emulator_icon(cls): return "mdi:thermostat-box"
 
     @classproperty
     def tiles(cls):
-        return ("state-tile", "thermostat", "hvac-modes")
+        return ("state-tile", "thermostat", "hvac-modes", "presets")
 
     def __init__(self, entity : EntityType, tile_layout : Union[PSSMLayoutString,Literal["horizontal","vertical","compact"]] = "compact",
                 foreground_color : ColorType = DEFAULT_FOREGROUND_COLOR, accent_color : ColorType = DEFAULT_ACCENT_COLOR,
-                element_properties : dict = {},
+                element_properties : dict = {}, 
+                hvac_mode_colors : Union[dict,str] = "foreground", hvac_mode_icons : dict[str,str] = {}, deselect_hvac_mode : Union[str,False] = "off", hide_hvac_modes : list[str] = [],
+                preset_colors : Union[dict,str] = "foreground", preset_icons : dict[str,str] = {}, deselect_preset : Union[str,False] = "none", hide_presets : list[str] = [], 
                 **kwargs):
 
         self.entity = entity
@@ -4490,15 +4514,37 @@ class ClimateElement(HAelement, base.TileElement):
 
         self.__HVACModeLayout = mode_layout
 
-        self.__elements = {"state-tile": tile, "thermostat": temp_count, "hvac-modes": mode_layout}
+        preset_layout = elements.GridLayout([], rows=1, columns=None)
+        base._ElementSelect(preset_layout,{}, allow_deselect=False,
+                                        active_properties={}, inactive_properties= {"icon_color": "inactive"}, on_select=self.select_preset_mode)
+        self.__presetSelect = preset_layout
 
-        HAelement.__init__(self)
+        preset_layout._skip_select_update = True
+        mode_layout._skip_select_update = True
+
+        self.preset_colors = preset_colors
+        self.hide_presets = hide_presets
+        self.deselect_preset = deselect_preset
+        self._preset_icons = {}
+        self.preset_icons = preset_icons
+
+        self.hvac_mode_colors = hvac_mode_colors
+        self.hide_hvac_modes = hide_hvac_modes
+        self.deselect_hvac_mode = deselect_hvac_mode
+        self._hvac_mode_icons = {}
+        self.hvac_mode_icons = hvac_mode_icons
+
+        self.__elements = {"state-tile": tile,
+                            "thermostat": temp_count,
+                            "hvac-modes": mode_layout,
+                            "presets": preset_layout}
 
         default_properties = {
             "hvac-modes": {"accent_color": "accent", "foreground_color": "foreground", "active_color": "foreground", "inactive_color": "accent", "active_properties": {"icon_color": "active"}, "inactive_properties": {"icon_color": "inactive"}},
             "state-tile": {"accent_color": "accent", "foreground_color": "foreground", "background_color": None},
             "thermostat": {"accent_color": "accent", "foreground_color": "foreground"}
             }
+        default_properties["presets"] = default_properties["hvac-modes"].copy()
         
         for elt, props in default_properties.items():
             if elt not in element_properties:
@@ -4511,6 +4557,8 @@ class ClimateElement(HAelement, base.TileElement):
         base.TileElement.__init__(self, tile_layout=tile_layout, element_properties=element_properties, foreground_color=foreground_color, accent_color=accent_color,  **kwargs)
         if "hide" in kwargs:
             self.hide = kwargs["hide"]
+        
+        HAelement.__init__(self)
         return
 
     #region
@@ -4524,9 +4572,179 @@ class ClimateElement(HAelement, base.TileElement):
         return self.__unit
 
     @property
-    def HVACModeLayout(self) -> Union[elements.GridLayout, base._ElementSelect]:
+    def HVACModeSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
         "The layout with icons to set the hvac mode"
         return self.__HVACModeLayout
+
+    @property
+    def deselect_hvac_mode(self) -> Union[str,Literal[False]]:
+        """An hvac mode to apply when deselecting the current one
+
+        Setting this to ``False`` disables deselecting, otherwise the value of the desired mode should be given
+        """    
+        return self._deselect_hvac_mode
+
+    @deselect_hvac_mode.setter
+    def deselect_hvac_mode(self, value):
+        if value == False:
+            self.HVACModeSelect.allow_deselect = False
+        else:
+            self.HVACModeSelect.allow_deselect = True
+        
+        self._deselect_hvac_mode = value
+
+    @property
+    def hide_hvac_modes(self) -> list[str]:
+        "Hides the provided hvac modes from the hvac selector"
+        return self._hide_hvac_modes
+
+    @hide_hvac_modes.setter
+    def hide_hvac_modes(self, value):
+
+        if value == None:
+            value = []
+        elif isinstance(value, str):
+            value = [value]
+        self._hide_selectors(self.HVACModeSelect, value)
+        self._hide_hvac_modes = value
+
+    @property
+    def hvac_mode_colors(self) -> dict[str,ColorType]:
+        """Colors to use for different hvac modes
+
+        Can be a dict mapping the mode to a color, or a single color, which means the active mode always has that color
+        """        
+        return self._hvac_mode_colors
+    
+    @hvac_mode_colors.setter
+    def hvac_mode_colors(self, value: dict[str,ColorType]):
+        if not self.screen.printing:
+            self.screen._add_element_attribute_check(self,"hvac_mode_colors", value)
+            return
+
+        if not value:
+            self._hvac_mode_colors = {"default": "foreground"}
+            return
+        elif isinstance(value,str):
+            if not Style.is_valid_color(value, self):
+                raise ValueError(f"{self}: {value} is not a valid color")
+            else:
+                self._hvac_mode_colors = {"default": value}
+                return
+
+        inv = set()
+        cols = {}
+        for k, v in (value.copy()).items():
+            if not Style.is_valid_color(v):
+                inv.add((k,v))
+            else:
+                cols[k.lower()] = v
+        
+        if inv:
+            msg = f"{self}: the following hvac mode colors are not valid colors {inv}"
+            raise ValueError(msg)
+        
+        self._hvac_mode_colors = cols
+        return
+    
+    @property
+    def hvac_mode_icons(self) -> dict[str,str]:
+        "Icons to use for various hvac modes"
+        return self._hvac_mode_icons
+
+    @hvac_mode_icons.setter
+    def hvac_mode_icons(self, value : dict):
+        for k, v in value.items():
+            if elt := self.HVACModeSelect.option_elements.get(k,None):
+                elt.update({"icon": v})
+        self._hvac_mode_icons = self._hvac_mode_icons | value
+
+    @property
+    def presetSelect(self) -> Union[elements.GridLayout, base._ElementSelect]:
+        "The layout with icons to set a preset"
+        return self.__presetSelect
+
+    @property
+    def deselect_preset(self) -> Union[str,Literal[False]]:
+        """A preset to apply when deselecting the current one
+
+        Setting this to ``False`` disables deselecting, otherwise the value of the desired preset should be given
+        """        
+        return self._deselect_preset
+
+    @deselect_preset.setter
+    def deselect_preset(self, value):
+        if value == False:
+            self.presetSelect.allow_deselect = value
+        else:
+            self.presetSelect.allow_deselect = True
+        
+        self._deselect_preset = value
+
+    @property
+    def hide_presets(self) -> list[str]:
+        "Hides the provided presets from the preset selector"
+        return self._hide_presets
+    
+    @hide_presets.setter
+    def hide_presets(self, value):
+
+        if value == None:
+            value = []
+        elif isinstance(value, str):
+            value = [value]
+        self._hide_selectors(self.presetSelect, value)
+        self._hide_presets = value
+
+    @property
+    def preset_colors(self) -> dict[str,ColorType]:
+        """Colors to use for different preset modes
+
+        Can be a dict mapping the mode to a color, or a single color, which means the active preset always has that color
+        """
+        return self._preset_colors
+    
+    @preset_colors.setter
+    def preset_colors(self, value: dict[str,ColorType]):
+        if not self.screen.printing:
+            self.screen._add_element_attribute_check(self,"preset_colors", value)
+            return
+
+        if not value:
+            self._preset_colors = {"default": "foreground"}
+            return
+        elif isinstance(value,str):
+            if not Style.is_valid_color(value, self):
+                raise ValueError(f"{self}: {value} is not a valid color")
+            else:
+                self._preset_colors = {"default": value}
+                return
+
+        inv = set()
+        cols = {}
+        for k, v in (value.copy()).items():
+            if not Style.is_valid_color(v):
+                inv.add((k,v))
+            else:
+                cols[k.lower()] = v
+        
+        if inv:
+            msg = f"{self}: the following preset colors are not valid colors {inv}"
+            raise ValueError(msg)
+        
+        self._preset_colors = cols
+        return
+    
+    @property
+    def preset_icons(self) -> dict[str,str]:
+        return self._preset_icons
+    
+    @preset_icons.setter
+    def preset_icons(self, value : dict):
+        for k, v in value.items():
+            if elt := self.presetSelect.option_elements.get(k,None):
+                elt.update({"icon": v})
+        self._preset_icons = self._preset_icons | value
     #endregion
 
     async def trigger_function(self, element: triggers.HAelement, trigger_dict: triggerDictType):
@@ -4543,7 +4761,8 @@ class ClimateElement(HAelement, base.TileElement):
             t_elt = self.elements["state-tile"].elements["text"]
             await t_elt.async_update({"suffix": " " + self.unit, "suffix_attribute": None})
             await therm.async_update({"unit": " " + self.unit})
-            self.make_mode_selectors(state_attr.get("hvac_modes", []))
+            self.make_hvac_mode_selectors(state_attr.get("hvac_modes", []))
+            self.make_preset_selectors(state_attr.get("preset_modes", []))
 
         element_state = triggers.get_new_state(self,trigger_dict)
         update_props = self.state_styles.get(element_state,{})
@@ -4557,8 +4776,25 @@ class ClimateElement(HAelement, base.TileElement):
         update_coros =  set()
         async with self._updateLock:
 
-            if new_state["state"] not in ERROR_STATES and self.HVACModeLayout.selected !=  new_state["state"]:
-                update_coros.add(self.HVACModeLayout.async_select(new_state["state"], call_on_select=False))
+            if new_state["state"] not in ERROR_STATES:
+                preset = state_attr["preset_mode"]
+                hvac = state_attr["hvac_mode"]
+
+                if self.HVACModeSelect.selected != hvac:
+                    update_coros.add(self.HVACModeSelect.async_select(hvac, call_on_select=False, skip_update = True))
+                    if hvac in self.hvac_mode_colors:
+                        col = self.hvac_mode_colors[hvac]
+                    else:
+                        col = self.hvac_mode_colors.get("default","foreground")
+                    await self.HVACModeSelect.async_update({"active_color": col}, skipGen=True, skipPrint=True)
+
+                if self.presetSelect.selected != preset:
+                    update_coros.add(self.presetSelect.async_select(preset, call_on_select=False, skip_update = True))
+                    if preset in self.preset_colors:
+                        col = self.preset_colors[preset]
+                    else:
+                        col = self.preset_colors.get("default","foreground")
+                    await self.presetSelect.async_update({"active_color": col}, skipGen=True, skipPrint=True)
 
             update_coros.add(therm.trigger_function(therm, trigger_dict))
             update_coros.add(state_elt.trigger_function(state_elt, trigger_dict))
@@ -4571,29 +4807,107 @@ class ClimateElement(HAelement, base.TileElement):
             await self.async_update(updated=True)
         return
     
-    def make_mode_selectors(self, modes):
-        for mode in modes:
-            if mode in self.HVACModeLayout.option_elements:
-                elt = self.HVACModeLayout.option_elements[mode]
-            else:
-                icon = icon_sets.HVAC_MODES_ICONS.get(mode,"mdi:thermostat")
-                elt = base.Icon(icon)
-                self.HVACModeLayout.add_option(mode, elt)
-                self.HVACModeLayout.add_elements(elt)
+    def make_hvac_mode_selectors(self, modes):
         
+        icon_set = icon_sets.HVAC_MODES_ICONS | self.hvac_mode_icons
+        for mode in modes:
+            if mode in self.HVACModeSelect.option_elements:
+                elt = self.HVACModeSelect.option_elements[mode]
+            else:
+                icon = icon_set.get(mode,"mdi:thermostat")
+                elt = base.Icon(icon)
+                self.HVACModeSelect.add_option(mode, elt, overwrite=True)
+                self.HVACModeSelect.add_elements(elt)
+        
+        self._hide_selectors(self.HVACModeSelect, self.hide_hvac_modes)
+
+        if self.deselect_hvac_mode and self.deselect_hvac_mode not in modes:
+            _LOGGER.error(f"{self}: deselect hvac mode {self.deselect_hvac_mode} is not a valid mode for the entity")
+
         if self._tile_layout == "compact":
             self.horizontal_sizes = {"hvac-modes": f"r*{len(modes)}"}
+        return
 
     async def select_hvac_mode(self, element, selected):
         ##Don't forget to update the set mode in the trigger
         ##Will be called again but that should be ok
         ##Do add a check to prevent it from selecting again
 
-        _LOGGER.debug(f"{self}: New mode is {selected}")
+        if selected == None:
+            await self.HVACModeSelect.async_select(self.deselect_hvac_mode)
+            await self.HVACModeSelect.async_update(updated=True)    ##Need to call this again to properly update
+            return
+
+        _LOGGER.debug(f"{self}: New hvac mode is {selected}")
         
         action = "climate.set_hvac_mode"
         data = {"hvac_mode": selected}
         self.HAclient.call_service_action(action=action, target=self.entity, action_data=data)
         
+        
+        if selected in self.hvac_mode_colors:
+            col = self.hvac_mode_colors[selected]
+        else:
+            col = self.hvac_mode_colors.get("default","foreground")
+        await self.HVACModeSelect.async_update({"active_color": col}, skipGen=True, skipPrint=True)
+
+        return
+    
+    def make_preset_selectors(self, presets):
+
+        icon_set = icon_sets.CLIMATE_PRESET_ICONS | self.preset_icons
+        for preset in presets:
+            if preset in self.presetSelect.option_elements:
+                elt = self.presetSelect.option_elements[preset]
+            else:
+                icon = icon_set.get(preset.lower(), icon_set["none"])
+                elt = base.Icon(icon)
+                self.presetSelect.add_option(preset, elt, overwrite=True)
+                self.presetSelect.add_elements(elt)
+        
+        self._hide_selectors(self.presetSelect, self.hide_presets)
+
+        if self.deselect_preset and self.deselect_preset not in presets:
+            _LOGGER.error(f"{self}: deselect preset {self.deselect_preset} is not a valid preset for the entity")
+
+
+        if self._tile_layout == "compact":
+            # self.horizontal_sizes = {"presets": f"r*{len(presets)}"}
+            # self.presetSelect.column_sizes = f"w/{len(presets)}"
+            pass
+        return
+    
+    async def select_preset_mode(self, element, selected):
+        
+        if selected == None:
+            await self.presetSelect.async_select(self.deselect_preset)
+            await self.presetSelect.async_update(updated=True)
+            return
+
+        _LOGGER.debug(f"{self}: New preset mode is {selected}")
+
+        action = "climate.set_preset_mode"
+        data = {"preset_mode": selected}
+        self.HAclient.call_service_action(action=action, target=self.entity, action_data=data)
+
+        if selected in self.preset_colors:
+            col = self.preset_colors[selected]
+        else:
+            col = self.preset_colors.get("default","foreground")
+        await self.presetSelect.async_update({"active_color": col})
         return
 
+    def _hide_selectors(self, element: Union[elements.GridLayout, base._ElementSelect], hide):
+
+        hide_list = set(hide) & set(element.options)
+        unhide = set(element._hidden_options) - set(hide)
+
+        for opt in hide_list:
+            elt = element.remove_option(opt, hide=True)
+            element.remove_elements(elt)
+        
+        for opt in unhide:
+            elt = element._hidden_options[opt]
+            element.add_option(opt,elt)
+            element.add_elements(elt)
+            

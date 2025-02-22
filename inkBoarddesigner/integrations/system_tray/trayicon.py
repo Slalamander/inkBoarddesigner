@@ -12,11 +12,11 @@ from pathlib import Path
 import pystray
 
 import inkBoard
-from inkBoard.constants import INKBOARD_ICON, ICON_FOLDER
-from inkBoard.helpers import QuitInkboard, ParsedAction, YAMLNodeDict
+from inkBoard.helpers import ParsedAction
+from inkBoard.exceptions import QuitInkboard
 from inkBoard.util import DummyTask
 
-from . import system_tray_entry, TRAYSIZE, TOLERANCE
+from . import system_tray_entry, TRAYSIZE, TOLERANCE, ICON_CIRCLE, ICON_DROPLET
 
 if TYPE_CHECKING:
     from inkBoard import CORE, config
@@ -62,13 +62,15 @@ class TrayIcon(pystray.Icon):
         self._tray_size = tray_config.get("tray_size", TRAYSIZE)
 
         if tray_config["icon"] == "circle":
-            # imgfile = Path(__file__).parent / "files" / f"icon_circle.ico"
-            imgfile = ICON_FOLDER / "circle.ico"
+            imgfile = ICON_CIRCLE
         elif tray_config["icon"] == "droplet":
-            # imgfile = Path(__file__).parent / "files" / f"icon_droplet.ico"
-            imgfile = ICON_FOLDER / "droplet.ico"
+            imgfile = ICON_CIRCLE
         else:
             imgfile = Path(tray_config)
+            if not imgfile.exists():
+                _LOGGER.warning(f"Cannot use {imgfile} as systemtray icon, it does not exist")
+                imgfile = ICON_CIRCLE
+                
         img = Image.open(imgfile)
 
         ##Currently throws error for this cause is coro
@@ -153,9 +155,8 @@ class TrayIcon(pystray.Icon):
 
     def _handle_icon_click(self, item):
         "Minimises the window. Must be called in the main thread"
-        # _LOGGER.debug(f"Minimising window via {item}")
 
-        print(f"window is hidden: {self.hidden}")
+        _LOGGER.debug(f"inkBoard window is hidden: {self.hidden}")
         if self._toolwindow and not self._focusouttask.done():
             ##Two options:
             ##- Hide the window on a second click (means just returning here without the two calls to the window)

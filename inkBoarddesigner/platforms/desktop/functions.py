@@ -21,8 +21,10 @@ async def _open_log_terminal(level):
     proc_args = ["-m", "inkBoard", "logs"]
 
     sockethandler = logging.LocalhostSocketHandler(loghandlers.DEFAULT_TCP_LOGGING_PORT, level)
+    exe = sys.executable
+    exe = exe.replace("pythonw.exe", "python.exe")
 
-    proc = await asyncio.create_subprocess_exec(sys.executable, *proc_args, creationflags=subprocess.CREATE_NEW_CONSOLE)
+    proc = await asyncio.create_subprocess_exec(exe, *proc_args, creationflags=subprocess.CREATE_NEW_CONSOLE)
     sockethandler.addToHandlers()
 
     try:

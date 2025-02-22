@@ -1,9 +1,10 @@
 "Integration to run inkBoard desktop in a system tray"
 
-from typing import *
+from typing import TYPE_CHECKING, TypedDict, Literal, Union
 
 import inkBoard
 from inkBoard.types import *
+from inkBoard.constants import ICON_FOLDER
 
 if TYPE_CHECKING:
     from inkBoard import config, CORE as CORE
@@ -12,6 +13,8 @@ if TYPE_CHECKING:
 _LOGGER = inkBoard.getLogger(__name__)
 TRAYSIZE = 50   #Traysize in pixel
 TOLERANCE = 1.1 #Small tolerance multiplier to enlarge the identification of clicks on the tray correctly
+ICON_CIRCLE = ICON_FOLDER / "inkboard-logo-circle-color.ico"
+ICON_DROPLET = ICON_FOLDER / "inkboard-logo-droplet-color.ico"
 
 async def async_setup(core: "CORE", config: "config"):
 
@@ -66,3 +69,5 @@ class system_tray_entry(TypedDict):
     Leaving a list entry empty, or giving it the value ``separator`` (case indifferent) will add another separator line.
     Keep in mind the python package handling this removed any separators that are two in a row, or at the start or end of the list.
     """
+
+

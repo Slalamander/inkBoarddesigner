@@ -55,9 +55,11 @@ def run_designer(args):
     from inkBoard import logging as ib_logging
 
     ib_logging.init_logging()
+    debug = const.DEBUGGING
+    # debug = False
 
     try:
-        asyncio.run(async_run_designer(args))
+        asyncio.run(async_run_designer(args), debug=debug)
     except KeyboardInterrupt:
         try:
             asyncio.run(async_stop_designer())

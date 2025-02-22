@@ -16,7 +16,7 @@ from mdi_pil import ttkbootstrap_mdi as ttk_mdi
 from PIL import Image, ImageTk, ImageOps
 
 from inkBoard import CORE as CORE, packaging
-from inkBoard.helpers import QuitInkboard
+from inkBoard.exceptions import QuitInkboard
 ##Suspect this one won't work here.
 ##Seems to at least with quit? Check with screenshot too though.
 
