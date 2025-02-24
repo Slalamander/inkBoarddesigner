@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from mdi_pil import mdiType
     from PythonScreenStackManager import pssm_types as pssm
     from PythonScreenStackManager.pssm.screen import PSSMScreen
-    from . import client
+    from .client import HAclient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,12 +48,17 @@ async def async_setup(core: "CORE", config : "config") -> None:
     pssm_const.SHORTHAND_ICONS['homeassistant'] = const.HOMEASSISTANT_ICON
     return HAclient
 
-async def async_start(core: "CORE", client : "client.HAclient"):
+async def async_start(core: "CORE", client : "HAclient"):
     try:
         client.setup_entity_functions()
         await client.connect_client()
     except Exception as exce:
         _LOGGER.exception("Homeassistant client could not start", exc_info=True)
+    return
+
+async def async_stop(core, client : "HAclient"):
+    await client.disconnect_client()
+
     return
 
 class home_assistantMap(TypedDict):

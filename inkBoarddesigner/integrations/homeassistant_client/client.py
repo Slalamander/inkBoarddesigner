@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from PythonScreenStackManager.tools import DummyTask
     from inkBoard import CORE as CORE
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = inkBoard.getLogger(__name__)
 _LOGGER.debug(f"{_LOGGER.name} has loglevel {logging.getLevelName(_LOGGER.getEffectiveLevel())}")
 
 class ServerConfigDict(TypedDict):
@@ -286,6 +286,16 @@ class HAclient:
             # await self.websocket.close(reason="Disconnect called")
         if not self.connectionTask.done():
             self.connectionTask.cancel("Disconnect Requested")
+        
+        if not self._longrunningTasks.done():
+            self._longrunningTasks.cancel()
+
+        await asyncio.sleep(0)
+        try:
+            ##Give time for cleanup and stuff to happen, otherwise forcibly trigger it
+            await asyncio.wait_for(self.websocketCondition.await_trigger(), 0.1)
+        except asyncio.TimeoutError:
+            await self.__cleanup_websocket()
 
         await self.websocketCondition.trigger_all()
 
@@ -305,7 +315,7 @@ class HAclient:
         if server_url.startswith('https://'):
             server_url = server_url.removeprefix('https://')
             uri = f"wss://{server_url}/api/websocket"
-            connect_params['ssl'] = True
+            # connect_params['ssl'] = True  ##This should not be required? According to the websocket docs, wss automatically enables encryption            
         else:
             if server_url.startswith('http://'):
                 server_url = server_url.removeprefix('http://')
@@ -475,7 +485,8 @@ class HAclient:
                 _LOGGER.exception("connection timed out, continueing")
                 continue
             except asyncio.CancelledError as exce:
-                _LOGGER.exception(f"Home Assistant Connect task has been cancelled: {exce}")
+                if CORE.stage > CORESTAGES.SETUP:
+                    _LOGGER.error(f"Home Assistant Connect task has been cancelled: {exce}")
                 if not self._longrunningTasks.done(): 
                     self._longrunningTasks.cancel("Connection task cancelled")
                 return
@@ -596,7 +607,11 @@ class HAclient:
             #     _LOGGER.error(f"Listener stopped due to connection closing")
             #     _LOGGER.debug(exce)
             except asyncio.CancelledError as exce:
-                _LOGGER.warning(f"homeassistant listener was cancelled: {exce}")
+                if CORE.stage > CORESTAGES.SETUP:
+                    _LOGGER.warning(f"homeassistant listener was cancelled: {exce}")
+                else:
+                    _LOGGER.debug("homeassistant listener was cancelled")
+                
                 ##Maybe raise this as a different error? Not sure
                 return
             except Exception as exce:
@@ -604,7 +619,7 @@ class HAclient:
                 raise
                 # return
             finally:
-                _LOGGER.info("homeassistant listener has stopped")
+                _LOGGER.debug("homeassistant listener has stopped")
                         
         # _LOGGER.warning("Listener stopped")
         # if not self.commanderTask.done():
@@ -650,7 +665,10 @@ class HAclient:
                 except (TypeError, KeyError, IndexError, OSError) as exce:
                     _LOGGER.error(f"Exception occured in commander while sending command {cmd}: {exce}")
                 except (asyncio.CancelledError, asyncio.exceptions.CancelledError) as exce:
-                    _LOGGER.warning(f"Commander was cancelled: {exce}")
+                    if CORE.stage > CORESTAGES.SETUP:
+                        _LOGGER.warning(f"Commander was cancelled: {exce}")
+                    else:
+                        _LOGGER.debug("Commander was cancelled")
                     # raise
                     return
 
@@ -718,41 +736,38 @@ class HAclient:
                 pass
 
     async def __cleanup_websocket(self):
+
+        _LOGGER.debug("Cleaning up websocket connection tasks")
+        if not self.listenerTask.done(): 
+            _LOGGER.verbose("Cancelling listener")
+            self.listenerTask.cancel("Doing websocket cleanup")
+            await self.listenerTask
+        if not self.commanderTask.done():
+            _LOGGER.verbose("Cancelling Commander")
+            self.commanderTask.cancel("Doing websocket cleanup")
+            await self.commanderTask
+
+        _LOGGER.verbose("Cancelled listener and commander tasks")
+        
+        if not self._longrunningTasks.done():
+            _LOGGER.debug(f'Listener is {"done" if self.listenerTask.done() else "not done"}')
+            _LOGGER.debug(f'Commander is {"done" if self.commanderTask.done() else "not done"}')
+            await self._longrunningTasks
+
+        _LOGGER.verbose("Emptying message queue")
+        await self._empty_message_queue()
+
         try:
-            _LOGGER.warning("Cleaning up websocket connection tasks")
-            if not self.listenerTask.done(): 
-                _LOGGER.info("Cancelling listener")
-                self.listenerTask.cancel("Doing websocket cleanup")
-                await self.listenerTask
-            if not self.commanderTask.done():
-                _LOGGER.info("Cancelling Commander")
-                self.commanderTask.cancel("Doing websocket cleanup")
-                await self.commanderTask
-
-            _LOGGER.info("Cancelled listener and commander tasks")
-            
-            if not self._longrunningTasks.done():
-                _LOGGER.info(f'Listner is {"done" if self.listenerTask.done() else "not done"}')
-                _LOGGER.info(f'Commander is {"done" if self.commanderTask.done() else "not done"}')
-                await self._longrunningTasks
-
-            _LOGGER.info("Emptying message queue")
-            await self._empty_message_queue()
-
-            try:
-                _LOGGER.info("Ensuring everything is cleaned up")
-                assert not self.listening and not self.commanding, "Cleanup did not result in the listener and/or commander becoming available"
-            except AssertionError as exce:
-                _LOGGER.error(exce)
-                if self.listening:
-                    _LOGGER.warning(f"Listener lock is not released. Task is {'done' if self.listenerTask.done() else 'not done'}")
-                if self.commanding:
-                    _LOGGER.warning(f"Commander lock is not released. Task is {'done' if self.commanderTask.done() else 'not done'}")
-            else:
-                _LOGGER.warning("websocket connection tasks cleaned up")
-        except Exception as exce:
-            _LOGGER.exception(f"Unable to properly cleanup websocket: {exce}")
-
+            _LOGGER.verbose("Ensuring everything is cleaned up")
+            assert not self.listening and not self.commanding, "Cleanup did not result in the listener and/or commander becoming available"
+        except AssertionError as exce:
+            _LOGGER.error(exce)
+            if self.listening:
+                _LOGGER.warning(f"Listener lock is not released. Task is {'done' if self.listenerTask.done() else 'not done'}")
+            if self.commanding:
+                _LOGGER.warning(f"Commander lock is not released. Task is {'done' if self.commanderTask.done() else 'not done'}")
+        else:
+            _LOGGER.debug("websocket connection tasks cleaned up")
 
     async def _empty_message_queue(self):
         """
