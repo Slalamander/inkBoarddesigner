@@ -9,7 +9,7 @@ d_client = util.get_module_elements(clientelements)
 
 element_dict = d_HA | d_client #dict with all elements of the Home Assistant integration
 
-def parse_ha_element(elt_type : str):
+def parse_ha_element(elt_type : str, identifier : str):
     return element_dict.get(elt_type,None)
 
 def setup_elements():

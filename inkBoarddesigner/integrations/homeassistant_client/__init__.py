@@ -58,6 +58,7 @@ async def async_start(core: "CORE", client : "HAclient"):
 
 async def async_stop(core, client : "HAclient"):
     await client.disconnect_client()
+    client.networkTask.cancel()
 
     return
 

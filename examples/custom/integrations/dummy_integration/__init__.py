@@ -62,8 +62,9 @@ def setup(core : "CORE", config : "CORE.config") -> Union[Literal[False],Any]:
     from .dummy import Dummy
 
 
-    def dummy_parser(elt_type : str):
+    def dummy_parser(elt_type : str, identifier : str):
         ##An element parser is relatively simple. It gets passed a string, and has to return an element type (provided it is all fine and dandy)
+        ##identifier is simply the registered identifier. Here, it will always be passed as DUMMY
         if elt_type != "Dummy":
             _LOGGER.error("I am user-friendly, my good chum.")
         
