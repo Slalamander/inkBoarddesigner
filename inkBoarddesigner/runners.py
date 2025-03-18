@@ -60,7 +60,7 @@ async def async_stop_designer():
 async def async_unload_inkBoard(reload_modules: bool = False):
     "Cancels all tasks running in the PSSM loop and reloads necessary modules."
     
-    _LOGGER.debug(f"Unloading inkBoard")
+    _LOGGER.debug("Unloading inkBoard")
     stop_loop = False
     if hasattr(CORE,"screen") and hasattr(CORE,"screen"):
         CORE.screen.mainLoop.stop()
@@ -69,7 +69,8 @@ async def async_unload_inkBoard(reload_modules: bool = False):
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     await asyncio.to_thread(window._inkBoard_thread.join)
 
-    if not hasattr(inkBoard, "core"):
+    # if not hasattr(inkBoard, "core"):
+    if not hasattr(CORE, "_START_TIME"):
         window._inkBoard_clean = True
         window._inkBoard_lock.release()
         return
@@ -93,11 +94,18 @@ async def async_unload_inkBoard(reload_modules: bool = False):
     return
 
 def unload_inkBoard(reload_modules: bool = False):
-    t = window._mainLoop.create_task(async_unload_inkBoard(reload_modules))
+    coro = async_unload_inkBoard(reload_modules)
+    try:
+        t = window._mainLoop.create_task(coro)
+    except RuntimeError:
+        t = asyncio.run_coroutine_threadsafe(coro,window._mainLoop)
     return t
 
 async def reload_config(config, full_reload: bool = False):
-    await unload_inkBoard(True)
+    t = unload_inkBoard(True)
+    await t
+    CORE
+    # await async_unload_inkBoard(True)
     window.set_progress_bar(value=-1)
     window._mainLoop.create_task(run_inkboard_config(config))
 
@@ -223,7 +231,8 @@ async def run_inkboard_thread(config_file):
                 full_reload = True
             else:
                 full_reload = False
-            window._mainLoop.create_task(reload_config(config_file, full_reload))
+            # window._mainLoop.create_task(reload_config(config_file, full_reload))
+            asyncio.run_coroutine_threadsafe(reload_config(config_file, full_reload), window._mainLoop)
             reload_finally = False
         except QuitInkboard:
             window.set_inkboard_state(None)
@@ -280,7 +289,6 @@ async def run_inkboard_config(configuration, **kwargs):
     await asyncio.to_thread(window._inkBoard_lock.acquire)
     window._current_config_file = configuration
     loop = asyncio.new_event_loop()
-    loop.set_exception_handler(inkBoard.helpers.loop_exception_handler)
     thread = threading.Thread(target=loop.run_until_complete, kwargs={"future": run_inkboard_thread(configuration)}, name="inkBoard-thread")
     window._inkBoard_thread = thread
     thread.start()
