@@ -20,7 +20,8 @@ from inkBoarddesigner.platforms.desktop import device
 from inkBoard.platforms.basedevice import InkboardDeviceFeatures, FEATURES
 
 from PythonScreenStackManager.devices import PSSMdevice, windowed
-from PythonScreenStackManager.tools import DummyTask, TouchEvent
+from PythonScreenStackManager.tools import DummyTask
+from PythonScreenStackManager.pssm_types import TouchEvent
 from PythonScreenStackManager import constants as pssmconst
 
 from . import const, pssm_functions
