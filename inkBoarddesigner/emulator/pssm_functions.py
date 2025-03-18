@@ -62,7 +62,7 @@ ENTITY_ICONS_TK["default"] = build_tk_icon("mdi:one-up")
 
 def add_element_icon(element : "elements.Element"):
     
-    icon = element._emulator_icon
+    icon = element.emulator_icon
     icon = build_tk_icon(icon)
     ELEMENT_ICONS_TK[str(element.__class__.__name__)] = icon
 
@@ -91,10 +91,11 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                 else:
                     eltname = elt.id
                 elttype = str(elt.__class__.__name__)
-                if elttype not in ELEMENT_ICONS_TK:
-                    add_element_icon(elt)
-                    _LOGGER.verbose(f"Made new icon for {elt}")
-                icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+
+                if elt.emulator_icon not in tk_functions.MDI_TREE_ICONS:
+                    icon = tk_functions.build_tree_icon(elt.emulator_icon)
+                else:
+                    icon = tk_functions.MDI_TREE_ICONS[elt.emulator_icon]
                 iid = elt.id
                 entity = getattr(elt,"entity","None")
                 if not treeview.exists(iid):
@@ -122,9 +123,13 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
     for elt in eltStack:
         eltname = elt.id.replace('_',' ')
         elttype = str(elt.__class__.__name__)
-        if elttype not in ELEMENT_ICONS_TK:
-                add_element_icon(elt)
-        icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+        # if elttype not in ELEMENT_ICONS_TK:
+        #         add_element_icon(elt)
+        # icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+        if elt.emulator_icon not in tk_functions.MDI_TREE_ICONS:
+            icon = tk_functions.build_tree_icon(elt.emulator_icon)
+        else:
+            icon = tk_functions.MDI_TREE_ICONS[elt.emulator_icon]
         iid = elt.id
         entity = getattr(elt,"entity","None")
 
@@ -146,9 +151,13 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
         for id, elt in screen.popupRegister.items():
             eltname = id
             elttype = str(elt.__class__.__name__)
-            if elttype not in ELEMENT_ICONS_TK:
-                    add_element_icon(elt)
-            icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+            # if elttype not in ELEMENT_ICONS_TK:
+            #         add_element_icon(elt)
+            # icon = ELEMENT_ICONS_TK.get(elttype, ELEMENT_ICONS_TK["default"])
+            if elt.emulator_icon not in tk_functions.MDI_TREE_ICONS:
+                icon = tk_functions.build_tree_icon(elt.emulator_icon)
+            else:
+                icon = tk_functions.MDI_TREE_ICONS[elt.emulator_icon]
             iid = elt.id
             entity = getattr(elt,"entity","None")
 
