@@ -169,8 +169,7 @@ class HAelement(elements.Element, metaclass=HAmetaElement): #, ABC):
 
     _client_instance: "HAclient"
 
-    @property
-    def _emulator_icon(cls): return "mdi:home-assistant"
+    emulator_icon = "mdi:home-assistant"
 
     ##Not sure how it's possible to use this class from an already defined element instance.
     ##So I'm not going to, I tried quite a bit.
@@ -562,8 +561,7 @@ class StateButton(HAelement, elements.Button):
         Overwrites the text property and allows setting the text directly.
     """
 
-    @property
-    def _emulator_icon(cls): return "mdi:text-box-search"
+    emulator_icon = "mdi:text-box-search"
 
     def __init__(self, entity : str, entity_attribute : Optional[str] = None, 
                 prefix : Optional[str] = None, suffix : Optional[str] = None, 
@@ -844,8 +842,7 @@ class EntityTile(_EntityLayout, elements.Tile):
         "title": elements.Tile._restricted_element_properties["title"] | {"entity"}, }
     "Properties of the elements that are not allowed to be set."
 
-    @property
-    def _emulator_icon(cls): return "mdi:layers-search"
+    emulator_icon = "mdi:layers-search"
 
     def __init__(self, entity : str, icon : Optional[str] = None, tile_layout : Union[Literal["vertical", "horizontal"], PSSMLayoutString] = "horizontal",
                 element_properties : dict[str,dict[str,str]] = {"icon": {"icon_attribute": "icon"}, "text":{}, "title": {"entity_attribute": "friendly_name"}},
@@ -1056,8 +1053,7 @@ class PersonElement(EntityTile):
     
     defaultBadges = {"default": None,"home": "mdi:home", "not_home": "mdi:home-off", "unavailable": UNAVAILABLE_ICON, "unknown": UNAVAILABLE_ICON}
     
-    @property
-    def _emulator_icon(cls): return "mdi:card-account-details"
+    emulator_icon = "mdi:card-account-details"
 
     def __init__(self, entity : str, placeholder_icon : mdiType = "mdi:account", element_properties : dict = {"icon": {"icon_attribute": "entity_picture", "icon_color": False, "background_shape": None, "background_color": None}},
                 tile_layout : Union[Literal["vertical", "horizontal"], str] = "vertical", hide : elements.Tile._HideDict = {"text"},
@@ -1240,8 +1236,7 @@ class MediaPlayer(_EntityLayout):
 
     tiles = {"media_info", "controls", "duration", "artwork", "volume"}
 
-    @property
-    def _emulator_icon(cls): return "mdi:video-image"
+    emulator_icon = "mdi:video-image"
 
     #region
     class __Elements(TypedDict):
@@ -1285,8 +1280,7 @@ class MediaPlayer(_EntityLayout):
         })
     "Default icons for the controls"    
 
-    @property
-    def _emulator_icon(cls): return "mdi:motion-play"
+    emulator_icon = "mdi:motion-play"
     #endregion
 
     def __init__(self, entity : EntityType, player_layout : Union[Literal["default"],PSSMLayoutString] = "default", show : Union[Literal["all"],list[Literal["media_info", "controls", "duration", "artwork","turn_off","volume"]]] = ["media_info", "controls", "duration", "artwork"],
@@ -2702,8 +2696,7 @@ class WeatherElement(_EntityLayout, base.TileElement):
         "Shorthand values mapping to element specific functions. Use by setting the function string as element:{function}"
         return _EntityLayout.action_shorthands | {"show-forecast": "async_show_forecast"}
 
-    @property
-    def _emulator_icon(cls): return "mdi:cloud-circle"
+    emulator_icon = "mdi:cloud-circle"
 
     ##Updates of (at least) the temperature seem to not happen?
 
@@ -3430,8 +3423,7 @@ class WeatherForecast(HAelement, base.TileElement, base._IntervalUpdate):
     
     _restricted_element_properties = {"time_format", "weather_data", "entity"}
 
-    @property
-    def _emulator_icon(cls): return "mdi:cloud-download"
+    emulator_icon = "mdi:cloud-download"
 
     def __init__(self, entity, orientation : Literal["horizontal","vertical"] = "horizontal", num_forecasts : int = 5, skip_forecasts : Union[int,Literal["now"]] = 0,
                 forecast_type : Literal["daily", "hourly", "twice_daily"] = "daily", forecast_data : Union[Literal["datetime"], WeatherData] = ["datetime", "temperature", "precipitation", "precipitation_probability"], 
@@ -4073,8 +4065,7 @@ class EntityTimer(HAelement, base.TileElement):
     def tiles(cls):
         return ("icon", "title", "timer", "timer-slider", "timer-countdown", "duration")
 
-    @property
-    def _emulator_icon(cls): return "mdi:clock-star-four-points"
+    emulator_icon = "mdi:clock-star-four-points"
 
     @classproperty
     def action_shorthands(cls) -> dict[str,Callable[["base.Element", CoordType],Any]]:
@@ -4475,8 +4466,7 @@ class ClimateElement(HAelement, base.TileElement):
                 "vertical": "state-tile;thermostat;hvac-modes;presets",
                 "compact": "[state-tile,[hvac-modes;presets]];thermostat"}
 
-    @property
-    def _emulator_icon(cls): return "mdi:thermostat-box"
+    emulator_icon = "mdi:thermostat-box"
 
     @classproperty
     def tiles(cls):
