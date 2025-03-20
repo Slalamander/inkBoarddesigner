@@ -15,6 +15,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
 from PythonScreenStackManager.devices import FEATURES
+from PythonScreenStackManager.pssm.styles import Style
 
 from .widgets import Treeview, PSSMCanvas, BatteryFrame, BacklightFrame
 from . import functions as tk_functions
@@ -28,10 +29,12 @@ if TYPE_CHECKING:
     from inkBoarddesigner.emulator.device import Device
     from inkBoard import CORE
 
+    window: "DesignerWindow" = None
+    "The main window instance"
+
 _LOGGER = logging.getLogger(__name__)
 
-window: "DesignerWindow"
-"The main window instance"
+
 
 p = Path()
 
@@ -428,7 +431,7 @@ class TreeFrame(ttk.Frame):
                                 style=const.SCROLLBAR_STYLE)
         self.__scrollbar = scrollbar
 
-        self.__base_options = (const.NO_TREE_OPTION, const.ELEMENT_TREE_OPTION)
+        self.__base_options = const.DEFAULT_LIST_OPTIONS
         self.list_menu["values"] = self.__base_options
         self.list_menu.bind('<<ComboboxSelected>>', self._select_tree)
         
@@ -609,7 +612,7 @@ class ElementWindow(_AdditionalWindow):
         self._element = element
         title = f"{element.__class__.__name__}: {element.id}"
 
-        super().__init__(title, master=window,  **kwargs)
+        super().__init__(title, master = window,  **kwargs)
 
         elt_text = self.create_element_attribute_list()
 
@@ -648,17 +651,15 @@ class ElementWindow(_AdditionalWindow):
             val = getattr(elt,attr,False)
             if callable(getattr(elt,attr)):
                 continue
-            
-            if isinstance(val,(bool,str,int,float,dict,MappingProxyType, set, type(None))):
-                pass
-            elif isinstance(val,(list,tuple)):
-                t = type(val).__name__
-                val = str(val)
-                if len(val) > 50:
-                    val = f"{t}: [...]"
+
+            if Style.is_style_string(val):
+                ##Handle styling here and after the next if block
+                ##mainly to make lists readable
+                ##Just create a format function for that.
+                style_val = self.format_attr_string(Style.get_value(val, elt, attr))
+                val = f"{val} [{style_val}]"
             else:
-                val = val.__class__.__name__
-                v = val
+                val = self.format_attr_string(val)
 
             text = text + "\n" + "   " + f"{attr}: {val}"
         return text
@@ -673,6 +674,21 @@ class ElementWindow(_AdditionalWindow):
         if isinstance(self._element.imgData,Image.Image):
             img = self._element.imgData.copy()
             tk_functions.save_image(img, f"{self._element.id}_")
+
+    @staticmethod
+    def format_attr_string(value : Any):
+        if isinstance(value,(bool,str,int,float,dict,MappingProxyType, set, type(None))):
+            pass
+        elif isinstance(value,(list,tuple)):
+            t = type(value).__name__
+            value = str(value)
+            if len(value) > 50:
+                value = f"{t}: [...]"
+        else:
+                value = value.__class__.__name__
+        
+        return value
+        
 
 class DeviceWindow(_AdditionalWindow):
     

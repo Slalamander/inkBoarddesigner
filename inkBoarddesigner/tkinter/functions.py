@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
-from typing import *
+from typing import TYPE_CHECKING
+# from typing import
 from datetime import datetime as dt
 import webbrowser
 import tkinter as tk
@@ -34,7 +35,7 @@ if TYPE_CHECKING:
     from . import windows, widgets
     from .. import runners
 
-window: "DesignerWindow"
+    window: DesignerWindow = None
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -355,7 +356,9 @@ def validate_positive_number(value: str, widget_name: str):
     if value >= 0:
         w.set(str(value))
         ##This retrieves the actual command attached to the widget
-        cmd = lambda : window.tk.call(w['command'])
+        # cmd = lambda : window.tk.call(w['command'])
+        def cmd():
+            window.tk.call(w['command'])
         cmd()
         return True
     else:
@@ -370,7 +373,7 @@ def get_element_tree_icon(element: "Element"):
         ELEMENT_ICONS_TK["default"] = build_tree_icon(ELEMENT_ICONS_MDI["default"])
 
     elt_class = str(element.__class__.__name__)
-    elt_icon = element._emulator_icon
+    elt_icon = element.emulator_icon
     if ELEMENT_ICONS_MDI.get(elt_class,"not present") != elt_icon:
         icon = build_tree_icon(elt_icon)
         ELEMENT_ICONS_MDI[elt_class] = elt_icon

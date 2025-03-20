@@ -403,9 +403,12 @@ class Device(device.Device):
         self._updateWindowTask = asyncio.create_task(self._update_canvas_loop())
 
     async def _update_element_tree(self):
+        pssm_functions.build_element_tree(self.Screen)
+        pssm_functions.build_style_tree(self.Screen)
+        
         while self.Screen.printing:
-            pssm_functions.build_element_tree(self.Screen)
             await asyncio.sleep(5)
+            pssm_functions.build_element_tree(self.Screen)
 
     async def _update_canvas_loop(self):
 

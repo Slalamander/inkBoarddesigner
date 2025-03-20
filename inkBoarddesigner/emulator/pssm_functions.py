@@ -15,6 +15,7 @@ import inkBoard
 from inkBoard import CORE as CORE
 
 from PythonScreenStackManager import elements
+from PythonScreenStackManager.pssm.styles import Style, styleproperty
 
 from .. import const
 from ..settings import EM_SETTINGS
@@ -71,7 +72,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
 
     eltStack = screen.stack
 
-    treeview = tree_frame.get_tree("Elements")
+    treeview = tree_frame.get_tree(const.ELEMENT_TREE_OPTION)
 
     open_init = open_items
 
@@ -104,7 +105,7 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                             tk.END,
                             iid = iid,
                             text=eltname,
-                            values=(entity),
+                            values=(entity,),
                             image=icon,
                             open=open_init
                         )
@@ -304,7 +305,42 @@ def __tree_list_setting(var_name, var_index, mode):
     tree_frame.tree_tip.move_tip()
     tree_frame.tree_tip.hide_tip()
 
+@tkthread.called_on_main
+def build_style_tree(screen: "PSSMScreen"):
+    
+    styles = Style.base_style_tree
+    treeview = tree_frame.get_tree(const.STYLE_TREE_OPTION)
 
+    for elt_name, style_props in Style.base_style_tree.items():
+        elt_class = styleproperty._element_classes[elt_name]
+        if elt_class.emulator_icon not in tk_functions.MDI_TREE_ICONS:
+            icon = tk_functions.build_tree_icon(elt_class.emulator_icon)
+        else:
+            icon = tk_functions.MDI_TREE_ICONS[elt_class.emulator_icon]
+
+        if not style_props:
+            continue
+        elt_iid = elt_name
+        if not treeview.exists(elt_iid):
+            treeview.insert(
+                "",
+                tk.END,
+                iid = elt_iid,
+                text=elt_name,
+                image=icon,
+                open=False
+            )
+        for style_name, val in style_props.items():
+            iid = f"{elt_name}-{style_name}"
+            if not treeview.exists(iid):
+                    treeview.insert(
+                        elt_iid,
+                        tk.END,
+                        iid = iid,
+                        text=style_name,
+                        values = (val,),
+                        open=False
+                    )
 
 def import_funcs():
 

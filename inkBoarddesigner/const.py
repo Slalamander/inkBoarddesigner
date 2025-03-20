@@ -36,6 +36,7 @@ DARKMODE_VAR_NAME = "darkmode"
 
 LIST_VAR_NAME = "treeview-list-variable" ##Maybe this one not but will have to see obviously
 ELEMENT_TREE_OPTION = "Elements"
+STYLE_TREE_OPTION = "Styles"
 NO_TREE_OPTION = "None"
 
 CANVAS_NAME = CANVASNAME
@@ -95,7 +96,7 @@ SETTINGS_HEIGHT = int(INTERFACE_WIDTH*0.3)
 SETTINGS_WIDTH = int(INTERFACE_WIDTH/4)
 SETTINGS_PADDING = 5
 LIST_WIDTH = 20 #This value is gotten via trial and error, for an INTERFACE_WIDTH of 200; tkinter width's are just kind of an illusion generally
-DEFAULT_LIST_OPTIONS = ["None", "Elements"]
+DEFAULT_LIST_OPTIONS = (NO_TREE_OPTION, ELEMENT_TREE_OPTION, STYLE_TREE_OPTION)
 
 HA_FONT_NAME = "Quicksand-bold.ttf"
 HA_FONT_FILE = PSSM_FOLDER / "fonts" / HA_FONT_NAME

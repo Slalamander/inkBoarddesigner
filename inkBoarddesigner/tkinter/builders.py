@@ -112,7 +112,7 @@ def build_interface_buttons(interface_frame: ttk.Frame):
     window.interface_buttons = (screenshotButton, packButton, reloadButton, quitButton)
 
 
-def build_label_fill(root, size : tuple[Literal["w"],Literal["h"]], text:str, tiptext:str, var : tuple[tk.Variable,"function"]=(None,None), command=None):
+def build_label_fill(root, size : tuple[Literal["w"],Literal["h"]], text:str, tiptext:str, var : tuple[tk.Variable,"function"]=(None,None), command=None):  # noqa: F821
     w,h = size
 
     frame = LabelToggle(root,text=text,
@@ -131,7 +131,7 @@ def build_label_toggle(root, size : tuple[Literal["w"],Literal["h"]], text:str, 
     ToolTip(frame, text=tiptext,bootstyle=const.TOOLTIP_STYLE)
     return frame
 
-def build_label_icon(root,size : tuple[Literal["w"],Literal["h"]], text:str, tiptext:str, var : tuple[tk.Variable,"function"]=(None,None), command=""):
+def build_label_icon(root,size : tuple[Literal["w"],Literal["h"]], text:str, tiptext:str, var : tuple[tk.Variable,"function"]=(None,None), command=""):  # noqa: F821
     w,h = size
     icon = "mdi:cog"
     icon_size = int(h*0.75)
@@ -210,8 +210,17 @@ def build_tree_frame(frame: ttk.Frame):
     element_treeview.heading("entity", text="Entity", anchor="w")
     element_treeview.column("entity", width= floor(const.INTERFACE_WIDTH*0.475))
     
+    style_treeview = Treeview(ttk.Treeview(columns=("value"),))
+    style_treeview.heading("#0", text="Property", anchor="w")
+    style_treeview.column("#0", width= floor(const.INTERFACE_WIDTH*0.375)) ##Width and height are empty
+    style_treeview.heading("value", text="Value", anchor="w")
+    style_treeview.column("value", width= floor(const.INTERFACE_WIDTH*0.475))
+
     treeFrame._base_trees[const.ELEMENT_TREE_OPTION.lower()] = element_treeview
     treeFrame._element_tree = element_treeview
+
+    treeFrame._base_trees[const.STYLE_TREE_OPTION.lower()] = style_treeview
+    treeFrame._style_tree = style_treeview
     return
 
 
