@@ -712,29 +712,6 @@ class HAclient:
         #     self.websocketCondition.notify_all()
         # self.reconnect_client()
 
-    async def __watch_network(self):
-
-        network = CORE.device.network
-        _LOGGER.info("homeassistant is watching the network connection")
-        while CORE.stage > CORESTAGES.SETUP:
-            ssid = network.SSID
-            await network.triggerCondition.await_for_trigger(lambda : ssid != network.SSID)
-            new_ssid = network.SSID
-            _LOGGER.info(f"Home Assistant detected new network connected. Went from {ssid} to {new_ssid}")
-
-            if not new_ssid:
-                if not self.connectionTask.done():
-                    self.connectionTask.cancel("Device network has disconnected")
-            # elif new_ssid and not ssid:
-            elif new_ssid and (self.connectionTask.done() or not ssid):
-                _LOGGER.info("Connected to a network now. Starting connection logic")
-                await self.reconnect_client()
-            else:
-                ##Will add logic here perhaps to know when to restart?
-                ##I.e. if having to switch from internal to external url and vice versa
-                ##Picking the correct url will happen in the connect function though
-                pass
-
     async def __cleanup_websocket(self):
 
         _LOGGER.debug("Cleaning up websocket connection tasks")
@@ -776,6 +753,29 @@ class HAclient:
         while not self.messageQueue.empty():
             await self.messageQueue.get()
             self.messageQueue.task_done()
+
+    async def __watch_network(self):
+
+        network = CORE.device.network
+        _LOGGER.info("homeassistant is watching the network connection")
+        while CORE.stage > CORESTAGES.SETUP:
+            ssid = network.SSID
+            await network.triggerCondition.await_for_trigger(lambda : ssid != network.SSID)
+            new_ssid = network.SSID
+            _LOGGER.info(f"Home Assistant detected new network connected. Went from {ssid} to {new_ssid}")
+
+            if not new_ssid:
+                if not self.connectionTask.done():
+                    self.connectionTask.cancel("Device network has disconnected")
+            # elif new_ssid and not ssid:
+            elif new_ssid and (self.connectionTask.done() or not ssid):
+                _LOGGER.info("Connected to a network now. Starting connection logic")
+                await self.reconnect_client()
+            else:
+                ##Will add logic here perhaps to know when to restart?
+                ##I.e. if having to switch from internal to external url and vice versa
+                ##Picking the correct url will happen in the connect function though
+                pass
 
     async def _new_entities_subscribe(self, *entities):
 
