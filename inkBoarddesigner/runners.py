@@ -267,6 +267,7 @@ async def run_inkboard_thread(config_file):
         _LOGGER.debug(msg = f"{type(exce)} info:", exc_info=exce)
         window.set_inkboard_state("ERROR")
         window.set_progress_bar(value=ttk.DANGER, text=msg)
+        raise
     finally:
         if window._inkBoard_lock.locked():
             window._inkBoard_lock.release()
