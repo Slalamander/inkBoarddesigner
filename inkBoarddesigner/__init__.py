@@ -56,7 +56,7 @@ def run_designer(args):
 
     ib_logging.init_logging()
     debug = const.DEBUGGING
-    # debug = False
+    debug = False
 
     try:
         asyncio.run(async_run_designer(args), debug=debug)
