@@ -15,7 +15,7 @@ import ttkbootstrap as ttk
 from ttkbootstrap.tooltip import ToolTip
 
 from PythonScreenStackManager.devices import FEATURES
-from PythonScreenStackManager.pssm.styles import Style
+from PythonScreenStackManager.pssm.styles import Style, styleproperty
 
 from .widgets import Treeview, PSSMCanvas, BatteryFrame, BacklightFrame
 from . import functions as tk_functions
@@ -652,7 +652,7 @@ class ElementWindow(_AdditionalWindow):
             if callable(getattr(elt,attr)):
                 continue
 
-            if Style.is_style_string(val):
+            if Style.is_style_string(val) and isinstance(getattr(elt.__class__,attr,None), styleproperty):
                 ##Handle styling here and after the next if block
                 ##mainly to make lists readable
                 ##Just create a format function for that.
