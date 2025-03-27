@@ -13,6 +13,7 @@ from ttkbootstrap.tooltip import ToolTip
 
 import inkBoard
 from inkBoard import CORE as CORE
+from inkBoard.helpers import YAMLNodeDict
 
 from PythonScreenStackManager import elements
 from PythonScreenStackManager.pssm.styles import Style, styleproperty
@@ -49,6 +50,8 @@ _INDICATOR_RECTANGLES = []
 ui_frame: ttk.Frame = window.children[const.UI_FRAME_NAME]
 tree_frame: TreeFrame = ui_frame.children[const.TREE_FRAME_NAME]
 canvas: tk.Canvas = window.children[const.CANVAS_NAME]
+
+_elt_iids : dict[str,elements.Element] = {}
 
 tree_frame.last_hover = False
 
@@ -193,7 +196,8 @@ def element_tree_selected(tree: Treeview, event, iid):
     highlight_element(*eltList)
 
 def get_element(element_id) -> Optional[elements.Element]:
-    return CORE.screen.elementRegister.get(element_id,None)
+    # return CORE.screen.elementRegister.get(element_id,None)
+    return _ELEMENT_DICT[element_id]
 
 def tree_hover(tree, event, iid):
     if iid in CORE.screen.elementRegister:
@@ -311,7 +315,8 @@ def build_style_tree(screen: "PSSMScreen"):
     styles = Style.base_style_tree
     treeview = tree_frame.get_tree(const.STYLE_TREE_OPTION)
 
-    for elt_name, style_props in Style.base_style_tree.items():
+    for styleelt_name, style_props in Style.base_style_tree.items():
+        styleclass, elt_name = Style._split_style_class(styleelt_name)
         elt_class = styleproperty._element_classes[elt_name]
         if elt_class.emulator_icon not in tk_functions.MDI_TREE_ICONS:
             icon = tk_functions.build_tree_icon(elt_class.emulator_icon)
@@ -320,18 +325,36 @@ def build_style_tree(screen: "PSSMScreen"):
 
         if not style_props:
             continue
-        elt_iid = elt_name
+        elt_iid = styleclass
         if not treeview.exists(elt_iid):
-            treeview.insert(
-                "",
-                tk.END,
-                iid = elt_iid,
-                text=elt_name,
-                image=icon,
-                open=False
-            )
+            if elt_name == styleclass:
+                treeview.insert(
+                    "",
+                    tk.END,
+                    iid = styleclass,
+                    text=styleclass,
+                    image=icon,
+                    open=False
+                )
+            else:
+                if treeview.exists(elt_name):
+                    p_iid = treeview.index(elt_name) + 1
+                else:
+                    p_iid = tk.END
+                treeview.insert("",
+                    p_iid,
+                    iid = styleclass,
+                    text=styleclass,
+                    image=icon,
+                    open=False
+                )
         for style_name, val in style_props.items():
-            iid = f"{elt_name}-{style_name}"
+            iid = f"{styleclass}-{style_name}"
+            if isinstance(val, YAMLNodeDict):
+                val = val._convert()
+            img = {}
+            if e := styleproperty._element_classes.get(style_name,None):
+                img["image"] = tk_functions.build_tree_icon(e.emulator_icon)
             if not treeview.exists(iid):
                     treeview.insert(
                         elt_iid,
@@ -339,7 +362,8 @@ def build_style_tree(screen: "PSSMScreen"):
                         iid = iid,
                         text=style_name,
                         values = (val,),
-                        open=False
+                        open=False,
+                        **img
                     )
 
 def import_funcs():
