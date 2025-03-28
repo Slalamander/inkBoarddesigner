@@ -316,15 +316,18 @@ def build_style_tree(screen: "PSSMScreen"):
     treeview = tree_frame.get_tree(const.STYLE_TREE_OPTION)
 
     for styleelt_name, style_props in Style.base_style_tree.items():
-        styleclass, elt_name = Style._split_style_class(styleelt_name)
-        elt_class = styleproperty._element_classes[elt_name]
-        if elt_class.emulator_icon not in tk_functions.MDI_TREE_ICONS:
-            icon = tk_functions.build_tree_icon(elt_class.emulator_icon)
-        else:
-            icon = tk_functions.MDI_TREE_ICONS[elt_class.emulator_icon]
-
         if not style_props:
             continue
+
+        styleclass, elt_name = Style._split_style_class(styleelt_name)
+        elt_class = styleproperty._element_classes[elt_name]
+        if not hasattr(elt_class, "emulator_icon"):
+            kw = {}
+        elif elt_class.emulator_icon not in tk_functions.MDI_TREE_ICONS:
+            kw= {"image": tk_functions.build_tree_icon(elt_class.emulator_icon)}
+        else:
+            kw = {"image": tk_functions.MDI_TREE_ICONS[elt_class.emulator_icon]}
+
         elt_iid = styleclass
         if not treeview.exists(elt_iid):
             if elt_name == styleclass:
@@ -332,9 +335,9 @@ def build_style_tree(screen: "PSSMScreen"):
                     "",
                     tk.END,
                     iid = styleclass,
-                    text=styleclass,
-                    image=icon,
-                    open=False
+                    text = styleclass,
+                    open=False,
+                    **kw
                 )
             else:
                 if treeview.exists(elt_name):
@@ -345,8 +348,8 @@ def build_style_tree(screen: "PSSMScreen"):
                     p_iid,
                     iid = styleclass,
                     text=styleclass,
-                    image=icon,
-                    open=False
+                    open=False,
+                    **kw
                 )
         for style_name, val in style_props.items():
             iid = f"{styleclass}-{style_name}"
