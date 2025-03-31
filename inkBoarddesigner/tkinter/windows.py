@@ -638,6 +638,8 @@ class ElementWindow(_AdditionalWindow):
         
         elt = self._element
         text = ""
+        d_set = {}
+        d_else = {}
         for attr in dir(elt):
             if attr[0] == "_":
                 continue
@@ -647,10 +649,11 @@ class ElementWindow(_AdditionalWindow):
 
             if not hasattr(elt,attr):
                 continue
-
+            
             val = getattr(elt,attr,False)
             if callable(getattr(elt,attr)):
                 continue
+            class_attr = getattr(elt.__class__, attr, None)
 
             if Style.is_style_string(val) and isinstance(getattr(elt.__class__,attr,None), styleproperty):
                 ##Handle styling here and after the next if block
@@ -660,8 +663,21 @@ class ElementWindow(_AdditionalWindow):
                 val = f"{val} [{style_val}]"
             else:
                 val = self.format_attr_string(val)
+            
+            if isinstance(class_attr, property) and class_attr.fset:
+                d_set[attr] = val
+            else:
+                d_else[attr] = val
 
+        for attr, val in d_set.items():
             text = text + "\n" + "   " + f"{attr}: {val}"
+
+        for attr, val in d_else.items():
+            text = text + "\n" + "   " + f"{attr}: {val}"
+        
+        ##Sorting properties:
+        ##settable up top, alphabetically.
+        ##Then: anything that is settable? or classproperties
         return text
 
     def show_element_image(self, *args):
