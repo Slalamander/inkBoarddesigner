@@ -22,6 +22,8 @@ if TYPE_CHECKING:
     from ..emulator.device import Device
 
     from PythonScreenStackManager.elements import Element
+    window: "DesignerWindow" = None
+
 
 _LOGGER = logging.getLogger(__package__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -29,7 +31,7 @@ _LOGGER.setLevel(logging.DEBUG)
 _LOGGER = logging.getLogger(__package__)
 _LOGGER.setLevel(logging.DEBUG)
 
-window: "DesignerWindow"
+
 
 class LabelToggle(ttk.Labelframe):
 
@@ -204,7 +206,7 @@ class Treeview(ttk.Treeview):
         
         if _iid != self.last_hover:
             _LOGGER.verbose(f"Hovered over iid {_iid}")
-            if self.last_hover:
+            if self.last_hover and self.exists(self.last_hover):
                 self.tooltip.hide_tip()
                 self.item(self.last_hover, tags=[])
             self.item(_iid, tags=[const.HOVER_TAG])
@@ -215,8 +217,9 @@ class Treeview(ttk.Treeview):
         self.tooltip.hide_tip()
         if self.last_hover:
             self.tooltip.hide_tip()
-            self.item(self.last_hover, tags=[])
-            self.last_hover = None
+            if self.exists(self.last_hover):
+                self.item(self.last_hover, tags=[])
+        self.last_hover = None
         return
     
     def _click(self, event: tk.Event):
