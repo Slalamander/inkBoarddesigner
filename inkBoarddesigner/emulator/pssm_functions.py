@@ -86,6 +86,10 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
         else:
             eltList = layoutElt.create_element_list()
 
+        eltiid_list = [elt.id for elt in eltList]        
+        rem_iids = [iid for iid in treeview.get_children(parentiid) if iid not in eltiid_list]
+        if rem_iids:
+            treeview.delete(*rem_iids)
 
         for elt in eltList:
             elt : elements.Layout
@@ -120,8 +124,8 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
                         treeview.reattach(iid, parentiid, tk.END)
             else:
                 iid = parentiid
-
             if isinstance(elt,elements.Layout) or getattr(elt,"isLayout", False):
+                
                 make_layout_tree(elt, iid)
 
     for elt in eltStack:
@@ -165,19 +169,18 @@ def build_element_tree(screen: "PSSMScreen", open_items: bool = False):
             iid = elt.id
             entity = getattr(elt,"entity","None")
 
-            if iid in treeview.get_children():
-                treeview.delete(iid)
+            if not treeview.exists(iid):
+                treeview.insert(
+                    "",
+                    tk.END,
+                    iid = iid,
+                    text = eltname,
+                    values=(entity),
+                    image = icon,
+                    open = open_init
+                )
 
-            treeview.insert(
-                "",
-                tk.END,
-                iid = iid,
-                text = eltname,
-                values=(entity),
-                image = icon,
-                open = open_init
-            )
-            _ELEMENT_DICT[iid] = elt
+                _ELEMENT_DICT[iid] = elt
             if isinstance(elt,elements.Layout) or getattr(elt,"isLayout", False):
                 make_layout_tree(elt, iid)
 
