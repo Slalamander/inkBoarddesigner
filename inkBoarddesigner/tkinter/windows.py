@@ -760,7 +760,7 @@ class DeviceWindow(_AdditionalWindow):
             text = f"{text}\n    {t}: {str(val)}"
         
         feature_text = ""
-        for feature, val in asdict(device._features).items():
+        for feature, val in device._features._asdict().items():
             if val: 
                 if feature_text:
                     feature_text = f"{feature_text}, {feature}"
