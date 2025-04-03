@@ -583,12 +583,12 @@ class Backlight(windowed.Backlight):
         self._level = level
 
     async def __transition(self,brightness : int, transition: float):
-        if not self.transitionTask.done():
-            self.transitionTask.cancel("New transition received")
+        if not self._transitionTask.done():
+            self._transitionTask.cancel("New transition received")
 
-        self.transitionTask = asyncio.create_task( self.__async_transition(brightness, transition))
+        self._transitionTask = asyncio.create_task( self.__async_transition(brightness, transition))
         try:
-            await self.transitionTask #@IgnoreException
+            await self._transitionTask #@IgnoreException
         except asyncio.CancelledError as exce:
             _LOGGER.debug(f"Transition task to {brightness}% in {transition} seconds was cancelled")
         if self._device.parentPSSMScreen.printing:
