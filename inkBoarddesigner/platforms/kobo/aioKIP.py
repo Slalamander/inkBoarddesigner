@@ -285,23 +285,38 @@ class InputQueue(asyncio.Queue):
 
         ##canonical 0 is upright portrait, which will be considered the general starting point BUT device has 0 rota
         rota = fbink.current_rota
+        rota_map = {0: 90, 1: 0, 2: 270, 3: 180}
         rx = x
         ry = y
-        if rota == 0:
+
+        ##Use the rotation map for this, and map integer to UR, UL etc.?
+        ##Or well, need to map this to what the "normalized" position is for a device
+        ##Also, figure out what is faster (and if it is really a good timesave):
+        ##Setting the function when rotating (and sort of hardcoding the rotation map), or keeping this code which is more flexible and less errror prone
+
+        ##So, I think, make a map/dict that puts them in degrees (just to differentiate them more easily)
+        ##With keys for each device being 0,1,2,3 and values being the rotation.
+        ##Base, for Kobo Glo i.e. : {0: 0, 1: 270, 2: 180, 3: 90}
+        ##From debugging with domotictic, for a LibraH2O, it would be: {0: 90, 1: 0, 2: 270, 3: 180}
+
+        ##note when setting up maps: the rotation of the coordinates happens THE OTHER WAY from the device rotation
+        ##I.e. when rotated CW, the device was rotated -90degrees; i.e. to rotate the coordinates back to the correct reference frame, they need to be rotated 90degrees.
+        if rota_map[rota] == 0:
             ##No need to transpose them
             rx = x
             ry = y
-        elif rota == 1:
+        elif rota_map[rota] == 90:
             rx = y
             ry = fbink.screen_height - x
-        elif rota == 2:
+        elif rota_map[rota] == 180:
             rx = fbink.screen_width - x
             ry = fbink.screen_height - y
-        elif rota == 3:
+        elif rota_map[rota] == 270:
             rx = fbink.screen_width - y
             ry = x
 
-        _LOGGER.log(VERBOSE, f"Rotation of {rota} (Canonical: {fbink.current_rota_canonical}), Original (x,y): {(x,y)}, rotated to (rx,ry): {(rx, ry)}.")
+        ##Maybe put this as debug level
+        _LOGGER.log(VERBOSE, f"Rotation of {rota}={rota_map[rota]}° (Canonical: {fbink.current_rota_canonical}), Original (x,y): {(x,y)}, rotated to (rx,ry): {(rx, ry)}.")
         return (rx, ry)
 
     async def _wait_for_event_dispatch(self):
