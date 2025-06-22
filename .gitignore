@@ -13,5 +13,7 @@ secrets.yml
 settings.json
 inkBoarddesigner/files/settings.ini
 
+*.log
+*.log.*
 examples/*.zip
 examples/*.yaml
