@@ -1,4 +1,5 @@
 "Runners for various important functions of the designer."
+#  ruff: noqa: E402
 
 import tkthread
 
